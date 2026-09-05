@@ -1,0 +1,58 @@
+# ui - layer 3. The only module permitted to link Qt GUI (see KeysModule.cmake).
+
+qt_add_library(keys_ui STATIC)
+add_library(Keys::ui ALIAS keys_ui)
+
+qt_add_qml_module(keys_ui
+    URI Keys.Ui
+    VERSION 1.0
+    OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/qml/Keys/Ui
+
+    SOURCES
+        AppController.cpp
+        AppController.h
+        Metrics.h
+        OklchColor.cpp
+        OklchColor.h
+        Theme.cpp
+        Theme.h
+
+    QML_FILES
+        qml/Main.qml
+        qml/ActivityRail.qml
+        qml/EditorArea.qml
+        qml/Icon.qml
+        qml/IconButton.qml
+        qml/Keycap.qml
+        qml/Sidebar.qml
+        qml/StatusBar.qml
+        qml/TopBar.qml
+)
+
+# QML-declared singletons must be marked as such, or the module registers them as
+# ordinary types and every reference resolves to undefined at runtime.
+set_source_files_properties(
+    qml/Fonts.qml
+    qml/Icons.qml
+    PROPERTIES QT_QML_SINGLETON_TYPE TRUE
+)
+
+qt_target_qml_sources(keys_ui
+    QML_FILES
+        qml/Fonts.qml
+        qml/Icons.qml
+)
+
+target_include_directories(keys_ui PUBLIC "${CMAKE_SOURCE_DIR}/src")
+
+target_link_libraries(keys_ui PUBLIC
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Quick
+    Qt6::QuickControls2
+    Keys::core
+    Keys::config
+)
+
+set_target_properties(keys_ui PROPERTIES FOLDER "Modules")
+keys_apply_compile_options(keys_ui)
