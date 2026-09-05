@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!--
+    The Keys mark, optically sized for 16 and 20 pixels.
+
+    At those sizes the full mark's keycap outline and caret fall within two or
+    three pixels of each other and merge into noise - which is precisely the size
+    a user looks at all day in the taskbar. This variant drops the keycap
+    entirely and keeps only the caret, drawn heavier and larger so it survives
+    the pixel grid.
+
+    This is optical sizing, not a different logo: same tile, same colour, same
+    caret angle. At a glance in a taskbar the two read as the same mark, which is
+    the point - the small version simply removes detail that cannot be resolved
+    rather than shrinking detail into mush.
+
+    Compare with keys-mark.svg, used at 24px and above.
+  -->
+  <title>Keys</title>
+
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6f9dd2"/>
+      <stop offset="1" stop-color="#5183ba"/>
+    </linearGradient>
+
+    <mask id="cut">
+      <rect x="0" y="0" width="512" height="512" fill="#fff"/>
+
+      <!--
+        Larger and heavier than the full mark's caret: at 16px this stroke lands
+        on roughly two device pixels, which is the minimum that renders as a
+        deliberate shape rather than a grey smear.
+      -->
+      <path d="M 196 156 L 316 256 L 196 356"
+            fill="none" stroke="#000" stroke-width="62"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </mask>
+  </defs>
+
+  <rect x="30" y="30" width="452" height="452" rx="102" ry="102"
+        fill="url(#tile)" mask="url(#cut)"/>
+</svg>

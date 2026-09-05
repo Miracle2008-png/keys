@@ -48,6 +48,17 @@ qt_target_qml_sources(keys_ui
         qml/Icons.qml
 )
 
+# The mark ships inside the binary so the window icon and the QML logo come from
+# one source and cannot drift apart, and so a stray file on disk cannot change
+# the application's identity.
+qt_add_resources(keys_ui "keys_branding"
+    PREFIX "/branding"
+    BASE "${CMAKE_SOURCE_DIR}/resources/icons"
+    FILES
+        "${CMAKE_SOURCE_DIR}/resources/icons/keys-mark.svg"
+        "${CMAKE_SOURCE_DIR}/resources/icons/generated/keys-256.png"
+)
+
 target_include_directories(keys_ui PUBLIC "${CMAKE_SOURCE_DIR}/src")
 
 target_link_libraries(keys_ui PUBLIC
@@ -56,6 +67,7 @@ target_link_libraries(keys_ui PUBLIC
     Qt6::Quick
     Qt6::QuickControls2
     Qt6::QuickDialogs2
+    Qt6::Svg
     Keys::core
     Keys::config
     Keys::workspace

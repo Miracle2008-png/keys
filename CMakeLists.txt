@@ -12,7 +12,7 @@ include(KeysOptions)
 include(KeysCompiler)
 include(KeysModule)
 
-find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 QuickDialogs2 Concurrent)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 QuickDialogs2 Svg Concurrent)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
@@ -29,10 +29,15 @@ add_subdirectory(src/workspace)
 add_subdirectory(src/ui)
 add_subdirectory(src/app)
 
+add_subdirectory(tools)
+
 if(KEYS_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()
+
+# Packaging last: the install rules it defines refer to targets declared above.
+include(KeysPackaging)
 
 message(STATUS "")
 message(STATUS "Keys ${PROJECT_VERSION}")

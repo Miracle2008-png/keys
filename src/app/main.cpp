@@ -10,6 +10,7 @@
 #include "workspace/Workspace.h"
 
 #include <QGuiApplication>
+#include <QIcon>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickStyle>
@@ -59,6 +60,11 @@ int main(int argc, char* argv[])
     // application, so setting both to "Keys" would put settings in Keys/Keys/.
     // The domain is still set because Qt uses it for platform integration.
     QGuiApplication::setOrganizationDomain(QStringLiteral("keys.dev"));
+
+    // Alt-Tab and the taskbar read this for the running process. On Windows the
+    // executable also carries the icon as a resource, which is what Explorer and
+    // pinned shortcuts use; both come from the same rendered mark.
+    QGuiApplication::setWindowIcon(QIcon(QStringLiteral(":/branding/generated/keys-256.png")));
 
     // Keys draws its own chrome from the design's tokens; a platform style would
     // fight it. Basic is the neutral, non-styling baseline.

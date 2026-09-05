@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!--
+    The Keys mark.
+
+    A rounded accent tile carrying a keycap: the square outline of a key with a
+    caret cut through it. It reads as a key (the product name), as a keyboard
+    key (what the product is used with), and as a caret in a frame (an editor) -
+    three readings that all point the same way, which is what a mark should do.
+
+    This replaces a plain knocked-out square. That version was geometrically
+    faithful to the design's small header lozenge but said nothing about the
+    product at icon size, and read as a stop button rather than an editor.
+
+    Everything is proportional to the 512 grid so each rendered size is the same
+    shape, not a resampled bitmap:
+      - tile          : inset 30, corner radius 102 (Windows/macOS-ish squircle)
+      - keycap        : inset 148 from the tile, radius 34, stroke 26
+      - caret         : centred, stroke 30, round caps and joins
+
+    The keycap and caret are knocked out of the tile as one even-odd path, so the
+    mark is a single filled shape with real holes. That keeps it legible on any
+    surface - light taskbar, dark dock, coloured installer header - with no halo
+    and no background assumption.
+
+    Colour is the design's dark-theme accent, oklch(0.64 0.1 252) -> #5e90c7,
+    and stays the same in every context so the icon remains recognisable.
+  -->
+  <title>Keys</title>
+
+  <defs>
+    <!--
+      A restrained vertical lift, about one OKLCH lightness step top to bottom.
+      Enough to read as a surface at 512px, and it collapses to a flat accent at
+      16px rather than turning muddy.
+    -->
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6f9dd2"/>
+      <stop offset="1" stop-color="#5183ba"/>
+    </linearGradient>
+
+    <!--
+      The knocked-out artwork, built as strokes and flattened to a mask. Drawing
+      it as a mask rather than hand-computing outline paths keeps the geometry
+      readable and adjustable; the renderer does the outlining.
+    -->
+    <mask id="cut">
+      <!-- White keeps the tile; black cuts through it. -->
+      <rect x="0" y="0" width="512" height="512" fill="#fff"/>
+
+      <!-- Keycap outline. -->
+      <rect x="148" y="148" width="216" height="216" rx="34" ry="34"
+            fill="none" stroke="#000" stroke-width="26"/>
+
+      <!-- Caret inside the keycap: the editor reading. -->
+      <path d="M 226 214 L 286 256 L 226 298"
+            fill="none" stroke="#000" stroke-width="30"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </mask>
+  </defs>
+
+  <rect x="30" y="30" width="452" height="452" rx="102" ry="102"
+        fill="url(#tile)" mask="url(#cut)"/>
+</svg>

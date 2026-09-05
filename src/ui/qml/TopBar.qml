@@ -29,22 +29,20 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             spacing: Metrics.spacingSmall
 
-            // The Keys mark: an accent square with the chrome color punched out.
-            Rectangle {
+            // The Keys mark, from the same SVG the application icon is rendered
+            // from - so the logo in the window and the icon in the taskbar are
+            // the same artwork rather than two drawings that can drift apart.
+            Image {
                 anchors.verticalCenter: parent.verticalCenter
+                source: "qrc:/branding/keys-mark.svg"
+                sourceSize.width: 18
+                sourceSize.height: 18
                 width: 18
                 height: 18
-                radius: 5
-                color: Theme.accent
-
-                Rectangle {
-                    x: 5
-                    y: 5
-                    width: 8
-                    height: 8
-                    radius: 2
-                    color: Theme.bgChrome
-                }
+                // Rendered at the device's real pixel density, not scaled up
+                // from a logical-pixel raster.
+                mipmap: true
+                smooth: true
             }
 
             Text {

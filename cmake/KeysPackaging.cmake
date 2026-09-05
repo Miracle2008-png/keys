@@ -1,0 +1,233 @@
+# Packaging: turns a built tree into an installer.
+#
+#     cmake --build build --target package
+#
+# The install rules below define what ships. They are deliberately separate from
+# the build's own output layout: the build tree is organised for developers, the
+# install tree for users, and conflating the two is how installers end up
+# shipping test binaries and stale artefacts.
+
+include(GNUInstallDirs)
+
+if(WIN32)
+    # Cached, so it is found once and visible to both this file and src/app.
+    find_program(KEYS_WINDEPLOYQT windeployqt
+        HINTS "${QT6_INSTALL_PREFIX}/bin" "${Qt6_DIR}/../../../bin")
+    if(NOT KEYS_WINDEPLOYQT)
+        message(FATAL_ERROR
+            "windeployqt was not found. It is required to produce a runnable package.")
+    endif()
+endif()
+
+# ---- What gets installed ----------------------------------------------------
+
+install(TARGETS keys
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    BUNDLE  DESTINATION .
+)
+
+# The Visual C++ runtime DLLs keys.exe links against: MSVCP140 and VCRUNTIME140.
+# Shipping these three files (about 1 MB) rather than the 24 MB redistributable
+# installer keeps the download small while still working on a machine that has
+# never had Visual Studio or a redistributable installed.
+#
+# SKIP_INSTALL_RULES because this module's own rule targets the install root;
+# the explicit rule below puts them beside the executable, where Windows looks
+# for them first.
+if(WIN32)
+    set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP ON)
+    set(CMAKE_INSTALL_UCRT_LIBRARIES OFF)
+    include(InstallRequiredSystemLibraries)
+
+    install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS}
+            DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif()
+
+# The Qt runtime, QML modules and platform plugins the application needs.
+#
+# windeployqt is invoked directly rather than through
+# qt_generate_deploy_qml_app_script.
+#
+# That helper discovers QML imports by scanning .qml files on disk. Every Keys
+# QML file is compiled into the executable as a resource, so the scan finds
+# nothing: the install tree got an empty qml/ directory and the application
+# failed at startup with "module QtQuick is not installed".
+#
+# Running the tool once, over the whole install tree, with --qmldir pointing at
+# the QML sources, is what makes deployment correct. One pass matters: an earlier
+# attempt ran the helper and then windeployqt afterwards, and the second pass
+# copied the QtQuick.Controls style plugin without resolving its own
+# dependencies, leaving Qt6QuickControls2Basic.dll missing and the application
+# still unable to start.
+#
+# --no-translations   Qt's own UI strings for 32 languages; Keys ships English
+#                     only, so they translate nothing the user sees.
+# --no-opengl-sw      Mesa's 20 MB software rasteriser. Keys renders through
+#                     Qt RHI on Direct3D; software GL could not run the editor
+#                     acceptably anyway.
+# --no-compiler-runtime  the 24 MB vc_redist installer. The three runtime DLLs
+#                     Keys actually links against are installed above, at about
+#                     1 MB.
+install(CODE "
+    execute_process(
+        COMMAND \"${KEYS_WINDEPLOYQT}\"
+                --release
+                --no-translations
+                --no-system-d3d-compiler
+                --no-opengl-sw
+                --no-compiler-runtime
+                --qmldir \"${CMAKE_SOURCE_DIR}/src/ui/qml\"
+                --dir \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}\"
+                \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/keys.exe\"
+        RESULT_VARIABLE keys_deploy_result
+        OUTPUT_QUIET
+    )
+    if(NOT keys_deploy_result EQUAL 0)
+        message(FATAL_ERROR
+            \"windeployqt failed (\${keys_deploy_result}). The package would not run.\")
+    endif()
+    message(STATUS \"Packaging: deployed the Qt runtime\")
+")
+
+
+# Trim what the deployment tool includes by default but this application does
+# not use. Every entry here was found by inspecting an actual install tree and
+# checking its size, not guessed at.
+#
+#   plugins/qmltooling/    11 files - the QML debugger, inspector and profiler.
+#                          Development tools. A release build must not ship a
+#                          debug server that listens for connections at all.
+#   bin/vc_redist.x64.exe  24.4 MB - the full Visual C++ redistributable
+#                          installer. keys.exe genuinely needs MSVCP140.dll and
+#                          VCRUNTIME140*.dll (confirmed with dumpbin), but those
+#                          three DLLs are installed directly by the
+#                          InstallRequiredSystemLibraries block below, at about
+#                          1 MB rather than 24. Removing this without that block
+#                          would produce an installer that fails on any machine
+#                          without VC++ already present.
+#   bin/opengl32sw.dll     19.7 MB - Mesa's software OpenGL fallback, for
+#                          machines with no working GPU driver. Keys targets
+#                          Direct3D through Qt RHI on Windows; a software
+#                          rasteriser could not run the editor acceptably
+#                          anyway, so shipping it trades 20 MB for a path
+#                          nobody would want to be on.
+install(CODE [[
+    set(keys_unwanted_directories
+        "plugins/qmltooling"
+        "bin/plugins/qmltooling"
+        "translations"
+        "bin/translations"
+    )
+    foreach(directory IN LISTS keys_unwanted_directories)
+        if(EXISTS "${CMAKE_INSTALL_PREFIX}/${directory}")
+            file(REMOVE_RECURSE "${CMAKE_INSTALL_PREFIX}/${directory}")
+            message(STATUS "Packaging: removed ${directory}")
+        endif()
+    endforeach()
+
+    # Qt Controls styles Keys never loads. main() pins the Basic style, so the
+    # design's tokens are not overridden by a platform theme - the other four
+    # styles are around 10 MB of code that can never execute.
+    #
+    # Removed here rather than suppressed at deploy time: windeployqt has no flag
+    # that drops the extra styles while keeping Basic, and this way the removal
+    # is explicit about which style survives.
+    foreach(style FluentWinUI3 Imagine Material Universal Fusion)
+        file(REMOVE_RECURSE
+            "${CMAKE_INSTALL_PREFIX}/bin/qml/QtQuick/Controls/${style}")
+        file(REMOVE
+            "${CMAKE_INSTALL_PREFIX}/bin/Qt6QuickControls2${style}.dll"
+            "${CMAKE_INSTALL_PREFIX}/bin/Qt6QuickControls2${style}StyleImpl.dll")
+    endforeach()
+
+    set(keys_unwanted_files
+        "bin/vc_redist.x64.exe"
+        "bin/opengl32sw.dll"
+    )
+    foreach(unwanted IN LISTS keys_unwanted_files)
+        if(EXISTS "${CMAKE_INSTALL_PREFIX}/${unwanted}")
+            file(REMOVE "${CMAKE_INSTALL_PREFIX}/${unwanted}")
+            message(STATUS "Packaging: removed ${unwanted}")
+        endif()
+    endforeach()
+]])
+
+# ---- Package metadata -------------------------------------------------------
+
+set(CPACK_PACKAGE_NAME "Keys")
+set(CPACK_PACKAGE_VENDOR "Keys")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${PROJECT_DESCRIPTION}")
+set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/Miracle2008-png/keys")
+
+# Installs to "Keys", not "Keys 0.1.0": an upgrade should replace the previous
+# version in place rather than accumulating a directory per release.
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "Keys")
+set(CPACK_PACKAGE_FILE_NAME "Keys-${PROJECT_VERSION}-windows-x64")
+
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
+set(CPACK_PACKAGE_EXECUTABLES "keys" "Keys")
+set(CPACK_CREATE_DESKTOP_LINKS "keys")
+
+set(CPACK_STRIP_FILES ON)
+
+if(WIN32)
+    set(CPACK_GENERATOR "NSIS")
+
+    set(CPACK_NSIS_PACKAGE_NAME "Keys")
+    set(CPACK_NSIS_DISPLAY_NAME "Keys")
+    set(CPACK_NSIS_INSTALLED_ICON_NAME "bin\\\\keys.exe")
+    set(CPACK_NSIS_URL_INFO_ABOUT "${CPACK_PACKAGE_HOMEPAGE_URL}")
+
+    # The installer's own icon, and the icons for its shortcuts. Backslashes are
+    # doubled because the path passes through CMake and then NSIS script.
+    set(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/resources/icons/generated/keys.ico")
+    set(CPACK_NSIS_MUI_UNIICON "${CMAKE_SOURCE_DIR}/resources/icons/generated/keys.ico")
+
+    # Offer to launch after installing, the way a desktop application should.
+    set(CPACK_NSIS_MUI_FINISHPAGE_RUN "keys.exe")
+
+    # CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL is deliberately NOT set.
+    #
+    # The generated .onInit for it reads:
+    #
+    #     StrCmp "ON" "ON" 0 inst
+    #     ReadRegStr $0 HKLM "...\Uninstall\Keys" "UninstallString"
+    #     StrCmp $0 "" inst
+    #     ...
+    #     ExecWait '"$0" /S _?=$3'
+    #     IfErrors uninst_failed inst
+    #
+    # The guard compares a literal to itself, so it always falls through to the
+    # uninstall path. On a machine with no previous install the registry read
+    # yields an empty string, ExecWait on it sets the error flag, and the
+    # installer stops with "Uninstall failed." and exit code 2 - every install
+    # on a clean machine fails, which is precisely the case that matters most.
+    #
+    # Upgrades are handled instead by CPACK_NSIS_INSTALL_ROOT staying constant:
+    # a new version installs over the previous one in the same directory, and
+    # the uninstaller shipped with it removes what it recorded.
+    set(CPACK_NSIS_MODIFY_PATH OFF)
+
+    # Install per user, into %LOCALAPPDATA%\Programs\Keys, with no elevation.
+    #
+    # CPack's default is Program Files, which forces a UAC prompt. For a
+    # developer tool that is the wrong trade: administrator rights are not
+    # needed to run an editor, a machine-wide install is not wanted when several
+    # versions may coexist, and requiring elevation blocks anyone on a managed
+    # machine from installing at all.
+    #
+    # `user` also makes the install scriptable - CI and unattended setups can run
+    # it with /S, which an admin-level installer cannot do without elevation.
+    set(CPACK_NSIS_DEFINES "RequestExecutionLevel user")
+    set(CPACK_NSIS_INSTALL_ROOT "$LOCALAPPDATA\\\\Programs")
+
+    # A Desktop shortcut alongside the Start Menu entry. CPack creates the Start
+    # Menu one from CPACK_PACKAGE_EXECUTABLES; the desktop link needs these hooks.
+    set(CPACK_NSIS_CREATE_ICONS_EXTRA
+        "CreateShortCut '$DESKTOP\\\\Keys.lnk' '$INSTDIR\\\\bin\\\\keys.exe'")
+    set(CPACK_NSIS_DELETE_ICONS_EXTRA
+        "Delete '$DESKTOP\\\\Keys.lnk'")
+endif()
+
+include(CPack)
