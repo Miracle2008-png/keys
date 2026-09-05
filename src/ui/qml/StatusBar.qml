@@ -25,6 +25,54 @@ Rectangle {
             font.family: Fonts.ui
             font.pointSize: Metrics.fontSizeLabel
         }
+
+        // The branch, and how far it has diverged. Shown only inside a
+        // repository - the status bar carries state that is true, so a project
+        // without git shows nothing here rather than a dash.
+        Row {
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 5
+            visible: SourceControl.hasRepository
+
+            Icon {
+                anchors.verticalCenter: parent.verticalCenter
+                source: Icons.git
+                size: 12
+                color: "white"
+            }
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: SourceControl.branch
+                color: "white"
+                font.family: Fonts.ui
+                font.pointSize: Metrics.fontSizeLabel
+            }
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: SourceControl.hasUpstream
+                         && (SourceControl.ahead > 0 || SourceControl.behind > 0)
+                text: (SourceControl.behind > 0 ? "↓" + SourceControl.behind : "")
+                      + (SourceControl.ahead > 0 && SourceControl.behind > 0 ? " " : "")
+                      + (SourceControl.ahead > 0 ? "↑" + SourceControl.ahead : "")
+                color: "white"
+                opacity: 0.85
+                font.family: Fonts.ui
+                font.pointSize: Metrics.fontSizeLabel
+            }
+
+            // Pending changes, so the count is visible without opening the panel.
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: SourceControl.count > 0
+                text: "· " + SourceControl.count
+                color: "white"
+                opacity: 0.85
+                font.family: Fonts.ui
+                font.pointSize: Metrics.fontSizeLabel
+            }
+        }
     }
 
     Row {

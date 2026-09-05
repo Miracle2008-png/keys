@@ -69,6 +69,11 @@ Item {
                     visible: App.activeView === "explorer" && App.hasProject
                 }
 
+                SourceControlPanel {
+                    anchors.fill: parent
+                    visible: App.activeView === "sourceControl" && App.hasProject
+                }
+
                 Text {
                     anchors.left: parent.left
                     anchors.leftMargin: Metrics.spacingMedium
@@ -91,7 +96,9 @@ Item {
                     anchors.rightMargin: Metrics.spacingMedium
                     anchors.top: parent.top
                     anchors.topMargin: Metrics.spacingSmall
-                    visible: App.hasProject && App.activeView !== "explorer"
+                    visible: App.hasProject
+                             && App.activeView !== "explorer"
+                             && App.activeView !== "sourceControl"
                     text: qsTr("Not implemented yet.")
                     color: Theme.textTertiary
                     font.family: Fonts.ui

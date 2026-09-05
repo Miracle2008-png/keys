@@ -1,7 +1,10 @@
 #pragma once
 
 #include <QObject>
+#include <QThread>
 #include <QThreadPool>
+
+#include <atomic>
 
 #include <functional>
 #include <memory>
@@ -45,22 +48,59 @@ public:
     /// thread that owns `receiver`. This is the safe way to cross back to the UI:
     /// if `receiver` is destroyed before the work finishes, the completion is
     /// dropped rather than called on a dangling object.
+    ///
+    /// `work` itself is not cancelled — it runs to completion on the worker
+    /// regardless, so anything it captures by pointer must outlive it. A task
+    /// that needs a member of the receiver should capture a shared_ptr to it,
+    /// not a raw pointer. Only the delivery of the result is guarded.
     template <typename T>
     void postWithResult(QObject* receiver,
                         std::function<T()> work,
                         std::function<void(T)> onComplete,
                         Priority priority = Priority::Normal)
     {
-        // The guard is a QObject living on the receiver's thread. Deleting it with
-        // the receiver is what makes the late-completion case safe.
-        auto* guard = new QObject(receiver);
+        // Two pieces, because one is not enough.
+        //
+        // The obvious implementation - keep a pointer to the receiver and call
+        // invokeMethod on it when the work finishes - is a use-after-free. The
+        // receiver can be destroyed in the window between the worker deciding to
+        // deliver and invokeMethod reading the object to find its thread. A
+        // QPointer narrows that window but cannot close it: the check and the
+        // call are not atomic across threads.
+        //
+        // So delivery targets the receiver's *thread*, which outlives the objects
+        // affine to it. Whether to actually call `onComplete` is then decided by
+        // a flag held in a shared_ptr - cleared on the receiver's thread when it
+        // dies, and read on that same thread immediately before the call, so the
+        // two cannot interleave.
+        auto alive = std::make_shared<std::atomic_bool>(true);
+
+        // Cleared when the receiver dies. Connected on the receiver's thread, so
+        // the write and the read below are ordered by that thread's event loop.
+        QObject::connect(receiver, &QObject::destroyed, receiver,
+                         [alive] { alive->store(false); });
+
+        QThread* thread = receiver->thread();
+
         post(
-            [work = std::move(work), onComplete = std::move(onComplete), guard]() mutable {
+            [work = std::move(work), onComplete = std::move(onComplete), alive,
+             thread]() mutable {
                 T result = work();
+
+                if (!alive->load()) {
+                    return;
+                }
+
+                // Targeting the thread rather than the receiver is what makes
+                // this safe: the QThread is still alive here, so resolving the
+                // target cannot touch destroyed memory.
                 QMetaObject::invokeMethod(
-                    guard,
-                    [onComplete = std::move(onComplete), result = std::move(result)]() mutable {
-                        onComplete(std::move(result));
+                    thread,
+                    [alive, onComplete = std::move(onComplete),
+                     result = std::move(result)]() mutable {
+                        if (alive->load()) {
+                            onComplete(std::move(result));
+                        }
                     },
                     Qt::QueuedConnection);
             },

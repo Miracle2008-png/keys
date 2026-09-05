@@ -19,7 +19,8 @@ layout, the decisions behind it, and the milestone plan.
 | 7. Search | Done |
 | 8. Command palette | Done |
 | 9. Settings & themes | Done |
-| 10-15 | Planned |
+| 10. Git | Done |
+| 11-15 | Planned |
 
 Features that are not implemented yet are visibly absent or explicitly
 disabled — nothing in the interface pretends to work. The same rule governs

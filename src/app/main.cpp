@@ -10,7 +10,9 @@
 #include "ui/EditorBindings.h"
 #include "ui/EditorSettings.h"
 #include "ui/SettingsModel.h"
+#include "ui/SourceControlModel.h"
 #include "ui/Theme.h"
+#include "vcs/Repository.h"
 #include "workspace/Workspace.h"
 
 #include <QGuiApplication>
@@ -139,6 +141,24 @@ int main(int argc, char* argv[])
         qCWarning(lcCore) << "could not load recent projects:" << status.error().toString();
     }
 
+    // Source control follows whatever project is open. It is its own object
+    // rather than a member of Workspace: a project is not required to be a
+    // repository, and the repository root is not always the project root.
+    vcs::Repository repository(scheduler);
+
+    QObject::connect(&workspace, &workspace::Workspace::projectOpened,
+                     &repository, &vcs::Repository::openFor);
+    QObject::connect(&workspace, &workspace::Workspace::projectClosed,
+                     &repository, &vcs::Repository::close);
+
+    // Anything touching the working tree can change the status, so the watcher
+    // drives the refresh. Repository debounces, which is what makes it safe to
+    // connect something this chatty to it.
+    QObject::connect(&workspace.watcher(), &fs::FileWatcher::filesChanged,
+                     &repository, [&repository] { repository.refresh(); });
+    QObject::connect(&workspace.watcher(), &fs::FileWatcher::directoriesChanged,
+                     &repository, [&repository] { repository.refresh(); });
+
     ui::AppController controller(commands, settings, animation, workspace);
 
     // A folder given on the command line opens at startup, so `keys .` behaves
@@ -163,6 +183,9 @@ int main(int argc, char* argv[])
 
     ui::SettingsModel settingsModel(settings);
     ui::SettingsModel::setInstance(&settingsModel);
+
+    ui::SourceControlModel sourceControl(repository);
+    ui::SourceControlModel::setInstance(&sourceControl);
 
     QQmlApplicationEngine engine;
 
@@ -189,6 +212,11 @@ int main(int argc, char* argv[])
                          const QString absolute =
                              QDir(workspace.project().root()).filePath(relativePath);
                          controller.openFile(absolute);
+                     });
+
+    QObject::connect(&sourceControl, &ui::SourceControlModel::fileActivated,
+                     &app, [&controller](const QString& absolutePath) {
+                         controller.openFile(absolutePath);
                      });
 
     for (int i = 0; i < workspace::EditorLayout::kMaxGroups; ++i) {

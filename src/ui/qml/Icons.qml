@@ -57,4 +57,15 @@ QtObject {
     readonly property string chevronRight: "M9 6l6 6-6 6"
     readonly property string chevronDown: "M6 9l6 6 6-6"
     readonly property string close: "M18 6L6 18M6 6l12 12"
+
+    // Source control. Stage and unstage are a plain plus and minus: the action
+    // is "add this to what I am about to commit", and any more pictorial icon
+    // would need a legend.
+    readonly property string plus: "M12 5v14M5 12h14"
+    readonly property string minus: "M5 12h14"
+
+    /// A counter-clockwise arrow: undoing a change rather than deleting a file,
+    /// which is what a bin would wrongly imply.
+    readonly property string discard:
+        "M3 12a9 9 0 1 0 3-6.7L3 8 M3 3v5h5"
 }

@@ -21,6 +21,8 @@ qt_add_qml_module(keys_ui
         EditorViewModel.h
         SettingsModel.cpp
         SettingsModel.h
+        SourceControlModel.cpp
+        SourceControlModel.h
         TabBarModel.cpp
         TabBarModel.h
         Metrics.h
@@ -51,6 +53,8 @@ qt_add_qml_module(keys_ui
         qml/PrimaryButton.qml
         qml/SectionLabel.qml
         qml/SettingsPanel.qml
+        qml/SourceControlPanel.qml
+        qml/DiscardConfirmDialog.qml
         qml/SettingRow.qml
         qml/SettingSegmented.qml
         qml/SettingSwitch.qml
@@ -99,6 +103,7 @@ target_link_libraries(keys_ui PUBLIC
     Keys::core
     Keys::config
     Keys::search
+    Keys::vcs
     Keys::workspace
 )
 

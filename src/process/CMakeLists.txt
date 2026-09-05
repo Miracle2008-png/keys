@@ -15,9 +15,11 @@ endif()
 
 keys_add_module(process
     SOURCES
+        CommandRunner.cpp
         Pty.cpp
         ${KEYS_PTY_SOURCES}
     HEADERS
+        CommandRunner.h
         Pty.h
         ${KEYS_PTY_HEADERS}
     DEPENDS

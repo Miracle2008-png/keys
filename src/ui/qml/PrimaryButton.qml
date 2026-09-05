@@ -5,6 +5,11 @@ import Keys.Ui
 ///
 /// Deliberately the only filled button style in Keys: if several actions on a
 /// screen shout equally, none of them reads as primary.
+///
+/// `enabled` is honoured in both appearance and behaviour. An Item's `enabled`
+/// already stops its MouseArea and key handlers, but nothing about a Rectangle
+/// changes colour on its own - so a disabled button would look identical to a
+/// live one and read as broken rather than as unavailable.
 Rectangle {
     id: root
 
@@ -14,7 +19,8 @@ Rectangle {
     implicitWidth: label.implicitWidth + Metrics.spacingLarge * 2
     implicitHeight: 36
     radius: Metrics.radiusMedium
-    color: mouse.pressed ? Theme.accentHover
+    color: !root.enabled ? Theme.bgHover
+         : mouse.pressed ? Theme.accentHover
          : mouse.containsMouse ? Theme.accentHover
          : Theme.accent
 
@@ -22,7 +28,7 @@ Rectangle {
         ColorAnimation { duration: App.fastAnimationDuration }
     }
 
-    activeFocusOnTab: true
+    activeFocusOnTab: enabled
     Accessible.role: Accessible.Button
     Accessible.name: label.text
     Accessible.onPressAction: root.clicked()
@@ -41,7 +47,7 @@ Rectangle {
     Text {
         id: label
         anchors.centerIn: parent
-        color: "white"
+        color: root.enabled ? "white" : Theme.textTertiary
         font.family: Fonts.ui
         font.pointSize: Metrics.fontSizeLarge
         font.weight: Font.Medium
@@ -51,7 +57,9 @@ Rectangle {
         id: mouse
         anchors.fill: parent
         hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
+        // No pointing hand on a button that will not respond: the cursor is the
+        // first thing that says whether something is clickable.
+        cursorShape: root.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
         onClicked: root.clicked()
     }
 

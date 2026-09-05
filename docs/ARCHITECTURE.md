@@ -97,6 +97,18 @@ UI carry immutable value types, never pointers into worker-owned structures.
 completion. Every such task takes a `CancellationToken`; a superseded task stops
 promptly rather than racing its replacement to the UI.
 
+**Crossing back from a worker.** `TaskScheduler::postWithResult` is the only
+sanctioned way to return a result to the UI thread. It guards *delivery* — if the
+receiver is destroyed while the work runs, the completion is dropped — but it does
+not cancel the work, which runs to completion regardless. A task must therefore
+never capture a raw pointer to something the receiver owns; `Repository` holds its
+`GitClient` in a `shared_ptr` for exactly this reason.
+
+Delivery targets the receiver's *thread*, not the receiver. Targeting the object
+is a use-after-free: it can be destroyed in the window between the worker deciding
+to deliver and `invokeMethod` reading it to find its thread, and a `QPointer` only
+narrows that window rather than closing it.
+
 ---
 
 ## 5. Key decisions and tradeoffs
@@ -142,6 +154,21 @@ debounced background refresh and caching, not by blocking.
 
 The `vcs` module hides this behind an interface, so libgit2 could be substituted for
 hot paths later without disturbing callers.
+
+**What landed in milestone 10.** Status (porcelain v2, `-z`), log, diff, branches,
+staging, unstaging, discard and commit. Everything runs on the scheduler; the UI
+reads the last known status, which is always immediately available. Refresh is
+debounced at 250 ms and driven by the file watcher, so a build touching two
+thousand files is one status run rather than two thousand.
+
+Only porcelain formats are parsed. Git prints one thing for people — which
+changes between versions and follows the user's config — and another for scripts,
+which is documented as stable. Parsing the former would break on a user's
+`status.showUntrackedFiles` setting or a git upgrade.
+
+Push, pull, fetch, branch switching and merge resolution are not implemented.
+They need credential handling and conflict UI respectively, and shipping a button
+that fails on a private remote would be worse than not having one.
 
 ### 5.4 Terminal via ConPTY
 

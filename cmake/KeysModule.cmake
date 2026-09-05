@@ -90,6 +90,12 @@ function(keys_add_test name)
     add_test(NAME ${name} COMMAND ${target})
 
     # Qt DLLs live outside the build tree on Windows; put them on PATH for the run.
+    #
+    # ENVIRONMENT_MODIFICATION rather than ENVIRONMENT: the latter *replaces* PATH
+    # with whatever the configuring shell happened to have, freezing it into the
+    # test. That silently removed git from the path of the vcs tests, which then
+    # skipped themselves and reported as passing - a test that cannot run must
+    # not look like a test that ran.
     if(WIN32)
         get_target_property(qt_core_location Qt6::Core IMPORTED_LOCATION_RELEASE)
         if(NOT qt_core_location)
@@ -98,7 +104,7 @@ function(keys_add_test name)
         if(qt_core_location)
             get_filename_component(qt_bin_dir "${qt_core_location}" DIRECTORY)
             set_tests_properties(${name} PROPERTIES
-                ENVIRONMENT "PATH=${qt_bin_dir};$ENV{PATH}")
+                ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:${qt_bin_dir}")
         endif()
     endif()
 endfunction()
