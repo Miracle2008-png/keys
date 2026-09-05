@@ -23,6 +23,8 @@ qt_add_qml_module(keys_ui
         SettingsModel.h
         DebugModel.cpp
         DebugModel.h
+        ExtensionsModel.cpp
+        ExtensionsModel.h
         LanguageModel.cpp
         LanguageModel.h
         RunPanelModel.cpp
@@ -62,6 +64,7 @@ qt_add_qml_module(keys_ui
         qml/SourceControlPanel.qml
         qml/RunPanel.qml
         qml/CompletionPopup.qml
+        qml/ExtensionsPanel.qml
         qml/DiscardConfirmDialog.qml
         qml/SettingRow.qml
         qml/SettingSegmented.qml
@@ -113,6 +116,7 @@ target_link_libraries(keys_ui PUBLIC
     Keys::search
     Keys::buildrun
     Keys::debugger
+    Keys::extensions
     Keys::langsvc
     Keys::vcs
     Keys::workspace

@@ -31,6 +31,7 @@ add_subdirectory(src/vcs)
 add_subdirectory(src/buildrun)
 add_subdirectory(src/langsvc)
 add_subdirectory(src/debugger)
+add_subdirectory(src/extensions)
 add_subdirectory(src/workspace)
 
 # Layer 3-4: the UI and the composition root.

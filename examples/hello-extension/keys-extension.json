@@ -1,0 +1,26 @@
+{
+  "id": "hello",
+  "name": "Hello",
+  "version": "1.0.0",
+  "description": "A sample extension that proves the host boundary works.",
+  "author": "Keys",
+  "entry": {
+    "program": "python",
+    "arguments": [
+      "hello.py"
+    ]
+  },
+  "capabilities": [
+    "registerCommands",
+    "showUi"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "id": "hello.greet",
+        "title": "Say hello",
+        "category": "Hello"
+      }
+    ]
+  }
+}

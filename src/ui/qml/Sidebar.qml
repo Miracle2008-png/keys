@@ -79,6 +79,11 @@ Item {
                     visible: App.activeView === "debug" && App.hasProject
                 }
 
+                ExtensionsPanel {
+                    anchors.fill: parent
+                    visible: App.activeView === "extensions" && App.hasProject
+                }
+
                 Text {
                     anchors.left: parent.left
                     anchors.leftMargin: Metrics.spacingMedium
@@ -105,6 +110,7 @@ Item {
                              && App.activeView !== "explorer"
                              && App.activeView !== "sourceControl"
                              && App.activeView !== "debug"
+                             && App.activeView !== "extensions"
                     text: qsTr("Not implemented yet.")
                     color: Theme.textTertiary
                     font.family: Fonts.ui

@@ -10,6 +10,7 @@
 #include "ui/EditorBindings.h"
 #include "ui/EditorSettings.h"
 #include "ui/DebugModel.h"
+#include "ui/ExtensionsModel.h"
 #include "ui/LanguageModel.h"
 #include "ui/RunPanelModel.h"
 #include "ui/SettingsModel.h"
@@ -17,6 +18,7 @@
 #include "ui/Theme.h"
 #include "buildrun/TaskRunner.h"
 #include "debugger/DebugSession.h"
+#include "extensions/ExtensionRegistry.h"
 #include "langsvc/LanguageServiceManager.h"
 #include "vcs/Repository.h"
 #include "workspace/Workspace.h"
@@ -178,6 +180,15 @@ int main(int argc, char* argv[])
     // ambiguous about which stack the user is looking at.
     debugger::DebugSession debugSession;
 
+    // Extensions run out of process and are started only once every capability
+    // they asked for has been granted.
+    extensions::ExtensionRegistry extensionRegistry(commands, settings);
+
+    QObject::connect(&workspace, &workspace::Workspace::projectOpened,
+                     &extensionRegistry, &extensions::ExtensionRegistry::activateAll);
+    QObject::connect(&workspace, &workspace::Workspace::projectClosed,
+                     &extensionRegistry, &extensions::ExtensionRegistry::deactivateAll);
+
     QObject::connect(&workspace, &workspace::Workspace::projectOpened,
                      &languageServices, &langsvc::LanguageServiceManager::setProjectRoot);
     QObject::connect(&workspace, &workspace::Workspace::projectClosed,
@@ -222,6 +233,9 @@ int main(int argc, char* argv[])
     ui::DebugModel debug(debugSession, workspace.project(), workspace.editors());
     ui::DebugModel::setInstance(&debug);
 
+    ui::ExtensionsModel extensionsModel(extensionRegistry);
+    ui::ExtensionsModel::setInstance(&extensionsModel);
+
     // A document reaches its server through here rather than the model
     // discovering it, so the sync cannot silently miss one.
     QObject::connect(&workspace, &workspace::Workspace::fileOpened, &app,
@@ -265,6 +279,11 @@ int main(int argc, char* argv[])
     // the explorer and palette use.
     // Stopping at a breakpoint opens the file there, the same path everything
     // else in Keys uses to reach the editor.
+    QObject::connect(&extensionRegistry, &extensions::ExtensionRegistry::notice, &app,
+                     [&controller](const QString& message) {
+                         controller.reportNotice(message);
+                     });
+
     QObject::connect(&debug, &ui::DebugModel::locationRequested, &app,
                      [&controller](const QString& path, int line) {
                          controller.openFileAt(path, line, 1);
