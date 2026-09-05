@@ -21,3 +21,10 @@ add_custom_target(icons
     COMMENT "Rendering application icons from resources/icons/keys-mark.svg"
     VERBATIM
 )
+
+# A standalone check that ConPTY starts a real shell and its output reaches the
+# parser. Not part of the application; run by hand when the PTY layer changes.
+add_executable(keys_pty_check pty-check.cpp)
+target_link_libraries(keys_pty_check PRIVATE Qt6::Core Keys::terminal)
+set_target_properties(keys_pty_check PROPERTIES FOLDER "Tools")
+keys_apply_compile_options(keys_pty_check)

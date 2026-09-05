@@ -21,9 +21,11 @@ qt_standard_project_setup(REQUIRES 6.8)
 # for the milestone each is scheduled in.
 add_subdirectory(src/core)
 add_subdirectory(src/filesystem)
+add_subdirectory(src/process)
 add_subdirectory(src/config)
 add_subdirectory(src/project)
 add_subdirectory(src/editor)
+add_subdirectory(src/terminal)
 add_subdirectory(src/workspace)
 
 # Layer 3-4: the UI and the composition root.

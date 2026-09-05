@@ -15,7 +15,7 @@ layout, the decisions behind it, and the milestone plan.
 | 3. File explorer | Done |
 | 4. Editor | Done |
 | 5. Tabs & editor splits | Done |
-| 6. Terminal | Next |
+| 6. Terminal | In progress — VT layer done, ConPTY attachment unresolved |
 | 7-15 | Planned |
 
 Features that are not implemented yet are visibly absent or explicitly
@@ -71,6 +71,8 @@ src/config       Layered settings, schema, animation policy
 src/filesystem   Async file I/O, directory listing, file watching
 src/project      Root detection, ignore rules, project metadata
 src/editor       Piece-table buffer, cursors, selections, undo
+src/process      Child processes and pseudo-terminals (ConPTY)
+src/terminal     VT parsing and the terminal screen model
 src/workspace    Open project, session state, editor groups and tabs
 src/ui           QML views, theme, view models
 src/app          Composition root
