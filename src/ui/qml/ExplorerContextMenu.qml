@@ -7,7 +7,7 @@ import Keys.Ui
 /// Every entry here does something. Actions that depend on a milestone that has
 /// not landed are absent rather than present-and-disabled: a menu of greyed-out
 /// items tells the user nothing useful about what Keys can do.
-Menu {
+ContextMenu {
     id: root
 
     /// The row the menu was opened on.
@@ -35,7 +35,15 @@ Menu {
             NameDialog.CreateFolder, root.containerPath, "")
     }
 
-    MenuSeparator {}
+    MenuSeparator {
+        contentItem: Rectangle {
+            implicitHeight: 1
+            color: Theme.border
+        }
+        padding: 4
+        leftPadding: 10
+        rightPadding: 10
+    }
 
     MenuItem {
         text: qsTr("Rename…")

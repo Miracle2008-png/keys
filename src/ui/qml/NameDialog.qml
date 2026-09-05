@@ -15,21 +15,20 @@ Dialog {
     property int mode: NameDialog.CreateFile
     property string targetPath: ""
 
-    // Anchored to the window rather than the panel so a long name is not
+    // Anchored to the window rather than the panel, so a long name is not
     // clipped by a narrow sidebar.
     parent: Overlay.overlay
     anchors.centerIn: parent
     width: 380
     modal: true
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+    padding: Metrics.spacingMedium
 
     title: switch (mode) {
         case NameDialog.CreateFile:   return qsTr("New File");
         case NameDialog.CreateFolder: return qsTr("New Folder");
         default:                      return qsTr("Rename");
     }
-
-    standardButtons: Dialog.Ok | Dialog.Cancel
 
     background: Rectangle {
         color: Theme.bgElevated
@@ -66,11 +65,38 @@ Dialog {
         onAccepted: if (text.trim().length > 0) root.accept()
     }
 
-    // Nothing to submit until something is typed.
+    // A themed footer rather than standardButtons: Basic draws two identical
+    // grey blocks, giving the confirming action no more weight than cancelling.
+    footer: Item {
+        implicitHeight: 56
+
+        Row {
+            anchors.right: parent.right
+            anchors.rightMargin: Metrics.spacingMedium
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: Metrics.spacingSmall
+
+            DialogButton {
+                text: qsTr("Cancel")
+                onClicked: root.reject()
+            }
+
+            DialogButton {
+                text: qsTr("Create")
+                primary: true
+                // A name is required, so the action that needs one is disabled
+                // until there is something to submit.
+                enabled: field.text.trim().length > 0
+                opacity: enabled ? 1.0 : 0.4
+                onClicked: root.accept()
+            }
+        }
+    }
+
     onOpened: {
         field.forceActiveFocus();
-        // On rename, preselect the base name so typing replaces it but the
-        // extension survives a careless keystroke.
+        // On rename, preselect the base name so typing replaces it but a
+        // careless keystroke does not destroy the extension.
         if (mode === NameDialog.Rename) {
             const dot = field.text.lastIndexOf(".");
             if (dot > 0) {
