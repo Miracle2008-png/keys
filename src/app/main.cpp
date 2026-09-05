@@ -7,6 +7,7 @@
 #include "core/Trace.h"
 #include "ui/AppController.h"
 #include "ui/Theme.h"
+#include "workspace/Workspace.h"
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -88,7 +89,19 @@ int main(int argc, char* argv[])
     ui::Theme theme;
     theme.bindTo(settings);
 
-    ui::AppController controller(commands, settings, animation);
+    workspace::Workspace workspace(settings);
+    if (const core::Status status = workspace.loadHistory(); !status) {
+        qCWarning(lcCore) << "could not load recent projects:" << status.error().toString();
+    }
+
+    ui::AppController controller(commands, settings, animation, workspace);
+
+    // A folder given on the command line opens at startup, so `keys .` behaves
+    // the way a developer expects from a terminal.
+    const QStringList arguments = QGuiApplication::arguments();
+    if (arguments.size() > 1) {
+        controller.openProject(arguments.at(1));
+    }
 
     // ---- QML -------------------------------------------------------------
     // Publish the instances before the engine loads. The QML module declares
@@ -112,12 +125,20 @@ int main(int argc, char* argv[])
 
     // Persist settings on the way out rather than on every change: writing on each
     // keystroke of a slider would be pointless I/O.
-    QObject::connect(&app, &QGuiApplication::aboutToQuit, [&settings] {
+    QObject::connect(&app, &QGuiApplication::aboutToQuit, [&settings, &workspace] {
+        // Close the project first so its workspace settings are written while the
+        // project root is still known.
+        workspace.closeProject();
+
         if (const core::Status status = config::SettingsStore::save(
                 settings, config::Settings::Layer::User,
                 config::SettingsStore::userSettingsPath());
             !status) {
             qCWarning(lcConfig) << "could not save settings:" << status.error().toString();
+        }
+        if (const core::Status status = workspace.saveHistory(); !status) {
+            qCWarning(lcCore) << "could not save recent projects:"
+                              << status.error().toString();
         }
     });
 

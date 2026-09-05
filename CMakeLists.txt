@@ -12,7 +12,7 @@ include(KeysOptions)
 include(KeysCompiler)
 include(KeysModule)
 
-find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Concurrent)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 QuickDialogs2 Concurrent)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
@@ -20,7 +20,10 @@ qt_standard_project_setup(REQUIRES 6.8)
 # Modules appear here as they are implemented; see docs/ARCHITECTURE.md section 10
 # for the milestone each is scheduled in.
 add_subdirectory(src/core)
+add_subdirectory(src/filesystem)
 add_subdirectory(src/config)
+add_subdirectory(src/project)
+add_subdirectory(src/workspace)
 
 # Layer 3-4: the UI and the composition root.
 add_subdirectory(src/ui)

@@ -6,7 +6,7 @@ import Keys.Ui
 ///
 /// Layout follows the design: a 46px top bar, then a row of activity rail +
 /// sidebar + main area, then a 24px status bar. The editor area is deliberately
-/// the only element that grows — everything else is fixed or user-sized, so the
+/// the only element that grows - everything else is fixed or user-sized, so the
 /// editor stays dominant at every window size.
 Window {
     id: root
@@ -16,13 +16,8 @@ Window {
     minimumWidth: 720
     minimumHeight: 480
     visible: true
-    title: qsTr("Keys")
+    title: App.hasProject ? qsTr("%1 - Keys").arg(App.projectName) : qsTr("Keys")
     color: Theme.bgChrome
-
-    // A single place for the whole window's motion, so the Full/Reduced/Off
-    // preference is honoured everywhere rather than per-component.
-    readonly property int animationDuration: App.animationDuration
-    readonly property int fastAnimationDuration: App.fastAnimationDuration
 
     Column {
         anchors.fill: parent
@@ -54,6 +49,7 @@ Window {
                 // The editor area takes whatever remains. This is the one element
                 // that absorbs resizing.
                 EditorArea {
+                    id: editorArea
                     width: parent.width - activityRail.width - sidebar.width
                     height: parent.height
                 }
@@ -66,13 +62,31 @@ Window {
         }
     }
 
-    // Global shortcuts resolve through the command registry, so a key, the
-    // palette and (later) a menu all reach the same handler.
     // Only commands that exist are bound. Shortcuts for the palette, quick open
     // and the rest arrive with the milestones that implement them, so no key in
     // Keys is ever bound to something that does nothing.
     Shortcut {
+        sequences: [StandardKey.Open]
+        onActivated: editorArea.browseForProject()
+    }
+
+    Shortcut {
         sequence: "Ctrl+B"
         onActivated: App.invokeCommand("workbench.toggleSidebar")
+    }
+
+    // Failures the user caused are shown, never swallowed.
+    ErrorToast {
+        id: errorToast
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: Metrics.statusBarHeight + Metrics.spacingLarge
+    }
+
+    Connections {
+        target: App
+        function onErrorOccurred(message) {
+            errorToast.show(message);
+        }
     }
 }

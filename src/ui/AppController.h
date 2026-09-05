@@ -3,8 +3,10 @@
 #include "config/AnimationPolicy.h"
 #include "config/Settings.h"
 #include "core/CommandRegistry.h"
+#include "workspace/Workspace.h"
 
 #include <QObject>
+#include <QVariantList>
 #include <QQmlEngine>
 #include <QString>
 
@@ -38,11 +40,18 @@ class AppController : public QObject {
     /// bar and falls back to a neutral state when there is none, rather than
     /// displaying a placeholder that implies something is open.
     Q_PROPERTY(QString projectName READ projectName NOTIFY projectChanged)
+    Q_PROPERTY(QString projectRoot READ projectRoot NOTIFY projectChanged)
+    Q_PROPERTY(bool hasProject READ hasProject NOTIFY projectChanged)
+
+    /// Recent projects, newest first, as a list of {name, path, relativeTime}
+    /// maps ready for a QML delegate.
+    Q_PROPERTY(QVariantList recentProjects READ recentProjects NOTIFY recentProjectsChanged)
 
 public:
     AppController(core::CommandRegistry& commands,
                   config::Settings& settings,
                   config::AnimationPolicy& animation,
+                  workspace::Workspace& workspace,
                   QObject* parent = nullptr);
 
     /// Publishes the application's controller to QML. AppController takes its
@@ -60,7 +69,19 @@ public:
     [[nodiscard]] bool sidebarVisible() const;
     [[nodiscard]] QString activeView() const;
     [[nodiscard]] int sidebarWidth() const;
-    [[nodiscard]] QString projectName() const { return m_projectName; }
+    [[nodiscard]] QString projectName() const;
+    [[nodiscard]] QString projectRoot() const;
+    [[nodiscard]] bool hasProject() const;
+    [[nodiscard]] QVariantList recentProjects() const;
+
+    /// Opens a project folder. Reports failure to the UI through lastError
+    /// rather than returning silently, so a bad path is visible to the user.
+    Q_INVOKABLE bool openProject(const QString& path);
+    Q_INVOKABLE void closeProject();
+
+    /// The most recent failure, for the UI to surface. Cleared on the next
+    /// successful operation.
+    Q_INVOKABLE QString takeLastError();
 
     /// Runs a command by id. Returns false and logs if it is unknown or disabled,
     /// so a mis-wired shortcut is visible rather than silently dead.
@@ -76,6 +97,11 @@ signals:
     void animationChanged();
     void workbenchChanged();
     void projectChanged();
+    void recentProjectsChanged();
+
+    /// Emitted when an operation the user initiated fails. The UI shows this;
+    /// nothing fails silently.
+    void errorOccurred(const QString& message);
 
 private:
     /// Registers the commands the workbench itself owns. Other modules register
@@ -85,7 +111,8 @@ private:
     core::CommandRegistry& m_commands;
     config::Settings& m_settings;
     config::AnimationPolicy& m_animation;
-    QString m_projectName;
+    workspace::Workspace& m_workspace;
+    QString m_lastError;
 };
 
 } // namespace keys::ui

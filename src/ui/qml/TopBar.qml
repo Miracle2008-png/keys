@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import Keys.Ui
 
 /// The 46px application bar: identity and project on the left, the search field
@@ -69,10 +70,24 @@ Rectangle {
             id: projectLabel
             anchors.verticalCenter: parent.verticalCenter
             text: App.projectName
-            visible: text.length > 0
+            visible: App.hasProject
             color: Theme.textPrimary
+            font.family: Fonts.ui
             font.pointSize: Metrics.fontSizeBody
             font.weight: Font.Medium
+
+            // The full path is the disambiguator when several projects share a
+            // folder name, which is common ("client", "server", "web").
+            ToolTip {
+                text: App.projectRoot
+                visible: projectMouse.containsMouse && App.hasProject
+            }
+
+            MouseArea {
+                id: projectMouse
+                anchors.fill: parent
+                hoverEnabled: true
+            }
         }
     }
 

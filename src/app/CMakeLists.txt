@@ -13,6 +13,7 @@ target_link_libraries(keys PRIVATE
     Qt6::Gui
     Qt6::Quick
     Qt6::QuickControls2
+    Qt6::QuickDialogs2
     Keys::core
     Keys::config
     Keys::ui

@@ -21,12 +21,17 @@ qt_add_qml_module(keys_ui
         qml/Main.qml
         qml/ActivityRail.qml
         qml/EditorArea.qml
+        qml/ErrorToast.qml
+        qml/FolderPicker.qml
         qml/Icon.qml
         qml/IconButton.qml
         qml/Keycap.qml
+        qml/PrimaryButton.qml
+        qml/SectionLabel.qml
         qml/Sidebar.qml
         qml/StatusBar.qml
         qml/TopBar.qml
+        qml/WelcomeView.qml
 )
 
 # QML-declared singletons must be marked as such, or the module registers them as
@@ -50,8 +55,10 @@ target_link_libraries(keys_ui PUBLIC
     Qt6::Gui
     Qt6::Quick
     Qt6::QuickControls2
+    Qt6::QuickDialogs2
     Keys::core
     Keys::config
+    Keys::workspace
 )
 
 set_target_properties(keys_ui PROPERTIES FOLDER "Modules")

@@ -2,7 +2,11 @@
 
 #include "core/Log.h"
 
+#include <QCoreApplication>
+#include <QDateTime>
+
 #include <algorithm>
+#include <utility>
 
 namespace keys::ui {
 namespace {
@@ -19,6 +23,35 @@ constexpr int kSidebarMaxWidth = 600;
 
 /// The instance main() publishes for QML; see Theme.cpp for the reasoning.
 AppController* g_instance = nullptr;
+
+/// Renders a timestamp the way the design's recent list does: "now",
+/// "yesterday", "3d ago". Coarse on purpose - an exact time would be noise in a
+/// list whose only job is to help the user recognise a project.
+QString relativeTime(const QDateTime& when)
+{
+    if (!when.isValid()) {
+        return {};
+    }
+
+    const qint64 seconds = when.secsTo(QDateTime::currentDateTime());
+    if (seconds < 60) {
+        return QCoreApplication::translate("AppController", "now");
+    }
+    if (seconds < 3600) {
+        const int minutes = static_cast<int>(seconds / 60);
+        return QCoreApplication::translate("AppController", "%1m ago").arg(minutes);
+    }
+    if (seconds < 86400) {
+        const int hours = static_cast<int>(seconds / 3600);
+        return QCoreApplication::translate("AppController", "%1h ago").arg(hours);
+    }
+
+    const int days = static_cast<int>(seconds / 86400);
+    if (days == 1) {
+        return QCoreApplication::translate("AppController", "yesterday");
+    }
+    return QCoreApplication::translate("AppController", "%1d ago").arg(days);
+}
 
 } // namespace
 
@@ -42,9 +75,18 @@ AppController* AppController::create(QQmlEngine* engine, QJSEngine* scriptEngine
 AppController::AppController(core::CommandRegistry& commands,
                              config::Settings& settings,
                              config::AnimationPolicy& animation,
+                             workspace::Workspace& workspace,
                              QObject* parent)
-    : QObject(parent), m_commands(commands), m_settings(settings), m_animation(animation)
+    : QObject(parent), m_commands(commands), m_settings(settings),
+      m_animation(animation), m_workspace(workspace)
 {
+    connect(&m_workspace, &workspace::Workspace::projectOpened,
+            this, &AppController::projectChanged);
+    connect(&m_workspace, &workspace::Workspace::projectClosed,
+            this, &AppController::projectChanged);
+    connect(&m_workspace.recentProjects(), &workspace::RecentProjects::changed,
+            this, &AppController::recentProjectsChanged);
+
     connect(&m_animation, &config::AnimationPolicy::changed,
             this, &AppController::animationChanged);
 
@@ -111,20 +153,83 @@ void AppController::setSidebarWidth(int width)
     m_settings.setValue(QLatin1String(kSidebarWidthKey), clamped);
 }
 
+QString AppController::projectName() const
+{
+    return m_workspace.hasProject() ? m_workspace.project().name() : QString();
+}
+
+QString AppController::projectRoot() const
+{
+    return m_workspace.hasProject() ? m_workspace.project().root() : QString();
+}
+
+bool AppController::hasProject() const
+{
+    return m_workspace.hasProject();
+}
+
+QVariantList AppController::recentProjects() const
+{
+    QVariantList result;
+    const auto& entries = m_workspace.recentProjects().entries();
+    result.reserve(entries.size());
+
+    for (const workspace::RecentProject& entry : entries) {
+        QVariantMap item;
+        item.insert(QStringLiteral("name"), entry.name);
+        item.insert(QStringLiteral("path"), entry.path);
+        item.insert(QStringLiteral("when"), relativeTime(entry.lastOpened));
+        result.append(item);
+    }
+    return result;
+}
+
+bool AppController::openProject(const QString& path)
+{
+    const core::Status status = m_workspace.openProject(path);
+    if (!status) {
+        m_lastError = status.error().toString();
+        qCWarning(lcUi) << "could not open project:" << m_lastError;
+        emit errorOccurred(m_lastError);
+        return false;
+    }
+
+    m_lastError.clear();
+    return true;
+}
+
+void AppController::closeProject()
+{
+    m_workspace.closeProject();
+}
+
+QString AppController::takeLastError()
+{
+    return std::exchange(m_lastError, QString());
+}
+
 void AppController::registerWorkbenchCommands()
 {
     const auto add = [this](const QString& id, const QString& title,
-                            const QString& category, std::function<void()> handler) {
+                            const QString& category, std::function<void()> handler,
+                            std::function<bool()> isEnabled = {}) {
         core::Command command;
         command.id = id;
         command.title = title;
         command.category = category;
         command.handler = std::move(handler);
+        command.isEnabled = std::move(isEnabled);
         const core::Status status = m_commands.registerCommand(std::move(command));
         if (!status) {
             qCWarning(lcUi) << "failed to register command:" << status.error().toString();
         }
     };
+
+    add(QStringLiteral("workspace.closeProject"),
+        QStringLiteral("Close Project"),
+        QStringLiteral("File"),
+        [this] { closeProject(); },
+        [this] { return hasProject(); });
 
     add(QStringLiteral("workbench.toggleSidebar"),
         QStringLiteral("Toggle Sidebar"),
