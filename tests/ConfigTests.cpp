@@ -191,7 +191,7 @@ private slots:
         QVERIFY(static_cast<bool>(
             written.setValue(QStringLiteral("appearance.theme"), QStringLiteral("light"))));
         QVERIFY(static_cast<bool>(
-            written.setValue(QStringLiteral("editor.formatOnSave"), true)));
+            written.setValue(QStringLiteral("editor.insertSpaces"), false)));
 
         QVERIFY(static_cast<bool>(
             SettingsStore::save(written, Settings::Layer::User, path)));
@@ -203,7 +203,9 @@ private slots:
         QCOMPARE(read.intValue(QStringLiteral("editor.fontSize")), 16);
         QCOMPARE(read.stringValue(QStringLiteral("appearance.theme")),
                  QStringLiteral("light"));
-        QCOMPARE(read.boolValue(QStringLiteral("editor.formatOnSave")), true);
+        // False rather than true: the default is true, so writing it would
+        // round-trip even if the value never reached the file.
+        QCOMPARE(read.boolValue(QStringLiteral("editor.insertSpaces")), false);
     }
 
     void malformedSettingsFileReportsParseError()

@@ -17,11 +17,14 @@ layout, the decisions behind it, and the milestone plan.
 | 5. Tabs & editor splits | Done |
 | 6. Terminal | In progress — VT layer done, ConPTY attachment unresolved |
 | 7. Search | Done |
-| 8. Command palette | Next |
-| 9-15 | Planned |
+| 8. Command palette | Done |
+| 9. Settings & themes | Done |
+| 10-15 | Planned |
 
 Features that are not implemented yet are visibly absent or explicitly
-disabled — nothing in the interface pretends to work.
+disabled — nothing in the interface pretends to work. The same rule governs
+settings: a setting is declared only once something honours it, so the settings
+page cannot show a control that changes nothing.
 
 ## Building
 

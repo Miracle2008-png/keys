@@ -8,6 +8,8 @@
 #include "ui/AppController.h"
 #include "ui/CommandPaletteModel.h"
 #include "ui/EditorBindings.h"
+#include "ui/EditorSettings.h"
+#include "ui/SettingsModel.h"
 #include "ui/Theme.h"
 #include "workspace/Workspace.h"
 
@@ -49,11 +51,44 @@ void applySystemColorScheme(config::Settings& settings)
                       light ? QStringLiteral("light") : QStringLiteral("dark"));
 }
 
+/// Applies the interface scale before the application exists.
+///
+/// Qt reads QT_SCALE_FACTOR once, when the GUI application is constructed, and
+/// the whole scene graph is laid out against it. There is no supported way to
+/// restage that afterwards, so the setting is read from disk here - before
+/// QGuiApplication - and a change takes effect on the next launch. The settings
+/// page says so rather than presenting a slider that appears to do nothing.
+///
+/// Reading the file directly is deliberate: Settings needs no GUI, but the
+/// object graph is built after the application for good reasons, and this one
+/// value has to precede it.
+void applyInterfaceScale()
+{
+    config::Settings settings;
+    if (const core::Status status = config::SettingsStore::load(
+            settings, config::Settings::Layer::User,
+            config::SettingsStore::userSettingsPath());
+        !status) {
+        return;  // reported properly once logging and the real graph exist
+    }
+
+    const double scale = settings.doubleValue(QStringLiteral("accessibility.uiScale"));
+
+    // 1.0 is the default; setting the variable anyway would override a scale the
+    // user configured for their whole desktop.
+    if (qFuzzyCompare(scale, 1.0) || scale <= 0.0) {
+        return;
+    }
+    qputenv("QT_SCALE_FACTOR", QByteArray::number(scale));
+}
+
 } // namespace
 
 int main(int argc, char* argv[])
 {
     core::initializeLogging();
+
+    applyInterfaceScale();
 
     QGuiApplication app(argc, argv);
     QGuiApplication::setApplicationName(QStringLiteral("Keys"));
@@ -95,8 +130,9 @@ int main(int argc, char* argv[])
     applySystemColorScheme(settings);
 
     config::AnimationPolicy animation(settings);
-    ui::Theme theme;
-    theme.bindTo(settings);
+    ui::Theme theme(settings);
+
+    ui::EditorSettings editorSettings(settings);
 
     workspace::Workspace workspace(settings, scheduler);
     if (const core::Status status = workspace.loadHistory(); !status) {
@@ -123,6 +159,11 @@ int main(int argc, char* argv[])
     ui::CommandPaletteModel palette(commands, workspace.fileIndex());
     ui::CommandPaletteModel::setInstance(&palette);
 
+    ui::EditorSettings::setInstance(&editorSettings);
+
+    ui::SettingsModel settingsModel(settings);
+    ui::SettingsModel::setInstance(&settingsModel);
+
     QQmlApplicationEngine engine;
 
     // The explorer's model is exposed directly rather than proxied through
@@ -134,7 +175,7 @@ int main(int argc, char* argv[])
     // One editor and one tab model per pane, kept bound to the layout. They are
     // created once and rebound as panes come and go: a context property that
     // appeared and disappeared would break bindings rather than re-evaluate.
-    ui::EditorBindings editors(workspace.editors());
+    ui::EditorBindings editors(workspace.editors(), editorSettings);
 
     QObject::connect(&editors, &ui::EditorBindings::closeTabRequested, &app,
                      [&workspace](int group, int index) {

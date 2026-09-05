@@ -9,7 +9,10 @@ using keys::editor::Range;
 
 namespace keys::ui {
 
-EditorViewModel::EditorViewModel(QObject* parent) : QObject(parent) {}
+EditorViewModel::EditorViewModel(EditorSettings& settings, QObject* parent)
+    : QObject(parent), m_settings(settings)
+{
+}
 
 void EditorViewModel::setDocument(editor::TextDocument* document)
 {
@@ -156,9 +159,7 @@ void EditorViewModel::insertTab()
     if (!m_document) {
         return;
     }
-    // Spaces rather than a tab character, matching the editor.insertSpaces
-    // default. Milestone 9 wires this to the real setting.
-    m_document->insertText(QStringLiteral("    "));
+    m_document->insertText(m_settings.indentString());
     emit scrollToCursorRequested();
 }
 

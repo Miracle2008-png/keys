@@ -56,14 +56,14 @@ Rectangle {
             onClicked: Theme.toggleMode()
         }
 
-        // The settings screen is milestone 9. The control is shown so the layout
-        // is the design's, but it is explicitly disabled rather than silently
-        // inert - a dead button that looks live is worse than an honest one.
         IconButton {
             size: Metrics.railButtonSize
             source: Icons.settings
-            tooltip: qsTr("Settings (not yet implemented)")
-            enabled: false
+            tooltip: qsTr("Settings")
+            active: App.settingsOpen
+            // Toggles: pressing the gear again returns to the code, so the
+            // button is a place rather than a one-way trip.
+            onClicked: App.setSettingsOpen(!App.settingsOpen)
         }
     }
 }

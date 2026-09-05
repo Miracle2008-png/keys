@@ -19,12 +19,20 @@ Rectangle {
 
     WelcomeView {
         anchors.fill: parent
-        visible: !App.hasProject
+        visible: !App.hasProject && !App.settingsOpen
+    }
+
+    // Settings take the whole editor area rather than opening as a tab: the page
+    // is not a document, and giving it a tab would imply it can be split,
+    // reordered and saved alongside files.
+    SettingsPanel {
+        anchors.fill: parent
+        visible: App.settingsOpen
     }
 
     Item {
         anchors.fill: parent
-        visible: App.hasProject
+        visible: App.hasProject && !App.settingsOpen
 
         EditorPane {
             id: firstPane

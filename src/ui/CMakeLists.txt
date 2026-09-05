@@ -15,8 +15,12 @@ qt_add_qml_module(keys_ui
         CommandPaletteModel.h
         EditorBindings.cpp
         EditorBindings.h
+        EditorSettings.cpp
+        EditorSettings.h
         EditorViewModel.cpp
         EditorViewModel.h
+        SettingsModel.cpp
+        SettingsModel.h
         TabBarModel.cpp
         TabBarModel.h
         Metrics.h
@@ -46,6 +50,12 @@ qt_add_qml_module(keys_ui
         qml/NameDialog.qml
         qml/PrimaryButton.qml
         qml/SectionLabel.qml
+        qml/SettingsPanel.qml
+        qml/SettingRow.qml
+        qml/SettingSegmented.qml
+        qml/SettingSwitch.qml
+        qml/SettingSlider.qml
+        qml/SettingTextField.qml
         qml/Sidebar.qml
         qml/StatusBar.qml
         qml/TopBar.qml

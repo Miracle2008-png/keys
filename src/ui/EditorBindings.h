@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ui/EditorSettings.h"
 #include "ui/EditorViewModel.h"
 #include "ui/TabBarModel.h"
 #include "workspace/EditorLayout.h"
@@ -25,7 +26,8 @@ class EditorBindings : public QObject {
     Q_OBJECT
 
 public:
-    EditorBindings(workspace::EditorLayout& layout, QObject* parent = nullptr);
+    EditorBindings(workspace::EditorLayout& layout, EditorSettings& settings,
+                   QObject* parent = nullptr);
 
     [[nodiscard]] EditorViewModel* editorFor(int group) const;
     [[nodiscard]] TabBarModel* tabsFor(int group) const;
@@ -41,6 +43,7 @@ private:
     void rebind();
 
     workspace::EditorLayout& m_layout;
+    EditorSettings& m_settings;
 
     std::array<std::unique_ptr<EditorViewModel>,
                workspace::EditorLayout::kMaxGroups> m_editors;

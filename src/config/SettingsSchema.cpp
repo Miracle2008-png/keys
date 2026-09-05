@@ -58,103 +58,132 @@ bool SettingsSchema::isValid(const QString& key, const QVariant& value) const
     if (!definition->allowedValues.isEmpty()) {
         return definition->allowedValues.contains(value.toString());
     }
+
+    // Bounds are enforced here rather than only in the UI. Settings arrive from
+    // a hand-edited JSON file as readily as from a slider, and a font size of
+    // 800 would leave the editor unusable with no obvious way back.
+    if (definition->isBounded()) {
+        bool numeric = false;
+        const double number = value.toDouble(&numeric);
+        if (!numeric) {
+            return false;
+        }
+        return number >= definition->minimum && number <= definition->maximum;
+    }
     return true;
 }
 
 void SettingsSchema::defineBuiltins()
 {
+    // Only settings that something actually honours are declared. A key with no
+    // consumer would surface in the settings UI as a control that changes
+    // nothing, which is worse than the setting not existing: the user cannot
+    // tell a preference that does not apply from one that is broken. Minimap,
+    // format-on-save and the terminal's settings return with the features that
+    // read them.
+
     // ---- Appearance -------------------------------------------------------
-    define({QStringLiteral("appearance.theme"),
-            QStringLiteral("dark"),
-            SettingScope::Application,
-            QStringLiteral("Interface color mode"),
-            {QStringLiteral("dark"), QStringLiteral("light")}});
+    define({.key = QStringLiteral("appearance.theme"),
+            .defaultValue = QStringLiteral("dark"),
+            .scope = SettingScope::Application,
+            .description = QStringLiteral("Interface color mode"),
+            .allowedValues = {QStringLiteral("dark"), QStringLiteral("light")},
+            .group = QStringLiteral("Appearance"),
+            .title = QStringLiteral("Theme")});
 
     // Drives the design's --anim-t token application-wide. See AnimationPolicy.
-    define({QStringLiteral("animation.level"),
-            QStringLiteral("full"),
-            SettingScope::Application,
-            QStringLiteral("Controls motion across the whole interface"),
-            {QStringLiteral("full"), QStringLiteral("reduced"), QStringLiteral("off")}});
+    define({.key = QStringLiteral("animation.level"),
+            .defaultValue = QStringLiteral("full"),
+            .scope = SettingScope::Application,
+            .description = QStringLiteral("Controls motion across the whole interface"),
+            .allowedValues = {QStringLiteral("full"), QStringLiteral("reduced"),
+                              QStringLiteral("off")},
+            .group = QStringLiteral("Appearance"),
+            .title = QStringLiteral("Animation")});
+
+    define({.key = QStringLiteral("accessibility.uiScale"),
+            .defaultValue = 1.0,
+            .scope = SettingScope::Application,
+            .description = QStringLiteral("Scale factor applied to interface text and controls"),
+            .group = QStringLiteral("Appearance"),
+            .title = QStringLiteral("Interface scale"),
+            .minimum = 0.8,
+            .maximum = 2.0});
 
     // ---- Editor -----------------------------------------------------------
-    define({QStringLiteral("editor.fontSize"),
-            13,
-            SettingScope::Workspace,
-            QStringLiteral("Editor font size in pixels")});
+    define({.key = QStringLiteral("editor.fontSize"),
+            .defaultValue = 13.0,
+            .scope = SettingScope::Workspace,
+            .description = QStringLiteral("Editor font size in pixels"),
+            .group = QStringLiteral("Editor"),
+            .title = QStringLiteral("Font size"),
+            .minimum = 8.0,
+            .maximum = 32.0});
 
-    define({QStringLiteral("editor.fontFamily"),
-            QStringLiteral("JetBrains Mono"),
-            SettingScope::Workspace,
-            QStringLiteral("Editor font family")});
+    define({.key = QStringLiteral("editor.fontFamily"),
+            .defaultValue = QString(),
+            .scope = SettingScope::Workspace,
+            .description = QStringLiteral("Editor font family; empty uses the platform default"),
+            .group = QStringLiteral("Editor"),
+            .title = QStringLiteral("Font family")});
 
-    define({QStringLiteral("editor.lineHeight"),
-            1.6,
-            SettingScope::Workspace,
-            QStringLiteral("Line height as a multiple of font size")});
+    define({.key = QStringLiteral("editor.lineHeight"),
+            .defaultValue = 1.6,
+            .scope = SettingScope::Workspace,
+            .description = QStringLiteral("Line height as a multiple of font size"),
+            .group = QStringLiteral("Editor"),
+            .title = QStringLiteral("Line height"),
+            .minimum = 1.0,
+            .maximum = 3.0});
 
-    define({QStringLiteral("editor.tabSize"),
-            4,
-            SettingScope::Workspace,
-            QStringLiteral("Number of spaces a tab represents")});
+    define({.key = QStringLiteral("editor.tabSize"),
+            .defaultValue = 4,
+            .scope = SettingScope::Workspace,
+            .description = QStringLiteral("Number of spaces a tab represents"),
+            .group = QStringLiteral("Editor"),
+            .title = QStringLiteral("Tab size"),
+            .minimum = 1.0,
+            .maximum = 16.0});
 
-    define({QStringLiteral("editor.insertSpaces"),
-            true,
-            SettingScope::Workspace,
-            QStringLiteral("Insert spaces when pressing Tab")});
-
-    define({QStringLiteral("editor.minimap"),
-            true,
-            SettingScope::Workspace,
-            QStringLiteral("Show a scaled preview on the right edge")});
-
-    define({QStringLiteral("editor.formatOnSave"),
-            false,
-            SettingScope::Workspace,
-            QStringLiteral("Format the document when it is saved")});
+    define({.key = QStringLiteral("editor.insertSpaces"),
+            .defaultValue = true,
+            .scope = SettingScope::Workspace,
+            .description = QStringLiteral("Insert spaces when pressing Tab"),
+            .group = QStringLiteral("Editor"),
+            .title = QStringLiteral("Insert spaces")});
 
     // ---- Workbench --------------------------------------------------------
-    define({QStringLiteral("workbench.sidebarWidth"),
-            268,
-            SettingScope::Application,
-            QStringLiteral("Width of the sidebar in pixels")});
+    // Window state rather than preference: the application persists these so a
+    // session resumes as it was left, but the user sets them by dragging the
+    // sidebar, not by opening settings.
+    define({.key = QStringLiteral("workbench.sidebarWidth"),
+            .defaultValue = 268,
+            .scope = SettingScope::Application,
+            .description = QStringLiteral("Width of the sidebar in pixels"),
+            .group = QStringLiteral("Workbench"),
+            .title = QStringLiteral("Sidebar width"),
+            .minimum = 180.0,
+            .maximum = 640.0,
+            .userVisible = false});
 
-    define({QStringLiteral("workbench.sidebarVisible"),
-            true,
-            SettingScope::Application,
-            QStringLiteral("Whether the sidebar is shown")});
+    define({.key = QStringLiteral("workbench.sidebarVisible"),
+            .defaultValue = true,
+            .scope = SettingScope::Application,
+            .description = QStringLiteral("Whether the sidebar is shown"),
+            .group = QStringLiteral("Workbench"),
+            .title = QStringLiteral("Show sidebar"),
+            .userVisible = false});
 
-    define({QStringLiteral("workbench.activeView"),
-            QStringLiteral("explorer"),
-            SettingScope::Application,
-            QStringLiteral("Which sidebar view is active"),
-            {QStringLiteral("explorer"), QStringLiteral("search"),
-             QStringLiteral("sourceControl"), QStringLiteral("debug"),
-             QStringLiteral("extensions")}});
-
-    // ---- Terminal ---------------------------------------------------------
-    // Empty means "use the platform default shell", resolved by the terminal
-    // module rather than baked into the schema.
-    define({QStringLiteral("terminal.shell"),
-            QString(),
-            SettingScope::Workspace,
-            QStringLiteral("Default shell for new terminals")});
-
-    define({QStringLiteral("terminal.fontSize"),
-            12.5,
-            SettingScope::Workspace,
-            QStringLiteral("Terminal font size in pixels")});
-
-    define({QStringLiteral("terminal.height"),
-            230,
-            SettingScope::Application,
-            QStringLiteral("Height of the terminal panel in pixels")});
-
-    // ---- Accessibility ----------------------------------------------------
-    define({QStringLiteral("accessibility.uiScale"),
-            1.0,
-            SettingScope::Application,
-            QStringLiteral("Scale factor applied to interface text and controls")});
+    define({.key = QStringLiteral("workbench.activeView"),
+            .defaultValue = QStringLiteral("explorer"),
+            .scope = SettingScope::Application,
+            .description = QStringLiteral("Which sidebar view is active"),
+            .allowedValues = {QStringLiteral("explorer"), QStringLiteral("search"),
+                              QStringLiteral("sourceControl"), QStringLiteral("debug"),
+                              QStringLiteral("extensions")},
+            .group = QStringLiteral("Workbench"),
+            .title = QStringLiteral("Active view"),
+            .userVisible = false});
 }
 
 } // namespace keys::config

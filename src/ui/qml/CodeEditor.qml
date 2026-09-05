@@ -27,7 +27,8 @@ Item {
     /// Measured from the font so the gutter and caret track the real glyph box
     /// rather than a guess.
     readonly property real charWidth: fontMetrics.advanceWidth("0")
-    readonly property real lineHeight: Math.round(fontMetrics.height * 1.5)
+    readonly property real lineHeight:
+        Math.round(fontMetrics.height * EditorConfig.lineHeightFactor)
 
     /// Wide enough for the largest line number, plus breathing room. Recomputed
     /// only when the line count changes, not per frame.
@@ -36,8 +37,8 @@ Item {
 
     FontMetrics {
         id: fontMetrics
-        font.family: Fonts.mono
-        font.pointSize: Metrics.fontSizeMedium
+        font.family: EditorConfig.fontFamily
+        font.pointSize: EditorConfig.fontSize
     }
 
     Rectangle {
@@ -91,8 +92,10 @@ Item {
                 verticalAlignment: Text.AlignVCenter
                 text: row.index + 1
                 color: row.isCursorLine ? Theme.textSecondary : Theme.textTertiary
-                font.family: Fonts.mono
-                font.pointSize: Metrics.fontSizeBody
+                font.family: EditorConfig.fontFamily
+                // A step below the code, so the gutter stays secondary at any
+                // configured size rather than only at the default.
+                font.pointSize: EditorConfig.fontSize * 0.92
                 // Selecting text must not sweep up the line numbers.
                 renderType: Text.NativeRendering
             }
@@ -129,8 +132,8 @@ Item {
                         verticalAlignment: Text.AlignVCenter
                         text: row.text
                         color: Theme.synPlain
-                        font.family: Fonts.mono
-                        font.pointSize: Metrics.fontSizeMedium
+                        font.family: EditorConfig.fontFamily
+                        font.pointSize: EditorConfig.fontSize
                         textFormat: Text.PlainText
                     }
 

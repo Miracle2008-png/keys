@@ -112,7 +112,31 @@ Theme* g_instance = nullptr;
 
 } // namespace
 
-Theme::Theme(QObject* parent) : QObject(parent) {}
+Theme::Theme(config::Settings& settings, QObject* parent)
+    : QObject(parent), m_settings(settings)
+{
+    applyFromSettings(m_settings.value(QLatin1String(kThemeKey)));
+
+    // Settings are the source of truth: a change from anywhere - the settings
+    // page, a toggle, a reload from disk - reaches the theme through this one
+    // connection.
+    connect(&m_settings, &config::Settings::changed, this,
+            [this](const QString& key, const QVariant& value) {
+                if (key == QLatin1String(kThemeKey)) {
+                    applyFromSettings(value);
+                }
+            });
+}
+
+void Theme::applyFromSettings(const QVariant& value)
+{
+    const Mode resolved =
+        value.toString() == QLatin1String("light") ? Mode::Light : Mode::Dark;
+    if (resolved != m_mode) {
+        m_mode = resolved;
+        emit changed();
+    }
+}
 
 void Theme::setInstance(Theme* instance)
 {
@@ -133,30 +157,6 @@ Theme* Theme::create(QQmlEngine* engine, QJSEngine* scriptEngine)
     return g_instance;
 }
 
-void Theme::bindTo(config::Settings& settings)
-{
-    m_settings = &settings;
-
-    const QString configured = settings.stringValue(QLatin1String(kThemeKey));
-    m_mode = configured == QLatin1String("light") ? Mode::Light : Mode::Dark;
-
-    // Settings are the source of truth: a change from anywhere - the settings UI,
-    // a reload from disk - reaches the theme through this one connection.
-    connect(&settings, &config::Settings::changed, this,
-            [this](const QString& key, const QVariant& value) {
-                if (key != QLatin1String(kThemeKey)) {
-                    return;
-                }
-                const Mode resolved =
-                    value.toString() == QLatin1String("light") ? Mode::Light : Mode::Dark;
-                if (resolved != m_mode) {
-                    m_mode = resolved;
-                    emit changed();
-                }
-            });
-
-    emit changed();
-}
 
 void Theme::setMode(Mode mode)
 {
@@ -164,18 +164,12 @@ void Theme::setMode(Mode mode)
         return;
     }
 
-    // Write through settings rather than setting m_mode directly, so the change is
-    // persisted and every other observer is notified. The settings callback above
-    // applies it back to us.
-    if (m_settings) {
-        const QString text = mode == Mode::Light ? QStringLiteral("light")
-                                                 : QStringLiteral("dark");
-        m_settings->setValue(QLatin1String(kThemeKey), text);
-        return;
-    }
-
-    m_mode = mode;
-    emit changed();
+    // Written through settings rather than assigning m_mode directly, so the
+    // change is persisted and every other observer is notified. The settings
+    // callback applies it back to us.
+    m_settings.setValue(QLatin1String(kThemeKey),
+                        mode == Mode::Light ? QStringLiteral("light")
+                                            : QStringLiteral("dark"));
 }
 
 void Theme::toggleMode()

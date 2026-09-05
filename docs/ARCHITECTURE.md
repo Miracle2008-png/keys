@@ -189,6 +189,45 @@ reads its duration from this single source. `Off` disables animation entirely ra
 than shortening it, and the app also honours the OS reduced-motion preference as the
 initial default.
 
+**A setting exists only once something honours it.** A declared key with no consumer
+becomes a control in the settings page that changes nothing, and a user cannot tell
+that from a broken one. Minimap, format-on-save and the terminal's settings were
+removed for this reason and return with the features that read them.
+
+**The settings page is generated from the schema, not hand-written.** The
+declaration already carries the type, default, allowed values and bounds; a
+hand-built page would duplicate all of it and then drift. The control follows the
+type — bool to a toggle, allowed values to a segmented choice, a bounded number to a
+slider, anything else to a text field — so adding a setting adds a working row.
+Bounds are enforced on write rather than only in the UI, because settings arrive
+from a hand-edited JSON file as readily as from a slider.
+
+`accessibility.uiScale` is the one setting that cannot apply live: Qt reads
+`QT_SCALE_FACTOR` once, when the GUI application is constructed. It is therefore
+read from disk before `QGuiApplication` and takes effect on the next launch, which
+the settings page states rather than hides.
+
+---
+
+## 6a. C++ objects exposed to QML
+
+Objects the application owns and QML consumes (theme, controller, settings, models)
+are registered as `QML_NAMED_ELEMENT` + `QML_SINGLETON` with a static `create()`
+returning the instance `main()` published.
+
+**Such a type must not be default-constructible.** A `QML_SINGLETON` the engine
+*can* construct will construct its own instance rather than calling `create()`, and
+QML then binds to a second object that `main()` never wired to anything. The failure
+is silent: no warning, no error, just a signal that never arrives. This is not
+hypothetical — `Theme` shipped this way from milestone 1, which is why the theme
+toggled from the rail (mutating QML's private copy) but never persisted and never
+responded to settings. Taking a dependency by reference in the constructor is what
+makes the registration honest, and `ThemeTests` asserts it with a `static_assert`.
+
+QML compiled ahead of time also cannot see context properties: the AOT compiler
+resolves such bindings to `undefined` at compile time, with only a runtime warning.
+Anything QML binds to is therefore a declared singleton, not a context property.
+
 ---
 
 ## 7. Commands

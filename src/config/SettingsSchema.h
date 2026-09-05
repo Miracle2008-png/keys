@@ -31,6 +31,29 @@ struct SettingDefinition {
 
     /// Allowed values for enumerated settings. Empty means unconstrained.
     QStringList allowedValues;
+
+    /// Heading the settings UI files this under ("Appearance", "Editor").
+    /// Derived from the key's first segment when empty.
+    QString group;
+
+    /// Short label for the settings UI. The key is not a label: "editor.fontSize"
+    /// is an identifier, "Font size" is what a person reads.
+    QString title;
+
+    /// Inclusive bounds for numeric settings. Equal values mean unbounded.
+    /// These are what stop a slider offering an 800-point font, and they are
+    /// enforced on write rather than only in the UI - a hand-edited settings
+    /// file must not be able to produce an unusable editor.
+    double minimum = 0.0;
+    double maximum = 0.0;
+
+    /// False for state the application persists but the user does not set
+    /// directly - sidebar width, which view was open. Keeping these in the
+    /// schema means they are still validated and still round-trip through the
+    /// same file; hiding them keeps the settings UI to actual preferences.
+    bool userVisible = true;
+
+    [[nodiscard]] bool isBounded() const { return minimum < maximum; }
 };
 
 /// The registry of known settings.

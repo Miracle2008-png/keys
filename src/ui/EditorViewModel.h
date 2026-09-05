@@ -1,6 +1,7 @@
 #pragma once
 
 #include "editor/TextDocument.h"
+#include "ui/EditorSettings.h"
 
 #include <QObject>
 #include <QQmlEngine>
@@ -33,7 +34,10 @@ class EditorViewModel : public QObject {
     Q_PROPERTY(bool hasDocument READ hasDocument NOTIFY documentChanged)
 
 public:
-    explicit EditorViewModel(QObject* parent = nullptr);
+    /// Takes the editor's resolved settings so indentation follows the user's
+    /// preference. Passed in rather than looked up so the view model stays
+    /// testable without a settings file.
+    explicit EditorViewModel(EditorSettings& settings, QObject* parent = nullptr);
 
     /// The document being edited. Null until a file is opened.
     void setDocument(editor::TextDocument* document);
@@ -102,6 +106,7 @@ signals:
     void scrollToCursorRequested();
 
 private:
+    EditorSettings& m_settings;
     editor::TextDocument* m_document = nullptr;
 };
 

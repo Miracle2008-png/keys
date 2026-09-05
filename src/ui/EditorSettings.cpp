@@ -1,0 +1,109 @@
+#include "ui/EditorSettings.h"
+
+#include "ui/Metrics.h"
+
+
+namespace keys::ui {
+namespace {
+
+constexpr auto kFontSizeKey = "editor.fontSize";
+constexpr auto kFontFamilyKey = "editor.fontFamily";
+constexpr auto kLineHeightKey = "editor.lineHeight";
+constexpr auto kTabSizeKey = "editor.tabSize";
+constexpr auto kInsertSpacesKey = "editor.insertSpaces";
+
+/// The instance main() publishes for QML; see Theme.cpp for the reasoning.
+EditorSettings* g_instance = nullptr;
+
+} // namespace
+
+void EditorSettings::setInstance(EditorSettings* instance)
+{
+    g_instance = instance;
+}
+
+EditorSettings* EditorSettings::create(QQmlEngine* engine, QJSEngine* scriptEngine)
+{
+    Q_UNUSED(engine)
+    Q_UNUSED(scriptEngine)
+
+    Q_ASSERT_X(g_instance, "EditorSettings::create",
+               "EditorSettings::setInstance was not called");
+
+    QQmlEngine::setObjectOwnership(g_instance, QQmlEngine::CppOwnership);
+    return g_instance;
+}
+
+EditorSettings::EditorSettings(config::Settings& settings, QObject* parent)
+    : QObject(parent), m_settings(settings)
+{
+    applyFromSettings();
+
+    connect(&m_settings, &config::Settings::changed, this,
+            [this](const QString& key, const QVariant&) {
+                if (key == QLatin1String(kFontSizeKey)
+                    || key == QLatin1String(kFontFamilyKey)
+                    || key == QLatin1String(kLineHeightKey)
+                    || key == QLatin1String(kTabSizeKey)
+                    || key == QLatin1String(kInsertSpacesKey)) {
+                    applyFromSettings();
+                }
+            });
+}
+
+qreal EditorSettings::fontSize() const
+{
+    // The setting is in CSS pixels, matching the design and what the user sees
+    // in the settings UI; QML assigns it to font.pointSize. See Metrics.
+    return m_fontSize * Metrics::kPxToPt;
+}
+
+QString EditorSettings::fontFamily() const
+{
+    if (!m_fontFamily.isEmpty()) {
+        return m_fontFamily;
+    }
+
+    // Empty means "the platform's monospace face". Resolved here rather than in
+    // QML so the fallback is one decision instead of one per view, and so a
+    // machine without the named font still gets a monospaced editor. These match
+    // Fonts.qml, which serves the chrome.
+#if defined(Q_OS_WIN)
+    return QStringLiteral("Cascadia Mono");
+#elif defined(Q_OS_MACOS)
+    return QStringLiteral("SF Mono");
+#else
+    return QStringLiteral("JetBrains Mono");
+#endif
+}
+
+QString EditorSettings::indentString() const
+{
+    return m_insertSpaces ? QString(m_tabSize, QLatin1Char(' '))
+                          : QStringLiteral("\t");
+}
+
+void EditorSettings::applyFromSettings()
+{
+    const qreal fontSize = m_settings.doubleValue(QLatin1String(kFontSizeKey));
+    const QString fontFamily = m_settings.stringValue(QLatin1String(kFontFamilyKey));
+    const qreal lineHeight = m_settings.doubleValue(QLatin1String(kLineHeightKey));
+    const int tabSize = m_settings.intValue(QLatin1String(kTabSizeKey));
+    const bool insertSpaces = m_settings.boolValue(QLatin1String(kInsertSpacesKey));
+
+    if (qFuzzyCompare(fontSize, m_fontSize) && fontFamily == m_fontFamily
+        && qFuzzyCompare(lineHeight, m_lineHeight) && tabSize == m_tabSize
+        && insertSpaces == m_insertSpaces) {
+        return;
+    }
+
+    m_fontSize = fontSize;
+    m_fontFamily = fontFamily;
+    m_lineHeight = lineHeight;
+    m_tabSize = tabSize;
+    m_insertSpaces = insertSpaces;
+
+    emit changed();
+}
+
+} // namespace keys::ui

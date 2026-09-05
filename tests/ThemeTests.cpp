@@ -6,6 +6,8 @@
 #include <QSignalSpy>
 #include <QTest>
 
+#include <type_traits>
+
 using namespace keys::ui;
 using keys::config::Settings;
 
@@ -75,13 +77,15 @@ private slots:
 
     void defaultsToDarkMode()
     {
-        const Theme theme;
+        Settings settings;
+        const Theme theme(settings);
         QCOMPARE(theme.mode(), Theme::Mode::Dark);
     }
 
     void darkAndLightPalettesDiffer()
     {
-        Theme theme;
+        Settings settings;
+        Theme theme(settings);
         const QColor darkChrome = theme.bgChrome();
         const QColor darkText = theme.textPrimary();
 
@@ -94,7 +98,8 @@ private slots:
     {
         // Guards against the two palettes being transposed, which no individual
         // colour assertion would catch.
-        Theme theme;
+        Settings settings;
+        Theme theme(settings);
         theme.setMode(Theme::Mode::Dark);
         QVERIFY(theme.bgChrome().lightness() < 80);
         QVERIFY(theme.textPrimary().lightness() > 180);
@@ -107,7 +112,8 @@ private slots:
     void accentIsBlueInBothModes()
     {
         // The brief forbids an orange accent. Blue means the blue channel leads.
-        Theme theme;
+        Settings settings;
+        Theme theme(settings);
         for (const Theme::Mode mode : {Theme::Mode::Dark, Theme::Mode::Light}) {
             theme.setMode(mode);
             const QColor accent = theme.accent();
@@ -118,14 +124,16 @@ private slots:
 
     void softAccentIsTranslucent()
     {
-        const Theme theme;
+        Settings settings;
+        const Theme theme(settings);
         QVERIFY(theme.accentSoft().alpha() < 255);
         QVERIFY(theme.border().alpha() < 255);
     }
 
     void modeChangeEmitsOnce()
     {
-        Theme theme;
+        Settings settings;
+        Theme theme(settings);
         QSignalSpy spy(&theme, &Theme::changed);
 
         theme.setMode(Theme::Mode::Light);
@@ -139,7 +147,8 @@ private slots:
 
     void toggleAlternatesModes()
     {
-        Theme theme;
+        Settings settings;
+        Theme theme(settings);
         QCOMPARE(theme.mode(), Theme::Mode::Dark);
         theme.toggleMode();
         QCOMPARE(theme.mode(), Theme::Mode::Light);
@@ -150,8 +159,7 @@ private slots:
     void boundThemeFollowsSettings()
     {
         Settings settings;
-        Theme theme;
-        theme.bindTo(settings);
+        Theme theme(settings);
 
         QVERIFY(static_cast<bool>(
             settings.setValue(QStringLiteral("appearance.theme"), QStringLiteral("light"))));
@@ -162,13 +170,42 @@ private slots:
     {
         // Toggling from the UI must persist, or the choice is lost on restart.
         Settings settings;
-        Theme theme;
-        theme.bindTo(settings);
+        Theme theme(settings);
 
         theme.toggleMode();
         QCOMPARE(settings.stringValue(QStringLiteral("appearance.theme")),
                  QStringLiteral("light"));
         QCOMPARE(theme.mode(), Theme::Mode::Light);
+    }
+
+    void qmlResolvesToThePublishedInstance()
+    {
+        // The bug this guards against: Theme was declared QML_ELEMENT +
+        // QML_SINGLETON with a default constructor, so the engine happily
+        // constructed its *own* Theme instead of calling create(). QML then
+        // bound to a second object that main() had never connected to settings,
+        // and the theme silently stopped responding to the settings page while
+        // still appearing to toggle from the rail.
+        //
+        // Every C++-owned singleton must therefore be unconstructible by the
+        // engine; create() returning the published instance is what makes the
+        // registration honest.
+        static_assert(!std::is_default_constructible_v<Theme>,
+                      "Theme must not be default-constructible, or the QML engine "
+                      "will construct its own singleton instead of calling create()");
+
+        Settings settings;
+        Theme theme(settings);
+        Theme::setInstance(&theme);
+
+        QCOMPARE(Theme::create(nullptr, nullptr), &theme);
+
+        // And the instance QML gets is the one that follows settings.
+        QVERIFY(static_cast<bool>(settings.setValue(
+            QStringLiteral("appearance.theme"), QStringLiteral("light"))));
+        QCOMPARE(Theme::create(nullptr, nullptr)->mode(), Theme::Mode::Light);
+
+        Theme::setInstance(nullptr);
     }
 
     // ---- Metrics ----------------------------------------------------------

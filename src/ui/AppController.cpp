@@ -119,6 +119,15 @@ bool AppController::sidebarVisible() const
     return m_settings.boolValue(QLatin1String(kSidebarVisibleKey));
 }
 
+void AppController::setSettingsOpen(bool open)
+{
+    if (open == m_settingsOpen) {
+        return;
+    }
+    m_settingsOpen = open;
+    emit settingsOpenChanged();
+}
+
 QString AppController::activeView() const
 {
     return m_settings.stringValue(QLatin1String(kActiveViewKey));
@@ -324,6 +333,11 @@ void AppController::registerWorkbenchCommands()
         [this] {
             m_settings.setValue(QLatin1String(kSidebarVisibleKey), !sidebarVisible());
         });
+
+    add(QStringLiteral("workbench.openSettings"),
+        QStringLiteral("Open Settings"),
+        QStringLiteral("Preferences"),
+        [this] { setSettingsOpen(true); });
 
     add(QStringLiteral("workbench.toggleTheme"),
         QStringLiteral("Toggle Color Theme"),

@@ -2,11 +2,12 @@
 
 namespace keys::ui {
 
-EditorBindings::EditorBindings(workspace::EditorLayout& layout, QObject* parent)
-    : QObject(parent), m_layout(layout)
+EditorBindings::EditorBindings(workspace::EditorLayout& layout,
+                               EditorSettings& settings, QObject* parent)
+    : QObject(parent), m_layout(layout), m_settings(settings)
 {
     for (int i = 0; i < workspace::EditorLayout::kMaxGroups; ++i) {
-        m_editors.at(static_cast<size_t>(i)) = std::make_unique<EditorViewModel>(this);
+        m_editors.at(static_cast<size_t>(i)) = std::make_unique<EditorViewModel>(m_settings, this);
         m_tabs.at(static_cast<size_t>(i)) = std::make_unique<TabBarModel>(this);
 
         // A tab's close button reaches the workspace through here, because

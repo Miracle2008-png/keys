@@ -1,6 +1,7 @@
 #include "search/FuzzyMatch.h"
 
 #include <algorithm>
+#include <vector>
 
 namespace keys::search {
 namespace {
@@ -40,33 +41,46 @@ bool isSeparator(QChar character)
 }
 
 
-/// Whether `query` from `queryIndex` still exists as a subsequence of
-/// `candidate` from `candidateIndex`.
+/// The latest index in `candidate` at which `query[q]` may be matched while
+/// still leaving room for `query[q+1..]`, for every q. Entry q+1 is one past the
+/// end, meaning "nothing left to place".
 ///
 /// This is what makes the word-boundary preference safe. Preferring a boundary
 /// means jumping forward past earlier occurrences, and a jump that strands the
 /// rest of the query turns a real match into no match at all: `view` against
 /// `View Split Editor` would take the `E` of `Editor` for its `e` - a boundary -
-/// and then find no `w` after it. A character count is not enough, because
-/// which characters remain is what decides it.
+/// and then find no `w` after it. A character count is not enough, because which
+/// characters remain is what decides it.
 ///
-/// Cost is bounded by the tail of the query, and it runs only when a boundary
-/// candidate is actually found, so the common path is untouched.
-bool remainderFits(const QString& query, int queryIndex,
-                   const QString& candidate, int candidateIndex)
+/// Computed once per match in a single backward pass rather than by rescanning
+/// the tail at each boundary candidate: the naive form is correct but turns the
+/// matcher quadratic, and this runs against every file in the project on every
+/// keystroke.
+void computeLatestFeasible(const QString& query, const QString& candidate,
+                           std::vector<int>& latest)
 {
-    int c = candidateIndex;
-    for (int q = queryIndex; q < query.size(); ++q) {
+    const int queryLength = static_cast<int>(query.size());
+    const int candidateLength = static_cast<int>(candidate.size());
+
+    latest.assign(static_cast<size_t>(queryLength) + 1, candidateLength);
+
+    // Walking backwards, each query character must sit strictly before the
+    // position its successor was pinned to.
+    int limit = candidateLength;
+    for (int q = queryLength - 1; q >= 0; --q) {
         const QChar wanted = query.at(q).toLower();
-        while (c < candidate.size() && candidate.at(c).toLower() != wanted) {
-            ++c;
+
+        int index = limit - 1;
+        while (index >= 0 && candidate.at(index).toLower() != wanted) {
+            --index;
         }
-        if (c >= candidate.size()) {
-            return false;
+
+        latest[static_cast<size_t>(q)] = index;   // -1 when unreachable
+        limit = index;
+        if (index < 0) {
+            break;
         }
-        ++c;
     }
-    return true;
 }
 
 } // namespace
@@ -102,6 +116,13 @@ FuzzyResult FuzzyMatch::match(const QString& query, const QString& candidate)
         return result;
     }
 
+    // Reused across calls so a 50,000-file query does not allocate per file.
+    thread_local std::vector<int> latestFeasible;
+    computeLatestFeasible(query, candidate, latestFeasible);
+    if (latestFeasible.front() < 0) {
+        return result;   // a query character is missing entirely
+    }
+
     result.positions.reserve(static_cast<size_t>(query.size()));
 
     int score = 0;
@@ -126,6 +147,9 @@ FuzzyResult FuzzyMatch::match(const QString& query, const QString& candidate)
         // `src/util.cpp` would otherwise take the `c` of `.cpp` - a boundary,
         // because it follows a dot - and strand the `u`; `view` against
         // `View Split Editor` would take the `E` of `Editor` and strand the `w`.
+        //
+        const int latestUsable = latestFeasible[static_cast<size_t>(queryIndex)];
+
         int found = -1;
         int firstAny = -1;
 
@@ -136,8 +160,7 @@ FuzzyResult FuzzyMatch::match(const QString& query, const QString& candidate)
             if (firstAny < 0) {
                 firstAny = i;
             }
-            if (isWordBoundary(candidate, i)
-                && remainderFits(query, queryIndex + 1, candidate, i + 1)) {
+            if (i <= latestUsable && isWordBoundary(candidate, i)) {
                 found = i;
                 break;
             }

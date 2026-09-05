@@ -36,6 +36,11 @@ class AppController : public QObject {
     Q_PROPERTY(QString activeView READ activeView NOTIFY workbenchChanged)
     Q_PROPERTY(int sidebarWidth READ sidebarWidth NOTIFY workbenchChanged)
 
+    /// Whether the settings page is showing in place of the editor. Session
+    /// state rather than a setting: a user who closes Keys on the settings page
+    /// wants their code back on the next launch, not the settings page.
+    Q_PROPERTY(bool settingsOpen READ settingsOpen NOTIFY settingsOpenChanged)
+
     /// Empty until a project is opened. The UI shows the project name in the top
     /// bar and falls back to a neutral state when there is none, rather than
     /// displaying a placeholder that implies something is open.
@@ -72,6 +77,9 @@ public:
     [[nodiscard]] int fastAnimationDuration() const { return m_animation.fastDuration(); }
 
     [[nodiscard]] bool sidebarVisible() const;
+
+    [[nodiscard]] bool settingsOpen() const { return m_settingsOpen; }
+    Q_INVOKABLE void setSettingsOpen(bool open);
     [[nodiscard]] QString activeView() const;
     [[nodiscard]] int sidebarWidth() const;
     [[nodiscard]] QString projectName() const;
@@ -121,6 +129,7 @@ public:
 signals:
     void animationChanged();
     void workbenchChanged();
+    void settingsOpenChanged();
     void projectChanged();
     void recentProjectsChanged();
     void editorsChanged();
@@ -139,6 +148,7 @@ private:
     config::AnimationPolicy& m_animation;
     workspace::Workspace& m_workspace;
     QString m_lastError;
+    bool m_settingsOpen = false;
 };
 
 } // namespace keys::ui
