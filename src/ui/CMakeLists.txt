@@ -11,6 +11,8 @@ qt_add_qml_module(keys_ui
     SOURCES
         AppController.cpp
         AppController.h
+        CommandPaletteModel.cpp
+        CommandPaletteModel.h
         EditorBindings.cpp
         EditorBindings.h
         EditorViewModel.cpp
@@ -27,6 +29,7 @@ qt_add_qml_module(keys_ui
         qml/Main.qml
         qml/ActivityRail.qml
         qml/CodeEditor.qml
+        qml/CommandPalette.qml
         qml/EditorPane.qml
         qml/EditorTabBar.qml
         qml/ContextMenu.qml
@@ -85,6 +88,7 @@ target_link_libraries(keys_ui PUBLIC
     Qt6::Svg
     Keys::core
     Keys::config
+    Keys::search
     Keys::workspace
 )
 

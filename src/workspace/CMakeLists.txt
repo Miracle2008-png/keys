@@ -19,4 +19,5 @@ keys_add_module(workspace
         editor
         filesystem
         project
+        search
 )

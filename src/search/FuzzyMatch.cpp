@@ -39,6 +39,36 @@ bool isSeparator(QChar character)
            || character == QLatin1Char('.') || character == QLatin1Char(' ');
 }
 
+
+/// Whether `query` from `queryIndex` still exists as a subsequence of
+/// `candidate` from `candidateIndex`.
+///
+/// This is what makes the word-boundary preference safe. Preferring a boundary
+/// means jumping forward past earlier occurrences, and a jump that strands the
+/// rest of the query turns a real match into no match at all: `view` against
+/// `View Split Editor` would take the `E` of `Editor` for its `e` - a boundary -
+/// and then find no `w` after it. A character count is not enough, because
+/// which characters remain is what decides it.
+///
+/// Cost is bounded by the tail of the query, and it runs only when a boundary
+/// candidate is actually found, so the common path is untouched.
+bool remainderFits(const QString& query, int queryIndex,
+                   const QString& candidate, int candidateIndex)
+{
+    int c = candidateIndex;
+    for (int q = queryIndex; q < query.size(); ++q) {
+        const QChar wanted = query.at(q).toLower();
+        while (c < candidate.size() && candidate.at(c).toLower() != wanted) {
+            ++c;
+        }
+        if (c >= candidate.size()) {
+            return false;
+        }
+        ++c;
+    }
+    return true;
+}
+
 } // namespace
 
 bool FuzzyMatch::isWordBoundary(const QString& candidate, int index)
@@ -90,15 +120,12 @@ FuzzyResult FuzzyMatch::match(const QString& query, const QString& candidate)
         // intended alignment without the cost of a full dynamic-programming
         // search.
         //
-        // Crucially the preference is bounded by what remains to be matched. A
-        // boundary match that consumes too much of the candidate leaves the
-        // rest of the query unsatisfiable: `srcutil` against `src/util.cpp`
-        // would otherwise take the `c` of `.cpp` - a boundary, because it
-        // follows a dot - and strand the `u`. Only a boundary that still leaves
-        // room for the remaining query characters is preferred.
-        const int remaining = static_cast<int>(query.size()) - queryIndex - 1;
-        const int latestUsable = static_cast<int>(candidate.size()) - remaining - 1;
-
+        // Crucially the preference is only taken when the rest of the query is
+        // still reachable from there. A boundary match that consumes too much of
+        // the candidate leaves the remainder unsatisfiable: `srcutil` against
+        // `src/util.cpp` would otherwise take the `c` of `.cpp` - a boundary,
+        // because it follows a dot - and strand the `u`; `view` against
+        // `View Split Editor` would take the `E` of `Editor` and strand the `w`.
         int found = -1;
         int firstAny = -1;
 
@@ -109,7 +136,8 @@ FuzzyResult FuzzyMatch::match(const QString& query, const QString& candidate)
             if (firstAny < 0) {
                 firstAny = i;
             }
-            if (i <= latestUsable && isWordBoundary(candidate, i)) {
+            if (isWordBoundary(candidate, i)
+                && remainderFits(query, queryIndex + 1, candidate, i + 1)) {
                 found = i;
                 break;
             }

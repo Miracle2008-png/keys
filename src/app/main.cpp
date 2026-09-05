@@ -6,11 +6,13 @@
 #include "core/TaskScheduler.h"
 #include "core/Trace.h"
 #include "ui/AppController.h"
+#include "ui/CommandPaletteModel.h"
 #include "ui/EditorBindings.h"
 #include "ui/Theme.h"
 #include "workspace/Workspace.h"
 
 #include <QGuiApplication>
+#include <QDir>
 #include <QIcon>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -118,6 +120,9 @@ int main(int argc, char* argv[])
     ui::Theme::setInstance(&theme);
     ui::AppController::setInstance(&controller);
 
+    ui::CommandPaletteModel palette(commands, workspace.fileIndex());
+    ui::CommandPaletteModel::setInstance(&palette);
+
     QQmlApplicationEngine engine;
 
     // The explorer's model is exposed directly rather than proxied through
@@ -135,6 +140,14 @@ int main(int argc, char* argv[])
                      [&workspace](int group, int index) {
                          workspace.editors().setActiveGroup(group);
                          workspace.closeTab(index);
+                     });
+
+    // Choosing a file in the palette opens it, the same path the explorer uses.
+    QObject::connect(&palette, &ui::CommandPaletteModel::fileChosen, &app,
+                     [&workspace, &controller](const QString& relativePath) {
+                         const QString absolute =
+                             QDir(workspace.project().root()).filePath(relativePath);
+                         controller.openFile(absolute);
                      });
 
     for (int i = 0; i < workspace::EditorLayout::kMaxGroups; ++i) {

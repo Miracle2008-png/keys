@@ -15,7 +15,8 @@ Workspace::Workspace(config::Settings& settings,
                      QObject* parent)
     : QObject(parent),
       m_settings(settings),
-      m_fileTree(m_project, m_watcher, scheduler, this)
+      m_fileTree(m_project, m_watcher, scheduler, this),
+      m_fileIndex(m_project, scheduler, this)
 {
 }
 

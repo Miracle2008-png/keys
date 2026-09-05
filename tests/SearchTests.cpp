@@ -198,6 +198,31 @@ private slots:
                                       QStringLiteral("src/util.cpp")).matched());
     }
 
+    void aWordBoundaryIsNotPreferredIfItStrandsTheRestOfTheQuery()
+    {
+        // The word-boundary preference jumps forward past earlier occurrences.
+        // A jump that leaves the remaining query unsatisfiable must not be
+        // taken: here the `e` could go to the `E` of `Editor` - a boundary -
+        // but then there is no `w` left, turning a literal prefix into a
+        // non-match.
+        const FuzzyResult result = FuzzyMatch::match(QStringLiteral("view"),
+                                                     QStringLiteral("View Split Editor"));
+        QVERIFY(result.matched());
+        QCOMPARE(result.positions, (std::vector<int>{0, 1, 2, 3}));
+    }
+
+    void aPrefixAlwaysMatches()
+    {
+        // The general form of the case above: if the query is a literal prefix
+        // of the candidate, no alignment choice may reject it.
+        const QString candidate = QStringLiteral("View Split Editor");
+        for (int length = 1; length <= candidate.size(); ++length) {
+            const QString query = candidate.left(length);
+            QVERIFY2(FuzzyMatch::match(query, candidate).matched(),
+                     qPrintable(query));
+        }
+    }
+
     // ---- File index --------------------------------------------------------
 
     void indexesTheProjectsFiles()

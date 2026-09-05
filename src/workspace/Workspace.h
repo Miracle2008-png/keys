@@ -6,6 +6,7 @@
 #include "project/Project.h"
 #include "core/TaskScheduler.h"
 #include "editor/TextDocument.h"
+#include "search/FileIndex.h"
 #include "workspace/EditorLayout.h"
 #include "workspace/FileTreeModel.h"
 #include "workspace/RecentProjects.h"
@@ -55,6 +56,9 @@ public:
     /// The editor panes and the tabs in them.
     [[nodiscard]] EditorLayout& editors() { return m_editors; }
 
+    /// The project's file index, used by quick open and text search.
+    [[nodiscard]] search::FileIndex& fileIndex() { return m_fileIndex; }
+
     /// The document being edited right now, or nullptr when nothing is open.
     [[nodiscard]] editor::TextDocument* activeDocument() const
     {
@@ -97,6 +101,7 @@ private:
     // Declared last: it holds references to the three members above, so it must
     // be destroyed before them.
     FileTreeModel m_fileTree;
+    search::FileIndex m_fileIndex;
     EditorLayout m_editors;
 };
 

@@ -10,6 +10,10 @@ Rectangle {
     height: Metrics.topBarHeight
     color: Theme.bgChrome
 
+    /// The window owns the palette, so the bar reports the intent rather than
+    /// reaching across the layout for it.
+    signal paletteRequested()
+
     // Hairline separator. A Rectangle rather than a border so only the bottom
     // edge is drawn.
     Rectangle {
@@ -135,12 +139,12 @@ Rectangle {
             }
         }
 
-        // The palette itself arrives in milestone 8. Until then this reads as a
-        // hint about the shortcut rather than offering a button that does nothing.
         MouseArea {
             id: searchMouse
             anchors.fill: parent
             hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: root.paletteRequested()
         }
     }
 

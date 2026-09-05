@@ -26,6 +26,7 @@ Window {
         TopBar {
             id: topBar
             width: parent.width
+            onPaletteRequested: palette.open("")
         }
 
         Item {
@@ -78,6 +79,21 @@ Window {
     Shortcut {
         sequences: [StandardKey.Save]
         onActivated: App.invokeCommand("workspace.saveFile")
+    }
+
+    // Above everything, so the dimmed backdrop covers the whole workbench.
+    CommandPalette {
+        id: palette
+    }
+
+    Shortcut {
+        sequence: "Ctrl+K"
+        onActivated: palette.open(">")
+    }
+
+    Shortcut {
+        sequence: "Ctrl+P"
+        onActivated: palette.open("")
     }
 
     // Failures the user caused are shown, never swallowed.
