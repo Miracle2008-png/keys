@@ -92,6 +92,11 @@ AppController::AppController(core::CommandRegistry& commands,
     connect(&m_workspace.fileTree(), &workspace::FileTreeModel::fileActivated,
             this, [this](const QString& path) { openFile(path); });
 
+    connect(&m_workspace.editors(), &workspace::EditorLayout::groupsChanged,
+            this, &AppController::editorsChanged);
+    connect(&m_workspace.editors(), &workspace::EditorLayout::activeGroupChanged,
+            this, &AppController::editorsChanged);
+
     connect(&m_animation, &config::AnimationPolicy::changed,
             this, &AppController::animationChanged);
 
@@ -221,6 +226,43 @@ bool AppController::openFile(const QString& path)
     return true;
 }
 
+int AppController::groupCount() const
+{
+    return m_workspace.editors().groupCount();
+}
+
+int AppController::activeGroup() const
+{
+    return m_workspace.editors().activeGroupIndex();
+}
+
+bool AppController::isSplit() const
+{
+    return m_workspace.editors().groupCount() > 1;
+}
+
+void AppController::closeTab(int index)
+{
+    m_workspace.closeTab(index);
+}
+
+void AppController::toggleSplit()
+{
+    // One control does both directions: the design has a single split button
+    // that lights up when active, not separate split and unsplit commands.
+    workspace::EditorLayout& editors = m_workspace.editors();
+    if (editors.groupCount() > 1) {
+        editors.closeGroup(editors.groupCount() - 1);
+    } else {
+        editors.split();
+    }
+}
+
+void AppController::focusGroup(int index)
+{
+    m_workspace.editors().setActiveGroup(index);
+}
+
 bool AppController::saveFile()
 {
     const core::Status status = m_workspace.saveFile();
@@ -257,6 +299,12 @@ void AppController::registerWorkbenchCommands()
             qCWarning(lcUi) << "failed to register command:" << status.error().toString();
         }
     };
+
+    add(QStringLiteral("workbench.toggleSplit"),
+        QStringLiteral("Split Editor"),
+        QStringLiteral("View"),
+        [this] { toggleSplit(); },
+        [this] { return hasProject(); });
 
     add(QStringLiteral("workspace.saveFile"),
         QStringLiteral("Save"),

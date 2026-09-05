@@ -17,6 +17,11 @@ import Keys.Ui
 Item {
     id: root
 
+    /// The view model this editor drives. Passed in rather than read from a
+    /// global, because a split shows two panes over two different documents -
+    /// a singleton could only ever serve one of them.
+    required property var editor
+
     focus: true
 
     /// Measured from the font so the gutter and caret track the real glyph box
@@ -27,7 +32,7 @@ Item {
     /// Wide enough for the largest line number, plus breathing room. Recomputed
     /// only when the line count changes, not per frame.
     readonly property real gutterWidth:
-        Math.max(48, String(Math.max(1, Editor.lineCount)).length * charWidth + 28)
+        Math.max(48, String(Math.max(1, root.editor.lineCount)).length * charWidth + 28)
 
     FontMetrics {
         id: fontMetrics
@@ -44,7 +49,7 @@ Item {
         id: lines
 
         anchors.fill: parent
-        model: Editor.lineCount
+        model: root.editor.lineCount
         clip: true
         reuseItems: true
         boundsBehavior: Flickable.StopAtBounds
@@ -64,14 +69,14 @@ Item {
             width: lines.width
             height: root.lineHeight
 
-            readonly property string text: Editor.lineText(index)
-            readonly property bool isCursorLine: index === Editor.cursorLine
+            readonly property string text: root.editor.lineText(index)
+            readonly property bool isCursorLine: index === root.editor.cursorLine
 
             // The line the caret is on gets a faint wash, so the eye can find
             // its place after a scroll without a heavy highlight.
             Rectangle {
                 anchors.fill: parent
-                visible: row.isCursorLine && !Editor.hasSelection
+                visible: row.isCursorLine && !root.editor.hasSelection
                 color: Theme.accent
                 opacity: 0.06
             }
@@ -108,11 +113,11 @@ Item {
 
                     // Selection highlight, drawn behind the glyphs.
                     Rectangle {
-                        visible: Editor.lineHasSelection(row.index)
-                        x: Editor.selectionStartOn(row.index) * root.charWidth
+                        visible: root.editor.lineHasSelection(row.index)
+                        x: root.editor.selectionStartOn(row.index) * root.charWidth
                         width: Math.max(2,
-                            (Editor.selectionEndOn(row.index)
-                             - Editor.selectionStartOn(row.index)) * root.charWidth)
+                            (root.editor.selectionEndOn(row.index)
+                             - root.editor.selectionStartOn(row.index)) * root.charWidth)
                         height: parent.height
                         color: Theme.accent
                         opacity: 0.25
@@ -132,7 +137,7 @@ Item {
                     // Caret. Only the cursor line draws one.
                     Rectangle {
                         visible: row.isCursorLine && root.activeFocus
-                        x: Editor.cursorColumn * root.charWidth
+                        x: root.editor.cursorColumn * root.charWidth
                         width: 2
                         height: parent.height * 0.8
                         anchors.verticalCenter: parent.verticalCenter
@@ -176,7 +181,7 @@ Item {
         preventStealing: true
 
         function positionAt(mouseX, mouseY) {
-            const line = Math.max(0, Math.min(Editor.lineCount - 1,
+            const line = Math.max(0, Math.min(root.editor.lineCount - 1,
                 Math.floor((mouseY + lines.contentY) / root.lineHeight)));
             const column = Math.max(0,
                 Math.round((mouseX - root.gutterWidth) / root.charWidth));
@@ -186,7 +191,7 @@ Item {
         onPressed: (mouse) => {
             root.forceActiveFocus();
             const at = positionAt(mouse.x, mouse.y);
-            Editor.moveCursor(at.line, at.column, mouse.modifiers & Qt.ShiftModifier);
+            root.editor.moveCursor(at.line, at.column, mouse.modifiers & Qt.ShiftModifier);
         }
 
         onPositionChanged: (mouse) => {
@@ -194,7 +199,7 @@ Item {
                 return;
             const at = positionAt(mouse.x, mouse.y);
             // Dragging always extends: the anchor stays where the press landed.
-            Editor.moveCursor(at.line, at.column, true);
+            root.editor.moveCursor(at.line, at.column, true);
         }
     }
 
@@ -203,37 +208,37 @@ Item {
         const ctrl = (event.modifiers & Qt.ControlModifier) !== 0;
 
         switch (event.key) {
-        case Qt.Key_Left:      Editor.moveLeft(shift, ctrl); break;
-        case Qt.Key_Right:     Editor.moveRight(shift, ctrl); break;
-        case Qt.Key_Up:        Editor.moveUp(shift); break;
-        case Qt.Key_Down:      Editor.moveDown(shift); break;
-        case Qt.Key_Home:      ctrl ? Editor.moveToDocumentStart(shift)
-                                    : Editor.moveToLineStart(shift); break;
-        case Qt.Key_End:       ctrl ? Editor.moveToDocumentEnd(shift)
-                                    : Editor.moveToLineEnd(shift); break;
-        case Qt.Key_PageUp:    Editor.movePage(-root.visibleLines, shift); break;
-        case Qt.Key_PageDown:  Editor.movePage(root.visibleLines, shift); break;
-        case Qt.Key_Backspace: Editor.deleteBackward(); break;
-        case Qt.Key_Delete:    Editor.deleteForward(); break;
+        case Qt.Key_Left:      root.editor.moveLeft(shift, ctrl); break;
+        case Qt.Key_Right:     root.editor.moveRight(shift, ctrl); break;
+        case Qt.Key_Up:        root.editor.moveUp(shift); break;
+        case Qt.Key_Down:      root.editor.moveDown(shift); break;
+        case Qt.Key_Home:      ctrl ? root.editor.moveToDocumentStart(shift)
+                                    : root.editor.moveToLineStart(shift); break;
+        case Qt.Key_End:       ctrl ? root.editor.moveToDocumentEnd(shift)
+                                    : root.editor.moveToLineEnd(shift); break;
+        case Qt.Key_PageUp:    root.editor.movePage(-root.visibleLines, shift); break;
+        case Qt.Key_PageDown:  root.editor.movePage(root.visibleLines, shift); break;
+        case Qt.Key_Backspace: root.editor.deleteBackward(); break;
+        case Qt.Key_Delete:    root.editor.deleteForward(); break;
         case Qt.Key_Return:
-        case Qt.Key_Enter:     Editor.insertNewline(); break;
-        case Qt.Key_Tab:       Editor.insertTab(); break;
+        case Qt.Key_Enter:     root.editor.insertNewline(); break;
+        case Qt.Key_Tab:       root.editor.insertTab(); break;
 
         // Editing shortcuts are handled only while Ctrl is held. Without that
         // guard these six letters would be swallowed by their own case and
         // never typed - pressing "a" would do nothing at all.
         case Qt.Key_A: if (!ctrl) { typeCharacter(event); return; }
-                       Editor.selectAll(); break;
+                       root.editor.selectAll(); break;
         case Qt.Key_C: if (!ctrl) { typeCharacter(event); return; }
-                       Editor.copy(); break;
+                       root.editor.copy(); break;
         case Qt.Key_X: if (!ctrl) { typeCharacter(event); return; }
-                       Editor.cut(); break;
+                       root.editor.cut(); break;
         case Qt.Key_V: if (!ctrl) { typeCharacter(event); return; }
-                       Editor.paste(); break;
+                       root.editor.paste(); break;
         case Qt.Key_Y: if (!ctrl) { typeCharacter(event); return; }
-                       Editor.redo(); break;
+                       root.editor.redo(); break;
         case Qt.Key_Z: if (!ctrl) { typeCharacter(event); return; }
-                       shift ? Editor.redo() : Editor.undo(); break;
+                       shift ? root.editor.redo() : root.editor.undo(); break;
 
         default:
             if (typeCharacter(event)) {
@@ -260,7 +265,7 @@ Item {
             return false;
         }
 
-        Editor.insertText(event.text);
+        root.editor.insertText(event.text);
         event.accepted = true;
         return true;
     }
@@ -269,7 +274,7 @@ Item {
     readonly property int visibleLines: Math.max(1, Math.floor(height / lineHeight))
 
     Connections {
-        target: Editor
+        target: root.editor
         function onScrollToCursorRequested() {
             root.scrollToCursor();
         }
@@ -278,7 +283,7 @@ Item {
     /// Keeps the caret in view after a move or edit. Scrolls by the minimum
     /// needed, so the view does not jump when the caret is already visible.
     function scrollToCursor() {
-        const top = Editor.cursorLine * lineHeight;
+        const top = root.editor.cursorLine * lineHeight;
         const bottom = top + lineHeight;
 
         if (top < lines.contentY) {

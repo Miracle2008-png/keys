@@ -66,9 +66,8 @@ void Workspace::closeProject()
     // reporting changes for a project that is no longer open.
     m_watcher.clear();
 
-    // The open document belongs to the project that is closing.
-    m_document.setText(QString());
-    m_document.setPath(QString());
+    // Open documents belong to the project that is closing.
+    m_editors.reset();
 
     // Drop the workspace layer so this project's overrides cannot leak into the
     // next one opened.
@@ -123,17 +122,14 @@ Status Workspace::openFile(const QString& path)
         return contents.error();
     }
 
-    // The previously open file stops being watched, so a background change to a
-    // file nobody is looking at costs nothing.
-    if (!m_document.path().isEmpty()) {
-        m_watcher.unwatchFile(m_document.path());
+    if (!m_editors.openInActiveGroup(normalized, contents.value())) {
+        return core::Err(core::ErrorCode::Unknown,
+                         QStringLiteral("No editor group is available"), normalized);
     }
 
-    m_document.setText(contents.value());
-    m_document.setPath(normalized);
-
     // Watch the open file so an external edit - a rebase, a formatter - can be
-    // reported rather than silently overwritten on the next save.
+    // reported rather than silently overwritten on the next save. Files stay
+    // watched while a tab holds them; closing the tab releases the watch.
     m_watcher.watchFile(normalized);
 
     emit fileOpened(normalized);
@@ -142,26 +138,52 @@ Status Workspace::openFile(const QString& path)
 
 Status Workspace::saveFile()
 {
-    if (m_document.path().isEmpty()) {
+    editor::TextDocument* document = m_editors.activeDocument();
+    if (!document || document->path().isEmpty()) {
         return core::Err(core::ErrorCode::InvalidArgument,
-                         QStringLiteral("This document has no file to save to"));
+                         QStringLiteral("There is nothing to save"));
     }
 
     // Suppress the watcher around our own write, or saving would come straight
     // back as an "external change" notification.
-    m_watcher.suppress(m_document.path());
+    m_watcher.suppress(document->path());
 
     const Status status =
-        fs::FileSystem::writeTextFile(m_document.path(), m_document.text());
+        fs::FileSystem::writeTextFile(document->path(), document->text());
 
-    m_watcher.unsuppress(m_document.path());
+    m_watcher.unsuppress(document->path());
 
     if (!status) {
         return status;
     }
 
-    m_document.markSaved();
+    document->markSaved();
     return Ok();
+}
+
+void Workspace::closeTab(int index)
+{
+    EditorGroup* group = m_editors.activeGroup();
+    if (!group) {
+        return;
+    }
+
+    // Release the watch for a file no tab holds any more. Checking every group
+    // matters because the same file can be open in a split.
+    const editor::TextDocument* closing = group->documentAt(index);
+    const QString path = closing ? closing->path() : QString();
+
+    group->closeTab(index);
+
+    if (!path.isEmpty()) {
+        bool stillOpen = false;
+        for (int i = 0; i < m_editors.groupCount() && !stillOpen; ++i) {
+            stillOpen = m_editors.groupAt(i)->indexOfPath(path) >= 0;
+        }
+        if (!stillOpen) {
+            m_watcher.unwatchFile(path);
+        }
+    }
 }
 
 Status Workspace::loadHistory()

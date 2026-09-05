@@ -6,7 +6,7 @@
 #include "core/TaskScheduler.h"
 #include "core/Trace.h"
 #include "ui/AppController.h"
-#include "ui/EditorViewModel.h"
+#include "ui/EditorBindings.h"
 #include "ui/Theme.h"
 #include "workspace/Workspace.h"
 
@@ -126,10 +126,23 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("FileTree"),
                                              &workspace.fileTree());
 
-    ui::EditorViewModel editorViewModel;
-    editorViewModel.setDocument(&workspace.document());
-    engine.rootContext()->setContextProperty(QStringLiteral("Editor"),
-                                             &editorViewModel);
+    // One editor and one tab model per pane, kept bound to the layout. They are
+    // created once and rebound as panes come and go: a context property that
+    // appeared and disappeared would break bindings rather than re-evaluate.
+    ui::EditorBindings editors(workspace.editors());
+
+    QObject::connect(&editors, &ui::EditorBindings::closeTabRequested, &app,
+                     [&workspace](int group, int index) {
+                         workspace.editors().setActiveGroup(group);
+                         workspace.closeTab(index);
+                     });
+
+    for (int i = 0; i < workspace::EditorLayout::kMaxGroups; ++i) {
+        engine.rootContext()->setContextProperty(
+            QStringLiteral("Editor%1").arg(i), editors.editorFor(i));
+        engine.rootContext()->setContextProperty(
+            QStringLiteral("Tabs%1").arg(i), editors.tabsFor(i));
+    }
 
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreationFailed, &app,

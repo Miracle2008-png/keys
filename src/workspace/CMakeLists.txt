@@ -2,10 +2,14 @@
 
 keys_add_module(workspace
     SOURCES
+        EditorGroup.cpp
+        EditorLayout.cpp
         FileTreeModel.cpp
         RecentProjects.cpp
         Workspace.cpp
     HEADERS
+        EditorGroup.h
+        EditorLayout.h
         FileTreeModel.h
         RecentProjects.h
         Workspace.h

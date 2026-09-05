@@ -47,6 +47,11 @@ class AppController : public QObject {
     /// maps ready for a QML delegate.
     Q_PROPERTY(QVariantList recentProjects READ recentProjects NOTIFY recentProjectsChanged)
 
+    /// How many editor panes are open, and which has focus.
+    Q_PROPERTY(int groupCount READ groupCount NOTIFY editorsChanged)
+    Q_PROPERTY(int activeGroup READ activeGroup NOTIFY editorsChanged)
+    Q_PROPERTY(bool isSplit READ isSplit NOTIFY editorsChanged)
+
 public:
     AppController(core::CommandRegistry& commands,
                   config::Settings& settings,
@@ -74,6 +79,10 @@ public:
     [[nodiscard]] bool hasProject() const;
     [[nodiscard]] QVariantList recentProjects() const;
 
+    [[nodiscard]] int groupCount() const;
+    [[nodiscard]] int activeGroup() const;
+    [[nodiscard]] bool isSplit() const;
+
     /// Opens a project folder. Reports failure to the UI through lastError
     /// rather than returning silently, so a bad path is visible to the user.
     Q_INVOKABLE bool openProject(const QString& path);
@@ -85,6 +94,15 @@ public:
     /// Saves the open document. Reports failure through errorOccurred rather
     /// than losing the user's work silently.
     Q_INVOKABLE bool saveFile();
+
+    /// Closes a tab in the active group.
+    Q_INVOKABLE void closeTab(int index);
+
+    /// Splits the editor, or collapses back to one pane if already split.
+    Q_INVOKABLE void toggleSplit();
+
+    /// Focuses a pane, so typing and commands act on it.
+    Q_INVOKABLE void focusGroup(int index);
 
     /// The most recent failure, for the UI to surface. Cleared on the next
     /// successful operation.
@@ -105,6 +123,7 @@ signals:
     void workbenchChanged();
     void projectChanged();
     void recentProjectsChanged();
+    void editorsChanged();
 
     /// Emitted when an operation the user initiated fails. The UI shows this;
     /// nothing fails silently.

@@ -6,6 +6,7 @@
 #include "project/Project.h"
 #include "core/TaskScheduler.h"
 #include "editor/TextDocument.h"
+#include "workspace/EditorLayout.h"
 #include "workspace/FileTreeModel.h"
 #include "workspace/RecentProjects.h"
 
@@ -51,19 +52,27 @@ public:
     /// and it needs the project and watcher this class already coordinates.
     [[nodiscard]] FileTreeModel& fileTree() { return m_fileTree; }
 
-    /// The open document. Milestone 4 keeps one; milestone 5 turns this into a
-    /// set of editor groups, which is why callers go through the workspace
-    /// rather than holding the document themselves.
-    [[nodiscard]] editor::TextDocument& document() { return m_document; }
+    /// The editor panes and the tabs in them.
+    [[nodiscard]] EditorLayout& editors() { return m_editors; }
 
-    /// Loads a file into the editor. Fails if it cannot be read or is too
-    /// large, and leaves the previous document untouched in that case.
+    /// The document being edited right now, or nullptr when nothing is open.
+    [[nodiscard]] editor::TextDocument* activeDocument() const
+    {
+        return m_editors.activeDocument();
+    }
+
+    /// Loads a file into the active editor group. Fails if it cannot be read or
+    /// is too large, leaving what was open untouched in that case.
     core::Status openFile(const QString& path);
 
-    /// Writes the open document back to its path.
+    /// Writes the active document back to its path.
     core::Status saveFile();
 
-    [[nodiscard]] bool hasOpenFile() const { return !m_document.path().isEmpty(); }
+    /// Closes a tab in the active group, discarding unsaved changes. The UI
+    /// asks about those first.
+    void closeTab(int index);
+
+    [[nodiscard]] bool hasOpenFile() const { return m_editors.activeDocument() != nullptr; }
 
     /// Loads the recent-projects history. Called once at startup.
     core::Status loadHistory();
@@ -88,7 +97,7 @@ private:
     // Declared last: it holds references to the three members above, so it must
     // be destroyed before them.
     FileTreeModel m_fileTree;
-    editor::TextDocument m_document;
+    EditorLayout m_editors;
 };
 
 } // namespace keys::workspace

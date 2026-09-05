@@ -11,8 +11,12 @@ qt_add_qml_module(keys_ui
     SOURCES
         AppController.cpp
         AppController.h
+        EditorBindings.cpp
+        EditorBindings.h
         EditorViewModel.cpp
         EditorViewModel.h
+        TabBarModel.cpp
+        TabBarModel.h
         Metrics.h
         OklchColor.cpp
         OklchColor.h
@@ -23,6 +27,8 @@ qt_add_qml_module(keys_ui
         qml/Main.qml
         qml/ActivityRail.qml
         qml/CodeEditor.qml
+        qml/EditorPane.qml
+        qml/EditorTabBar.qml
         qml/ContextMenu.qml
         qml/DeleteConfirmDialog.qml
         qml/DialogButton.qml

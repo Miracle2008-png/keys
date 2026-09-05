@@ -49,6 +49,11 @@ QtObject {
     readonly property string moon:
         "M21 12.6A9 9 0 1 1 11.4 3a7 7 0 0 0 9.6 9.6z"
 
+    /// A pane divided down the middle: the split-editor control.
+    readonly property string split:
+        "M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"
+        + " M12 4v16"
+
     readonly property string chevronRight: "M9 6l6 6-6 6"
     readonly property string chevronDown: "M6 9l6 6 6-6"
     readonly property string close: "M18 6L6 18M6 6l12 12"
