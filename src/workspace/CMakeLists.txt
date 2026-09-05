@@ -12,6 +12,7 @@ keys_add_module(workspace
     DEPENDS
         core
         config
+        editor
         filesystem
         project
 )

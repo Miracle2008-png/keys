@@ -79,6 +79,13 @@ public:
     Q_INVOKABLE bool openProject(const QString& path);
     Q_INVOKABLE void closeProject();
 
+    /// Opens a file into the editor. Reports failure through errorOccurred.
+    Q_INVOKABLE bool openFile(const QString& path);
+
+    /// Saves the open document. Reports failure through errorOccurred rather
+    /// than losing the user's work silently.
+    Q_INVOKABLE bool saveFile();
+
     /// The most recent failure, for the UI to surface. Cleared on the next
     /// successful operation.
     Q_INVOKABLE QString takeLastError();

@@ -87,6 +87,11 @@ AppController::AppController(core::CommandRegistry& commands,
     connect(&m_workspace.recentProjects(), &workspace::RecentProjects::changed,
             this, &AppController::recentProjectsChanged);
 
+    // Activating a row in the explorer opens it. The model signals intent; the
+    // workspace performs the open, so the tree never touches file contents.
+    connect(&m_workspace.fileTree(), &workspace::FileTreeModel::fileActivated,
+            this, [this](const QString& path) { openFile(path); });
+
     connect(&m_animation, &config::AnimationPolicy::changed,
             this, &AppController::animationChanged);
 
@@ -203,6 +208,34 @@ void AppController::closeProject()
     m_workspace.closeProject();
 }
 
+bool AppController::openFile(const QString& path)
+{
+    const core::Status status = m_workspace.openFile(path);
+    if (!status) {
+        m_lastError = status.error().toString();
+        qCWarning(lcUi) << "could not open file:" << m_lastError;
+        emit errorOccurred(m_lastError);
+        return false;
+    }
+    m_lastError.clear();
+    return true;
+}
+
+bool AppController::saveFile()
+{
+    const core::Status status = m_workspace.saveFile();
+    if (!status) {
+        // A failed save must never be silent: the user believes their work is
+        // on disk from this moment on.
+        m_lastError = status.error().toString();
+        qCWarning(lcUi) << "could not save file:" << m_lastError;
+        emit errorOccurred(m_lastError);
+        return false;
+    }
+    m_lastError.clear();
+    return true;
+}
+
 QString AppController::takeLastError()
 {
     return std::exchange(m_lastError, QString());
@@ -224,6 +257,12 @@ void AppController::registerWorkbenchCommands()
             qCWarning(lcUi) << "failed to register command:" << status.error().toString();
         }
     };
+
+    add(QStringLiteral("workspace.saveFile"),
+        QStringLiteral("Save"),
+        QStringLiteral("File"),
+        [this] { saveFile(); },
+        [this] { return m_workspace.hasOpenFile(); });
 
     add(QStringLiteral("workspace.closeProject"),
         QStringLiteral("Close Project"),

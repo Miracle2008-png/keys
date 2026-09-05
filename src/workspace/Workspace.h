@@ -5,6 +5,7 @@
 #include "filesystem/FileWatcher.h"
 #include "project/Project.h"
 #include "core/TaskScheduler.h"
+#include "editor/TextDocument.h"
 #include "workspace/FileTreeModel.h"
 #include "workspace/RecentProjects.h"
 
@@ -50,6 +51,20 @@ public:
     /// and it needs the project and watcher this class already coordinates.
     [[nodiscard]] FileTreeModel& fileTree() { return m_fileTree; }
 
+    /// The open document. Milestone 4 keeps one; milestone 5 turns this into a
+    /// set of editor groups, which is why callers go through the workspace
+    /// rather than holding the document themselves.
+    [[nodiscard]] editor::TextDocument& document() { return m_document; }
+
+    /// Loads a file into the editor. Fails if it cannot be read or is too
+    /// large, and leaves the previous document untouched in that case.
+    core::Status openFile(const QString& path);
+
+    /// Writes the open document back to its path.
+    core::Status saveFile();
+
+    [[nodiscard]] bool hasOpenFile() const { return !m_document.path().isEmpty(); }
+
     /// Loads the recent-projects history. Called once at startup.
     core::Status loadHistory();
     core::Status saveHistory() const;
@@ -57,6 +72,7 @@ public:
 signals:
     void projectOpened(const QString& root);
     void projectClosed();
+    void fileOpened(const QString& path);
 
 private:
     /// Workspace settings live at <root>/.keys/settings.json and override the
@@ -72,6 +88,7 @@ private:
     // Declared last: it holds references to the three members above, so it must
     // be destroyed before them.
     FileTreeModel m_fileTree;
+    editor::TextDocument m_document;
 };
 
 } // namespace keys::workspace

@@ -75,6 +75,11 @@ Window {
         onActivated: App.invokeCommand("workbench.toggleSidebar")
     }
 
+    Shortcut {
+        sequences: [StandardKey.Save]
+        onActivated: App.invokeCommand("workspace.saveFile")
+    }
+
     // Failures the user caused are shown, never swallowed.
     ErrorToast {
         id: errorToast

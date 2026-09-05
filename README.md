@@ -13,8 +13,9 @@ layout, the decisions behind it, and the milestone plan.
 | 1. Application shell | Done |
 | 2. Project & workspace management | Done |
 | 3. File explorer | Done |
-| 4. Editor | Next |
-| 5-15 | Planned |
+| 4. Editor | Done |
+| 5. Tabs & editor splits | Next |
+| 6-15 | Planned |
 
 Features that are not implemented yet are visibly absent or explicitly
 disabled — nothing in the interface pretends to work.
@@ -68,6 +69,7 @@ src/core         Result types, cancellation, task scheduler, command registry
 src/config       Layered settings, schema, animation policy
 src/filesystem   Async file I/O, directory listing, file watching
 src/project      Root detection, ignore rules, project metadata
+src/editor       Piece-table buffer, cursors, selections, undo
 src/workspace    Open project, session state, recent projects
 src/ui           QML views, theme, view models
 src/app          Composition root

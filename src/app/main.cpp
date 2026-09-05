@@ -6,6 +6,7 @@
 #include "core/TaskScheduler.h"
 #include "core/Trace.h"
 #include "ui/AppController.h"
+#include "ui/EditorViewModel.h"
 #include "ui/Theme.h"
 #include "workspace/Workspace.h"
 
@@ -124,6 +125,11 @@ int main(int argc, char* argv[])
     // wrapping it would mean reimplementing the model interface for no gain.
     engine.rootContext()->setContextProperty(QStringLiteral("FileTree"),
                                              &workspace.fileTree());
+
+    ui::EditorViewModel editorViewModel;
+    editorViewModel.setDocument(&workspace.document());
+    engine.rootContext()->setContextProperty(QStringLiteral("Editor"),
+                                             &editorViewModel);
 
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreationFailed, &app,

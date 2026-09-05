@@ -17,9 +17,15 @@ Rectangle {
         visible: !App.hasProject
     }
 
+    CodeEditor {
+        id: editor
+        anchors.fill: parent
+        visible: App.hasProject && Editor.hasDocument && Editor.path.length > 0
+    }
+
     Text {
         anchors.centerIn: parent
-        visible: App.hasProject
+        visible: App.hasProject && !editor.visible
         text: qsTr("No file is open")
         color: Theme.textSecondary
         font.family: Fonts.ui

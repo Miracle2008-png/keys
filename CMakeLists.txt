@@ -23,6 +23,7 @@ add_subdirectory(src/core)
 add_subdirectory(src/filesystem)
 add_subdirectory(src/config)
 add_subdirectory(src/project)
+add_subdirectory(src/editor)
 add_subdirectory(src/workspace)
 
 # Layer 3-4: the UI and the composition root.
