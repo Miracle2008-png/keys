@@ -88,6 +88,62 @@ Item {
             }
 
             // ---- Gutter ----
+            // ---- Breakpoint dot and current-line marker ----
+            //
+            // Drawn over the gutter rather than beside it, so the gutter does
+            // not change width when a debug session starts and the code does
+            // not shift sideways under the caret.
+            Rectangle {
+                id: breakpointDot
+
+                anchors.left: parent.left
+                anchors.leftMargin: 6
+                anchors.verticalCenter: parent.verticalCenter
+                width: 8
+                height: 8
+                radius: 4
+                color: Theme.red
+                visible: Debugger.currentFileBreakpoints.indexOf(row.index + 1) >= 0
+            }
+
+            // Where execution is stopped. A filled band rather than a dot: it
+            // marks a line, not a point, and must read differently from a
+            // breakpoint.
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: parent.height
+                color: Theme.yellow
+                opacity: 0.12
+                visible: Debugger.currentLine === row.index + 1
+            }
+
+            MouseArea {
+                id: gutterMouse
+
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                width: root.gutterWidth
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: Debugger.toggleBreakpoint(root.editor.path, row.index + 1)
+
+                // A faint dot on hover, so the gutter shows it is clickable
+                // without a permanent decoration on every line.
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.leftMargin: 6
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 8
+                    height: 8
+                    radius: 4
+                    color: Theme.red
+                    opacity: 0.3
+                    visible: gutterMouse.containsMouse && !breakpointDot.visible
+                }
+            }
+
             Text {
                 id: lineNumber
 

@@ -32,6 +32,14 @@ struct RpcMessage {
     QJsonObject error;
     bool hasError = false;
 
+    /// The whole decoded object.
+    ///
+    /// DAP shares LSP's framing but not its envelope - it uses `seq`, `type` and
+    /// `command` where JSON-RPC uses `id` and `method`. Keeping the raw object
+    /// lets the debugger read its own fields from the same codec rather than
+    /// duplicating the framing, which is the part worth sharing.
+    QJsonObject raw;
+
     [[nodiscard]] bool isResponse() const { return hasResult || hasError; }
 
     /// A notification is a method call with no id. An *absent* id decodes to

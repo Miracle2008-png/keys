@@ -21,6 +21,8 @@ qt_add_qml_module(keys_ui
         EditorViewModel.h
         SettingsModel.cpp
         SettingsModel.h
+        DebugModel.cpp
+        DebugModel.h
         LanguageModel.cpp
         LanguageModel.h
         RunPanelModel.cpp
@@ -110,6 +112,7 @@ target_link_libraries(keys_ui PUBLIC
     Keys::config
     Keys::search
     Keys::buildrun
+    Keys::debugger
     Keys::langsvc
     Keys::vcs
     Keys::workspace

@@ -9,12 +9,14 @@
 #include "ui/CommandPaletteModel.h"
 #include "ui/EditorBindings.h"
 #include "ui/EditorSettings.h"
+#include "ui/DebugModel.h"
 #include "ui/LanguageModel.h"
 #include "ui/RunPanelModel.h"
 #include "ui/SettingsModel.h"
 #include "ui/SourceControlModel.h"
 #include "ui/Theme.h"
 #include "buildrun/TaskRunner.h"
+#include "debugger/DebugSession.h"
 #include "langsvc/LanguageServiceManager.h"
 #include "vcs/Repository.h"
 #include "workspace/Workspace.h"
@@ -172,6 +174,10 @@ int main(int argc, char* argv[])
     // opens.
     langsvc::LanguageServiceManager languageServices;
 
+    // One session at a time. Two debuggees stopped in the same editor would be
+    // ambiguous about which stack the user is looking at.
+    debugger::DebugSession debugSession;
+
     QObject::connect(&workspace, &workspace::Workspace::projectOpened,
                      &languageServices, &langsvc::LanguageServiceManager::setProjectRoot);
     QObject::connect(&workspace, &workspace::Workspace::projectClosed,
@@ -212,6 +218,9 @@ int main(int argc, char* argv[])
 
     ui::LanguageModel language(languageServices, workspace.editors());
     ui::LanguageModel::setInstance(&language);
+
+    ui::DebugModel debug(debugSession, workspace.project(), workspace.editors());
+    ui::DebugModel::setInstance(&debug);
 
     // A document reaches its server through here rather than the model
     // discovering it, so the sync cannot silently miss one.
@@ -254,6 +263,18 @@ int main(int argc, char* argv[])
 
     // A problem opens the file at the line the compiler named, the same path
     // the explorer and palette use.
+    // Stopping at a breakpoint opens the file there, the same path everything
+    // else in Keys uses to reach the editor.
+    QObject::connect(&debug, &ui::DebugModel::locationRequested, &app,
+                     [&controller](const QString& path, int line) {
+                         controller.openFileAt(path, line, 1);
+                     });
+
+    QObject::connect(&debug, &ui::DebugModel::notice, &app,
+                     [&controller](const QString& message) {
+                         controller.reportNotice(message);
+                     });
+
     QObject::connect(&language, &ui::LanguageModel::definitionFound, &app,
                      [&controller](const QString& path, int line, int column) {
                          controller.openFileAt(path, line + 1, column + 1);

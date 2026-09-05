@@ -22,7 +22,8 @@ layout, the decisions behind it, and the milestone plan.
 | 10. Git | Done |
 | 11. Build/run | Done |
 | 12. Language services | Done |
-| 13-15 | Planned |
+| 13. Debugger | Done |
+| 14-15 | Planned |
 
 Features that are not implemented yet are visibly absent or explicitly
 disabled — nothing in the interface pretends to work. The same rule governs

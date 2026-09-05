@@ -76,4 +76,9 @@ QtObject {
         "M14 7l5 5 M12 5l7 7-3 3-7-7z M9 9l-6 6 3 3 6-6"
     readonly property string trash:
         "M4 7h16 M9 7V5h6v2 M6 7l1 13h10l1-13"
+
+    // Stepping. An arrow over, into or out of a line, which is what each does.
+    readonly property string stepOver: "M4 14a8 8 0 0 1 16 0 M20 14l-3-3 M20 14l3-3"
+    readonly property string stepInto: "M12 4v10 M12 14l-4-4 M12 14l4-4 M6 20h12"
+    readonly property string stepOut:  "M12 20V10 M12 10l-4 4 M12 10l4 4 M6 4h12"
 }

@@ -219,8 +219,10 @@ touches — and one that is not installed simply never starts.
 
 Framing is the part that repays care: a read can end anywhere, including halfway
 through a header, so decoding is stateful and `Content-Length` is authoritative
-rather than any delimiter. Source text legitimately contains `
-
+rather than any delimiter. Source text legitimately contains `
+
+
+
 `.
 
 Positions cross the boundary unchanged. The editor already uses zero-based lines
@@ -236,6 +238,23 @@ are the next thing to add here.
 Same reasoning as LSP: the Debug Adapter Protocol makes debugger support a matter of
 adapter configuration. The debug UI is built strictly against DAP semantics, so no
 control appears that has nothing behind it.
+
+**What landed in milestone 13.** Adapter lifecycle, breakpoints, stepping, call
+stack and variables. DAP shares LSP's Content-Length framing but not its
+envelope - it uses `seq`/`type`/`command` where JSON-RPC uses `id`/`method` - so
+the codec is reused and each protocol reads its own fields from the decoded
+object. That is the part worth sharing; the envelopes are not.
+
+Every control is enabled from the session state, so none can send a request the
+adapter would reject. Breakpoints live in the UI model rather than the session:
+a user sets them before starting and expects them afterwards.
+
+Adapters are separate installs and none is bundled. A project kind with no
+conventional adapter gets no debug controls at all rather than ones that cannot
+work.
+
+Conditional breakpoints, watch expressions, multi-thread views and expanding
+nested variables are not implemented.
 
 ### 5.7 Extensions: out-of-process from day one
 

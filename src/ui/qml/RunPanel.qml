@@ -15,7 +15,7 @@ Item {
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.margins: Metrics.spacingMedium
-        visible: Runner.tasks.length === 0
+        visible: Runner.tasks.length === 0 && !Debugger.configured
         text: qsTr("No tasks for this project. Keys offers defaults for CMake, "
                    + "Cargo, Go, npm and Python projects.")
         color: Theme.textTertiary
@@ -31,7 +31,233 @@ Item {
         anchors.leftMargin: Metrics.spacingMedium
         anchors.rightMargin: Metrics.spacingMedium
         spacing: Metrics.spacingSmall
-        visible: Runner.tasks.length > 0
+        visible: Runner.tasks.length > 0 || Debugger.configured
+
+        // ---- Debug ----
+        //
+        // Shown only when Keys has an adapter for this kind of project: a
+        // control that can never work is worse than an absent one.
+
+        Item {
+            width: parent.width
+            height: 30
+            visible: Debugger.configured
+
+            Row {
+                anchors.left: parent.left
+                anchors.leftMargin: 8
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 4
+
+                IconButton {
+                    size: 22
+                    source: Debugger.active ? Icons.stop : Icons.play
+                    tooltip: Debugger.active ? qsTr("Stop debugging")
+                                             : qsTr("Start debugging")
+                    onClicked: Debugger.active ? Debugger.stop() : Debugger.start()
+                }
+
+                // Execution controls appear only during a session, and each is
+                // enabled from the session state rather than deciding for
+                // itself - so none offers what the adapter would refuse.
+                IconButton {
+                    size: 22
+                    visible: Debugger.active
+                    enabled: Debugger.stopped
+                    source: Icons.play
+                    tooltip: qsTr("Continue")
+                    onClicked: Debugger.resume()
+                }
+
+                IconButton {
+                    size: 22
+                    visible: Debugger.active
+                    enabled: Debugger.stopped
+                    source: Icons.stepOver
+                    tooltip: qsTr("Step over")
+                    onClicked: Debugger.stepOver()
+                }
+
+                IconButton {
+                    size: 22
+                    visible: Debugger.active
+                    enabled: Debugger.stopped
+                    source: Icons.stepInto
+                    tooltip: qsTr("Step into")
+                    onClicked: Debugger.stepInto()
+                }
+
+                IconButton {
+                    size: 22
+                    visible: Debugger.active
+                    enabled: Debugger.stopped
+                    source: Icons.stepOut
+                    tooltip: qsTr("Step out")
+                    onClicked: Debugger.stepOut()
+                }
+            }
+
+            Text {
+                anchors.right: parent.right
+                anchors.rightMargin: 4
+                anchors.verticalCenter: parent.verticalCenter
+                visible: Debugger.active
+                text: Debugger.stopped && Debugger.stopReason.length > 0
+                      ? Debugger.stateLabel + " \u00b7 " + Debugger.stopReason
+                      : Debugger.stateLabel
+                color: Debugger.stopped ? Theme.yellow : Theme.textTertiary
+                font.family: Fonts.ui
+                font.pointSize: Metrics.fontSizeSmall
+                elide: Text.ElideLeft
+                width: Math.min(implicitWidth, parent.width - 160)
+            }
+        }
+
+        // ---- Call stack ----
+
+        Item {
+            width: parent.width
+            height: 22
+            visible: Debugger.stack.length > 0
+
+            SectionLabel {
+                anchors.left: parent.left
+                anchors.leftMargin: 8
+                anchors.verticalCenter: parent.verticalCenter
+                text: qsTr("Call Stack")
+            }
+        }
+
+        ListView {
+            id: stackList
+
+            width: parent.width
+            height: Math.min(contentHeight, 140)
+            visible: Debugger.stack.length > 0
+            model: Debugger.stack
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+
+            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+
+            delegate: Rectangle {
+                id: frameRow
+
+                required property int index
+                required property var modelData
+
+                width: stackList.width
+                height: 26
+                radius: Metrics.radiusSmall
+                color: frameHover.hovered && frameRow.modelData.hasSource
+                       ? Theme.bgHover : "transparent"
+
+                HoverHandler {
+                    id: frameHover
+                    cursorShape: frameRow.modelData.hasSource ? Qt.PointingHandCursor
+                                                              : Qt.ArrowCursor
+                }
+
+                Text {
+                    anchors.left: parent.left
+                    anchors.leftMargin: 8
+                    anchors.right: frameLocation.left
+                    anchors.rightMargin: 6
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: frameRow.modelData.name
+                    // A frame with no source is dimmed: it is real, and part of
+                    // the call chain, but there is nothing to open.
+                    color: frameRow.modelData.hasSource ? Theme.textSecondary
+                                                        : Theme.textTertiary
+                    font.family: Fonts.mono
+                    font.pointSize: Metrics.fontSizeSmall
+                    elide: Text.ElideMiddle
+                }
+
+                Text {
+                    id: frameLocation
+
+                    anchors.right: parent.right
+                    anchors.rightMargin: 8
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: frameRow.modelData.hasSource
+                    text: frameRow.modelData.fileName + ":" + frameRow.modelData.line
+                    color: Theme.textTertiary
+                    font.family: Fonts.mono
+                    font.pointSize: Metrics.fontSizeLabel
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    enabled: frameRow.modelData.hasSource
+                    onClicked: Debugger.selectFrame(frameRow.index)
+                }
+            }
+        }
+
+        // ---- Variables ----
+
+        Item {
+            width: parent.width
+            height: 22
+            visible: Debugger.variables.length > 0
+
+            SectionLabel {
+                anchors.left: parent.left
+                anchors.leftMargin: 8
+                anchors.verticalCenter: parent.verticalCenter
+                text: qsTr("Variables")
+            }
+        }
+
+        ListView {
+            id: variableList
+
+            width: parent.width
+            height: Math.min(contentHeight, 160)
+            visible: Debugger.variables.length > 0
+            model: Debugger.variables
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+
+            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+
+            delegate: Item {
+                id: variableRow
+
+                required property var modelData
+
+                width: variableList.width
+                height: 22
+
+                Text {
+                    id: variableName
+
+                    anchors.left: parent.left
+                    anchors.leftMargin: 8
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: variableRow.modelData.name
+                    color: Theme.synKeyword
+                    font.family: Fonts.mono
+                    font.pointSize: Metrics.fontSizeLabel
+                    width: Math.min(implicitWidth, parent.width * 0.4)
+                    elide: Text.ElideRight
+                }
+
+                Text {
+                    anchors.left: variableName.right
+                    anchors.leftMargin: 8
+                    anchors.right: parent.right
+                    anchors.rightMargin: 8
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: variableRow.modelData.value
+                    color: Theme.textSecondary
+                    font.family: Fonts.mono
+                    font.pointSize: Metrics.fontSizeLabel
+                    elide: Text.ElideRight
+                }
+            }
+        }
 
         // ---- Tasks ----
 

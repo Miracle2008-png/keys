@@ -89,6 +89,7 @@ std::optional<RpcMessage> JsonRpcCodec::parseBody(const QByteArray& body)
     const QJsonObject object = document.object();
 
     RpcMessage message;
+    message.raw = object;
     message.id = object.value(QStringLiteral("id"));
     message.method = object.value(QStringLiteral("method")).toString();
     message.params = object.value(QStringLiteral("params")).toObject();
