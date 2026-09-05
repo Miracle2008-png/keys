@@ -89,4 +89,13 @@ Window {
             errorToast.show(message);
         }
     }
+
+    // File operations report through the model, not the controller, so the
+    // toast listens to both rather than the model's failures going unseen.
+    Connections {
+        target: FileTree
+        function onErrorOccurred(message) {
+            errorToast.show(message);
+        }
+    }
 }

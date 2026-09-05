@@ -2,9 +2,11 @@
 
 keys_add_module(workspace
     SOURCES
+        FileTreeModel.cpp
         RecentProjects.cpp
         Workspace.cpp
     HEADERS
+        FileTreeModel.h
         RecentProjects.h
         Workspace.h
     DEPENDS

@@ -4,6 +4,8 @@
 #include "core/Result.h"
 #include "filesystem/FileWatcher.h"
 #include "project/Project.h"
+#include "core/TaskScheduler.h"
+#include "workspace/FileTreeModel.h"
 #include "workspace/RecentProjects.h"
 
 #include <QObject>
@@ -23,7 +25,9 @@ class Workspace : public QObject {
     Q_OBJECT
 
 public:
-    Workspace(config::Settings& settings, QObject* parent = nullptr);
+    Workspace(config::Settings& settings,
+              core::TaskScheduler& scheduler,
+              QObject* parent = nullptr);
     ~Workspace() override;
 
     /// Opens a project folder, in this order: close anything open, open the
@@ -41,6 +45,10 @@ public:
 
     [[nodiscard]] fs::FileWatcher& watcher() { return m_watcher; }
     [[nodiscard]] RecentProjects& recentProjects() { return m_recentProjects; }
+
+    /// The explorer's model. Owned here because its lifetime is the workspace's
+    /// and it needs the project and watcher this class already coordinates.
+    [[nodiscard]] FileTreeModel& fileTree() { return m_fileTree; }
 
     /// Loads the recent-projects history. Called once at startup.
     core::Status loadHistory();
@@ -60,6 +68,10 @@ private:
     project::Project m_project;
     fs::FileWatcher m_watcher;
     RecentProjects m_recentProjects;
+
+    // Declared last: it holds references to the three members above, so it must
+    // be destroyed before them.
+    FileTreeModel m_fileTree;
 };
 
 } // namespace keys::workspace

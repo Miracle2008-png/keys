@@ -3,6 +3,7 @@
 #include "project/IgnoreRules.h"
 #include "project/Project.h"
 #include "workspace/RecentProjects.h"
+#include "core/TaskScheduler.h"
 #include "workspace/Workspace.h"
 
 #include <QDir>
@@ -15,6 +16,7 @@
 using namespace keys::project;
 using namespace keys::workspace;
 using keys::config::Settings;
+using keys::core::TaskScheduler;
 using keys::core::ErrorCode;
 using keys::core::Status;
 using keys::fs::FileSystem;
@@ -27,6 +29,10 @@ private:
     /// trap. It matters more here: a marker file written by one case would change
     /// the detected project kind in the next.
     std::unique_ptr<QTemporaryDir> m_dir;
+
+    /// Workspace now owns the explorer's model, which needs a worker pool.
+    /// One per test, so a task from an earlier case cannot outlive its fixture.
+    std::unique_ptr<TaskScheduler> m_scheduler;
 
     [[nodiscard]] QString path(const QString& relative) const
     {
@@ -43,10 +49,12 @@ private slots:
     {
         m_dir = std::make_unique<QTemporaryDir>();
         QVERIFY(m_dir->isValid());
+        m_scheduler = std::make_unique<TaskScheduler>();
     }
 
     void cleanup()
     {
+        m_scheduler.reset();
         m_dir.reset();
     }
 
@@ -307,7 +315,7 @@ private slots:
     void openingAProjectStartsWatchingItsRoot()
     {
         Settings settings;
-        Workspace workspace(settings);
+        Workspace workspace(settings, *m_scheduler);
 
         QSignalSpy spy(&workspace, &Workspace::projectOpened);
         QVERIFY(static_cast<bool>(workspace.openProject(m_dir->path())));
@@ -323,7 +331,7 @@ private slots:
         // A closed project must stop reporting changes, and its settings must not
         // leak into whatever is opened next.
         Settings settings;
-        Workspace workspace(settings);
+        Workspace workspace(settings, *m_scheduler);
         QVERIFY(static_cast<bool>(workspace.openProject(m_dir->path())));
 
         QVERIFY(static_cast<bool>(settings.setValue(QStringLiteral("editor.tabSize"), 2,
@@ -345,7 +353,7 @@ private slots:
         QVERIFY(static_cast<bool>(FileSystem::createDirectory(second)));
 
         Settings settings;
-        Workspace workspace(settings);
+        Workspace workspace(settings, *m_scheduler);
 
         QVERIFY(static_cast<bool>(workspace.openProject(m_dir->path())));
         QVERIFY(static_cast<bool>(workspace.openProject(second)));
@@ -358,7 +366,7 @@ private slots:
     void failedOpenLeavesNothingOpen()
     {
         Settings settings;
-        Workspace workspace(settings);
+        Workspace workspace(settings, *m_scheduler);
 
         const Status status = workspace.openProject(path(QStringLiteral("absent")));
         QVERIFY(!static_cast<bool>(status));
@@ -370,7 +378,7 @@ private slots:
     {
         Settings settings;
         {
-            Workspace workspace(settings);
+            Workspace workspace(settings, *m_scheduler);
             QVERIFY(static_cast<bool>(workspace.openProject(m_dir->path())));
             QVERIFY(static_cast<bool>(settings.setValue(
                 QStringLiteral("editor.tabSize"), 2, Settings::Layer::Workspace)));
@@ -378,7 +386,7 @@ private slots:
         }
 
         // Re-opening the same project restores its own overrides.
-        Workspace reopened(settings);
+        Workspace reopened(settings, *m_scheduler);
         QVERIFY(static_cast<bool>(reopened.openProject(m_dir->path())));
         QCOMPARE(settings.intValue(QStringLiteral("editor.tabSize")), 2);
     }
@@ -388,7 +396,7 @@ private slots:
         // Creating .keys in every project the user merely opens would litter
         // their repositories and show up in git status.
         Settings settings;
-        Workspace workspace(settings);
+        Workspace workspace(settings, *m_scheduler);
         QVERIFY(static_cast<bool>(workspace.openProject(m_dir->path())));
         workspace.closeProject();
 

@@ -12,8 +12,9 @@ layout, the decisions behind it, and the milestone plan.
 |---|---|
 | 1. Application shell | Done |
 | 2. Project & workspace management | Done |
-| 3. File explorer | Next |
-| 4-15 | Planned |
+| 3. File explorer | Done |
+| 4. Editor | Next |
+| 5-15 | Planned |
 
 Features that are not implemented yet are visibly absent or explicitly
 disabled — nothing in the interface pretends to work.

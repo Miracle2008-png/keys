@@ -95,7 +95,7 @@ int main(int argc, char* argv[])
     ui::Theme theme;
     theme.bindTo(settings);
 
-    workspace::Workspace workspace(settings);
+    workspace::Workspace workspace(settings, scheduler);
     if (const core::Status status = workspace.loadHistory(); !status) {
         qCWarning(lcCore) << "could not load recent projects:" << status.error().toString();
     }
@@ -118,6 +118,12 @@ int main(int argc, char* argv[])
     ui::AppController::setInstance(&controller);
 
     QQmlApplicationEngine engine;
+
+    // The explorer's model is exposed directly rather than proxied through
+    // AppController: QML's ListView needs the QAbstractItemModel itself, and
+    // wrapping it would mean reimplementing the model interface for no gain.
+    engine.rootContext()->setContextProperty(QStringLiteral("FileTree"),
+                                             &workspace.fileTree());
 
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreationFailed, &app,

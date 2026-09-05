@@ -20,12 +20,16 @@ qt_add_qml_module(keys_ui
     QML_FILES
         qml/Main.qml
         qml/ActivityRail.qml
+        qml/DeleteConfirmDialog.qml
         qml/EditorArea.qml
         qml/ErrorToast.qml
+        qml/ExplorerContextMenu.qml
+        qml/ExplorerPanel.qml
         qml/FolderPicker.qml
         qml/Icon.qml
         qml/IconButton.qml
         qml/Keycap.qml
+        qml/NameDialog.qml
         qml/PrimaryButton.qml
         qml/SectionLabel.qml
         qml/Sidebar.qml

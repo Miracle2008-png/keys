@@ -9,8 +9,12 @@ using keys::core::Status;
 
 namespace keys::workspace {
 
-Workspace::Workspace(config::Settings& settings, QObject* parent)
-    : QObject(parent), m_settings(settings)
+Workspace::Workspace(config::Settings& settings,
+                     core::TaskScheduler& scheduler,
+                     QObject* parent)
+    : QObject(parent),
+      m_settings(settings),
+      m_fileTree(m_project, m_watcher, scheduler, this)
 {
 }
 

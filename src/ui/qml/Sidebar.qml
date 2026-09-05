@@ -58,17 +58,46 @@ Item {
                 font.letterSpacing: 0.5
             }
 
-            // Panels arrive with their milestones; until then the sidebar states
-            // what is actually there rather than showing a fake tree.
-            Text {
-                x: Metrics.spacingMedium
-                width: parent.width - Metrics.spacingMedium * 2
-                topPadding: Metrics.spacingSmall
-                text: qsTr("No project is open.")
-                color: Theme.textTertiary
-                font.family: Fonts.ui
-                font.pointSize: Metrics.fontSizeBody
-                wrapMode: Text.WordWrap
+            // The panel for the active view. Views whose milestone has not
+            // landed say so plainly rather than showing a mock.
+            Item {
+                width: parent.width
+                height: parent.height - Metrics.spacingLarge - Metrics.spacingSmall
+
+                ExplorerPanel {
+                    anchors.fill: parent
+                    visible: App.activeView === "explorer" && App.hasProject
+                }
+
+                Text {
+                    anchors.left: parent.left
+                    anchors.leftMargin: Metrics.spacingMedium
+                    anchors.right: parent.right
+                    anchors.rightMargin: Metrics.spacingMedium
+                    anchors.top: parent.top
+                    anchors.topMargin: Metrics.spacingSmall
+                    visible: !App.hasProject
+                    text: qsTr("No project is open.")
+                    color: Theme.textTertiary
+                    font.family: Fonts.ui
+                    font.pointSize: Metrics.fontSizeBody
+                    wrapMode: Text.WordWrap
+                }
+
+                Text {
+                    anchors.left: parent.left
+                    anchors.leftMargin: Metrics.spacingMedium
+                    anchors.right: parent.right
+                    anchors.rightMargin: Metrics.spacingMedium
+                    anchors.top: parent.top
+                    anchors.topMargin: Metrics.spacingSmall
+                    visible: App.hasProject && App.activeView !== "explorer"
+                    text: qsTr("Not implemented yet.")
+                    color: Theme.textTertiary
+                    font.family: Fonts.ui
+                    font.pointSize: Metrics.fontSizeBody
+                    wrapMode: Text.WordWrap
+                }
             }
         }
     }
