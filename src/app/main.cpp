@@ -9,9 +9,11 @@
 #include "ui/CommandPaletteModel.h"
 #include "ui/EditorBindings.h"
 #include "ui/EditorSettings.h"
+#include "ui/RunPanelModel.h"
 #include "ui/SettingsModel.h"
 #include "ui/SourceControlModel.h"
 #include "ui/Theme.h"
+#include "buildrun/TaskRunner.h"
 #include "vcs/Repository.h"
 #include "workspace/Workspace.h"
 
@@ -159,6 +161,10 @@ int main(int argc, char* argv[])
     QObject::connect(&workspace.watcher(), &fs::FileWatcher::directoriesChanged,
                      &repository, [&repository] { repository.refresh(); });
 
+    // Build and run. The runner owns no project state; the panel model reads
+    // the project for its task defaults and its root.
+    buildrun::TaskRunner taskRunner;
+
     ui::AppController controller(commands, settings, animation, workspace);
 
     // A folder given on the command line opens at startup, so `keys .` behaves
@@ -186,6 +192,9 @@ int main(int argc, char* argv[])
 
     ui::SourceControlModel sourceControl(repository);
     ui::SourceControlModel::setInstance(&sourceControl);
+
+    ui::RunPanelModel runPanel(taskRunner, workspace.project());
+    ui::RunPanelModel::setInstance(&runPanel);
 
     QQmlApplicationEngine engine;
 
@@ -217,6 +226,13 @@ int main(int argc, char* argv[])
     QObject::connect(&sourceControl, &ui::SourceControlModel::fileActivated,
                      &app, [&controller](const QString& absolutePath) {
                          controller.openFile(absolutePath);
+                     });
+
+    // A problem opens the file at the line the compiler named, the same path
+    // the explorer and palette use.
+    QObject::connect(&runPanel, &ui::RunPanelModel::problemActivated, &app,
+                     [&controller](const QString& path, int line, int column) {
+                         controller.openFileAt(path, line, column);
                      });
 
     for (int i = 0; i < workspace::EditorLayout::kMaxGroups; ++i) {

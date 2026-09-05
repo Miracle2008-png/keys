@@ -177,6 +177,33 @@ parser and screen buffer in `terminal`. Real shells, real signals, real resizing
 the brief forbids faking this. The PTY abstraction is platform-split so a Unix
 `forkpty` backend drops in later without touching the parser or the UI.
 
+### 5.4a Build tasks over pipes, not a PTY
+
+**Decision:** run build and run tasks through `QProcess` pipes, streaming output
+line by line, with no pseudo-terminal.
+
+*Tradeoff.* A PTY would let a build tool draw progress bars and colour exactly as
+it does in a terminal. But a tool being scripted should do the opposite: emit
+plain text a parser can read, and fail rather than stop to ask a question nobody
+will answer. `TERM=dumb`, `NO_COLOR` and a closed stdin say so in the ways the
+common toolchains listen to. Pipes also work today, where the terminal's ConPTY
+attachment does not — so build and run do not wait on that.
+
+Output is emitted as complete lines rather than raw chunks: a read can split a
+line anywhere, and every consumer would otherwise reassemble them slightly
+differently. Diagnostics are parsed as they stream, so the problem list fills
+while the build is still running.
+
+**Tasks are command lines, not language integrations.** Keys does not know how to
+build C++; it knows how to run `cmake --build build` and show what comes back.
+Defaults are offered per project kind and nothing is inferred from build files —
+guessing wrong produces a task that fails confusingly, which is worse than
+offering none. Python gets no build or run default for exactly this reason.
+
+**One task at a time.** Two builds writing to one output directory corrupt each
+other, and two consoles interleaving is unreadable. A second start is refused
+rather than queued, which makes stopping the first an explicit decision.
+
 ### 5.5 Language services via LSP
 
 One `langsvc` client speaking standard LSP over stdio. Language support becomes

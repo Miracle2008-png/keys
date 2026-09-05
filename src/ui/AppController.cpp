@@ -287,6 +287,24 @@ bool AppController::saveFile()
     return true;
 }
 
+bool AppController::openFileAt(const QString& path, int line, int column)
+{
+    if (!openFile(path)) {
+        return false;
+    }
+
+    editor::TextDocument* document = m_workspace.activeDocument();
+    if (!document) {
+        return false;
+    }
+
+    // Compilers count from one; the document counts from zero. A missing column
+    // (0) means the start of the line.
+    const editor::Position position{std::max(0, line - 1), std::max(0, column - 1)};
+    document->setCursorPosition(document->buffer().clamp(position));
+    return true;
+}
+
 QString AppController::takeLastError()
 {
     return std::exchange(m_lastError, QString());

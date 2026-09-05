@@ -68,4 +68,12 @@ QtObject {
     /// which is what a bin would wrongly imply.
     readonly property string discard:
         "M3 12a9 9 0 1 0 3-6.7L3 8 M3 3v5h5"
+
+    // Build and run.
+    readonly property string play: "M6 4l13 8-13 8z"
+    readonly property string stop: "M6 6h12v12H6z"
+    readonly property string hammer:
+        "M14 7l5 5 M12 5l7 7-3 3-7-7z M9 9l-6 6 3 3 6-6"
+    readonly property string trash:
+        "M4 7h16 M9 7V5h6v2 M6 7l1 13h10l1-13"
 }

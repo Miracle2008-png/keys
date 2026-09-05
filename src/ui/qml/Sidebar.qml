@@ -74,6 +74,11 @@ Item {
                     visible: App.activeView === "sourceControl" && App.hasProject
                 }
 
+                RunPanel {
+                    anchors.fill: parent
+                    visible: App.activeView === "debug" && App.hasProject
+                }
+
                 Text {
                     anchors.left: parent.left
                     anchors.leftMargin: Metrics.spacingMedium
@@ -99,6 +104,7 @@ Item {
                     visible: App.hasProject
                              && App.activeView !== "explorer"
                              && App.activeView !== "sourceControl"
+                             && App.activeView !== "debug"
                     text: qsTr("Not implemented yet.")
                     color: Theme.textTertiary
                     font.family: Fonts.ui

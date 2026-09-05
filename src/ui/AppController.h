@@ -99,6 +99,12 @@ public:
     /// Opens a file into the editor. Reports failure through errorOccurred.
     Q_INVOKABLE bool openFile(const QString& path);
 
+    /// Opens a file and puts the caret at a one-based line and column, which is
+    /// how compilers and search results name a position. Out-of-range values are
+    /// clamped by the document rather than refused: a diagnostic can name a line
+    /// that a later edit removed, and landing nearby beats not opening at all.
+    Q_INVOKABLE bool openFileAt(const QString& path, int line, int column);
+
     /// Saves the open document. Reports failure through errorOccurred rather
     /// than losing the user's work silently.
     Q_INVOKABLE bool saveFile();
