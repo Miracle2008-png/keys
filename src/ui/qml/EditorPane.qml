@@ -40,6 +40,18 @@ Item {
         visible: root.tabs.count > 0
     }
 
+    // The completion popup, over the editor rather than inside it: it must be
+    // able to extend past the editor's own clip rectangle near the bottom edge.
+    CompletionPopup {
+        anchors.fill: undefined
+        parent: code
+        caretX: code.gutterWidth + code.editor.cursorColumn * code.charWidth
+        caretY: (code.editor.cursorLine + 1) * code.lineHeight - code.scrollOffset
+        lineHeight: code.lineHeight
+        visible: Language.completionVisible && root.focused
+    }
+
+
     Text {
         anchors.centerIn: parent
         visible: root.tabs.count === 0

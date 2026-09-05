@@ -29,6 +29,7 @@ add_subdirectory(src/terminal)
 add_subdirectory(src/search)
 add_subdirectory(src/vcs)
 add_subdirectory(src/buildrun)
+add_subdirectory(src/langsvc)
 add_subdirectory(src/workspace)
 
 # Layer 3-4: the UI and the composition root.

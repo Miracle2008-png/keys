@@ -211,6 +211,26 @@ configuration — a server binary plus a file-type mapping — not new C++ code.
 what makes "add a language later" cheap, and it is why the editor exposes positions
 and ranges in LSP's coordinate model at its boundary.
 
+**What landed in milestone 12.** Framing, lifecycle, capability negotiation,
+document sync (incremental where the server supports it), completion, go-to
+definition, hover and diagnostics. Servers start on demand — launching every
+configured one at project open would cost seconds for languages the user never
+touches — and one that is not installed simply never starts.
+
+Framing is the part that repays care: a read can end anywhere, including halfway
+through a header, so decoding is stateful and `Content-Length` is authoritative
+rather than any delimiter. Source text legitimately contains `
+
+`.
+
+Positions cross the boundary unchanged. The editor already uses zero-based lines
+and UTF-16 columns (see TextBuffer), which is LSP's default encoding, so the
+conversion is a field copy rather than a re-encoding.
+
+Rename, references, formatting, code actions and semantic tokens are not
+implemented. Semantic tokens are the natural driver for syntax highlighting and
+are the next thing to add here.
+
 ### 5.6 Debugging via DAP
 
 Same reasoning as LSP: the Debug Adapter Protocol makes debugger support a matter of

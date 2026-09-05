@@ -155,9 +155,17 @@ Item {
                 // The group heading, drawn by the first row of each group
                 // rather than as its own model row - which would complicate
                 // selection and keyboard navigation for no visual gain.
-                Text {
+                // Wrapped in an Item so the collapsed height is set on the
+                // wrapper: a Text whose own height reads its implicitHeight is
+                // a binding loop, since padding feeds implicitHeight.
+                Item {
+                    width: parent.width
+                    height: row.isGroupStart ? heading.implicitHeight : 0
                     visible: row.isGroupStart
-                    height: visible ? implicitHeight + 10 : 0
+                    clip: true
+
+                Text {
+                    id: heading
                     leftPadding: 10
                     topPadding: 6
                     bottomPadding: 4
@@ -167,6 +175,7 @@ Item {
                     font.pointSize: Metrics.fontSizeLabel
                     font.capitalization: Font.AllUppercase
                     font.letterSpacing: 0.5
+                }
                 }
 
                 Rectangle {

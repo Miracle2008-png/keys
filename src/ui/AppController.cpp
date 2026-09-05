@@ -305,6 +305,15 @@ bool AppController::openFileAt(const QString& path, int line, int column)
     return true;
 }
 
+void AppController::reportNotice(const QString& message)
+{
+    if (message.isEmpty()) {
+        return;
+    }
+    m_lastError = message;
+    emit errorOccurred(message);
+}
+
 QString AppController::takeLastError()
 {
     return std::exchange(m_lastError, QString());

@@ -9,11 +9,13 @@
 #include "ui/CommandPaletteModel.h"
 #include "ui/EditorBindings.h"
 #include "ui/EditorSettings.h"
+#include "ui/LanguageModel.h"
 #include "ui/RunPanelModel.h"
 #include "ui/SettingsModel.h"
 #include "ui/SourceControlModel.h"
 #include "ui/Theme.h"
 #include "buildrun/TaskRunner.h"
+#include "langsvc/LanguageServiceManager.h"
 #include "vcs/Repository.h"
 #include "workspace/Workspace.h"
 
@@ -165,6 +167,18 @@ int main(int argc, char* argv[])
     // the project for its task defaults and its root.
     buildrun::TaskRunner taskRunner;
 
+    // Language servers start on demand, per project. Launching every configured
+    // one at startup would cost seconds and memory for languages the user never
+    // opens.
+    langsvc::LanguageServiceManager languageServices;
+
+    QObject::connect(&workspace, &workspace::Workspace::projectOpened,
+                     &languageServices, &langsvc::LanguageServiceManager::setProjectRoot);
+    QObject::connect(&workspace, &workspace::Workspace::projectClosed,
+                     &languageServices, [&languageServices] {
+                         languageServices.setProjectRoot(QString());
+                     });
+
     ui::AppController controller(commands, settings, animation, workspace);
 
     // A folder given on the command line opens at startup, so `keys .` behaves
@@ -195,6 +209,16 @@ int main(int argc, char* argv[])
 
     ui::RunPanelModel runPanel(taskRunner, workspace.project());
     ui::RunPanelModel::setInstance(&runPanel);
+
+    ui::LanguageModel language(languageServices, workspace.editors());
+    ui::LanguageModel::setInstance(&language);
+
+    // A document reaches its server through here rather than the model
+    // discovering it, so the sync cannot silently miss one.
+    QObject::connect(&workspace, &workspace::Workspace::fileOpened, &app,
+                     [&language, &workspace](const QString&) {
+                         language.documentOpened(workspace.activeDocument());
+                     });
 
     QQmlApplicationEngine engine;
 
@@ -230,6 +254,16 @@ int main(int argc, char* argv[])
 
     // A problem opens the file at the line the compiler named, the same path
     // the explorer and palette use.
+    QObject::connect(&language, &ui::LanguageModel::definitionFound, &app,
+                     [&controller](const QString& path, int line, int column) {
+                         controller.openFileAt(path, line + 1, column + 1);
+                     });
+
+    QObject::connect(&language, &ui::LanguageModel::notice, &app,
+                     [&controller](const QString& message) {
+                         controller.reportNotice(message);
+                     });
+
     QObject::connect(&runPanel, &ui::RunPanelModel::problemActivated, &app,
                      [&controller](const QString& path, int line, int column) {
                          controller.openFileAt(path, line, column);

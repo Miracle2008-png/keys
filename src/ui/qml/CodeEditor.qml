@@ -32,6 +32,11 @@ Item {
 
     /// Wide enough for the largest line number, plus breathing room. Recomputed
     /// only when the line count changes, not per frame.
+    /// How far the view is scrolled, so an overlay anchored to the caret (the
+    /// completion popup) can position itself in the pane's coordinates rather
+    /// than the content's.
+    readonly property real scrollOffset: lines.contentY
+
     readonly property real gutterWidth:
         Math.max(48, String(Math.max(1, root.editor.lineCount)).length * charWidth + 28)
 
@@ -113,6 +118,30 @@ Item {
                     x: -horizontal.position * Math.max(0, contentText.width - parent.width)
                     width: parent.width
                     height: parent.height
+
+                    // Diagnostic underlines. Drawn per line from the model's
+                    // ranges rather than as a decoration on the text, because a
+                    // range can span lines and Text has no notion of that.
+                    Repeater {
+                        model: Language.diagnostics
+
+                        delegate: Rectangle {
+                            required property var modelData
+
+                            visible: modelData.line === row.index
+                            x: modelData.startColumn * root.charWidth
+                            width: Math.max(root.charWidth,
+                                            (modelData.endLine === modelData.line
+                                             ? modelData.endColumn - modelData.startColumn
+                                             : 1) * root.charWidth)
+                            height: 2
+                            y: parent.height - 3
+                            color: modelData.severity === 1 ? Theme.red
+                                 : modelData.severity === 2 ? Theme.yellow
+                                 : Theme.accent
+                            opacity: 0.85
+                        }
+                    }
 
                     // Selection highlight, drawn behind the glyphs.
                     Rectangle {
@@ -209,6 +238,40 @@ Item {
     Keys.onPressed: (event) => {
         const shift = (event.modifiers & Qt.ShiftModifier) !== 0;
         const ctrl = (event.modifiers & Qt.ControlModifier) !== 0;
+
+        // The completion popup takes these keys first: while it is open, Up and
+        // Down move the selection rather than the caret, which is what makes it
+        // usable without reaching for the mouse.
+        if (Language.completionVisible) {
+            switch (event.key) {
+            case Qt.Key_Down:   Language.selectNext();     event.accepted = true; return;
+            case Qt.Key_Up:     Language.selectPrevious(); event.accepted = true; return;
+            case Qt.Key_Escape: Language.dismissCompletion(); event.accepted = true; return;
+            case Qt.Key_Return:
+            case Qt.Key_Enter:
+            case Qt.Key_Tab:
+                if (Language.acceptCompletion()) {
+                    event.accepted = true;
+                    return;
+                }
+                break;
+            }
+        }
+
+        // Ctrl+Space asks for completions explicitly, which is what a user
+        // reaches for when the automatic trigger has not fired.
+        if (ctrl && event.key === Qt.Key_Space) {
+            Language.requestCompletion();
+            event.accepted = true;
+            return;
+        }
+
+        // F12 is go-to-definition everywhere; Ctrl+Click is handled below.
+        if (event.key === Qt.Key_F12) {
+            Language.goToDefinition();
+            event.accepted = true;
+            return;
+        }
 
         switch (event.key) {
         case Qt.Key_Left:      root.editor.moveLeft(shift, ctrl); break;

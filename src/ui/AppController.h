@@ -105,6 +105,11 @@ public:
     /// that a later edit removed, and landing nearby beats not opening at all.
     Q_INVOKABLE bool openFileAt(const QString& path, int line, int column);
 
+    /// Surfaces a message from a subsystem through the same toast the workbench
+    /// uses for its own errors, so a user sees one notification mechanism rather
+    /// than one per feature.
+    void reportNotice(const QString& message);
+
     /// Saves the open document. Reports failure through errorOccurred rather
     /// than losing the user's work silently.
     Q_INVOKABLE bool saveFile();
