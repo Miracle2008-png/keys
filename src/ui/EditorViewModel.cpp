@@ -180,6 +180,33 @@ QString EditorViewModel::colourFor(editor::TokenKind kind)
     return QString();
 }
 
+QString EditorViewModel::languageName() const
+{
+    // Named for the reader, not for the enumerator: "C++" rather than "C", and
+    // the family name where one lexer serves several dialects.
+    switch (m_highlighter.language()) {
+    case editor::SyntaxHighlighter::Language::C:          return QStringLiteral("C/C++");
+    case editor::SyntaxHighlighter::Language::Python:     return QStringLiteral("Python");
+    case editor::SyntaxHighlighter::Language::JavaScript: return QStringLiteral("JavaScript");
+    case editor::SyntaxHighlighter::Language::TypeScript: return QStringLiteral("TypeScript");
+    case editor::SyntaxHighlighter::Language::Rust:       return QStringLiteral("Rust");
+    case editor::SyntaxHighlighter::Language::Go:         return QStringLiteral("Go");
+    case editor::SyntaxHighlighter::Language::Qml:        return QStringLiteral("QML");
+    case editor::SyntaxHighlighter::Language::Markdown:   return QStringLiteral("Markdown");
+    case editor::SyntaxHighlighter::Language::Shell:      return QStringLiteral("Shell");
+    case editor::SyntaxHighlighter::Language::Java:       return QStringLiteral("Java");
+    case editor::SyntaxHighlighter::Language::Ruby:       return QStringLiteral("Ruby");
+    case editor::SyntaxHighlighter::Language::Html:       return QStringLiteral("HTML");
+    case editor::SyntaxHighlighter::Language::Css:        return QStringLiteral("CSS");
+    case editor::SyntaxHighlighter::Language::Yaml:       return QStringLiteral("YAML");
+    case editor::SyntaxHighlighter::Language::Toml:       return QStringLiteral("TOML");
+    case editor::SyntaxHighlighter::Language::Sql:        return QStringLiteral("SQL");
+    case editor::SyntaxHighlighter::Language::CMake:      return QStringLiteral("CMake");
+    case editor::SyntaxHighlighter::Language::None:       break;
+    }
+    return QString();
+}
+
 QString EditorViewModel::highlightedLine(int line) const
 {
     if (!m_document) {

@@ -79,6 +79,7 @@ qt_add_qml_module(keys_ui
         qml/SettingTextField.qml
         qml/Sidebar.qml
         qml/StatusBar.qml
+        qml/StatusItem.qml
         qml/TopBar.qml
         qml/WelcomeButton.qml
         qml/WelcomeView.qml

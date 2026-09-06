@@ -25,19 +25,34 @@ const Palette& darkPalette()
     // Built once on first use; the conversion is not free and the values never change.
     static const Palette palette = [] {
         Palette p;
-        p.bgChrome         = oklch(0.165, 0.005, 255);
-        p.bgSurface        = oklch(0.19,  0.005, 255);
-        p.bgEditor         = oklch(0.2,   0.005, 255);
-        p.bgElevated       = oklch(0.235, 0.006, 255);
-        p.bgHover          = oklch(0.255, 0.006, 255);
+        // Surfaces carry a blue-grey cast rather than being neutral, the way
+        // One Dark does. A palette at chroma 0.005 is technically grey and
+        // reads as dead; the small amount of colour here is what makes a dark
+        // interface feel lit rather than switched off.
+        //
+        // The steps between them are deliberate and large enough to see. The
+        // previous values sat within 3.5% lightness of each other, so the
+        // sidebar, the editor and the chrome all read as one flat sheet and
+        // nothing on screen had an edge. The editor is the lightest of the
+        // three because it is where the work happens - the eye should settle
+        // there, and the surrounding chrome should recede.
+        p.bgChrome         = oklch(0.20, 0.012, 264);
+        p.bgSurface        = oklch(0.235, 0.013, 264);
+        p.bgEditor         = oklch(0.265, 0.014, 264);
+        p.bgElevated       = oklch(0.305, 0.015, 264);
+        p.bgHover          = oklch(0.34,  0.016, 264);
 
-        // Borders are white at low alpha so they read consistently over any surface.
-        p.border           = oklch(1.0, 0.0, 0.0, 0.08);
-        p.borderStrong     = oklch(1.0, 0.0, 0.0, 0.16);
+        // Borders are white at low alpha so they read consistently over any
+        // surface. Stronger than before: panels in CLion have visible edges,
+        // and an edge is what turns a region into a panel.
+        p.border           = oklch(1.0, 0.0, 0.0, 0.12);
+        p.borderStrong     = oklch(1.0, 0.0, 0.0, 0.22);
 
-        p.textPrimary      = oklch(0.94, 0.004, 255);
-        p.textSecondary    = oklch(0.63, 0.01,  255);
-        p.textTertiary     = oklch(0.45, 0.01,  255);
+        // One Dark's foreground is a soft off-white, never pure. Secondary and
+        // tertiary keep enough contrast to be read rather than merely seen.
+        p.textPrimary      = oklch(0.90, 0.008, 264);
+        p.textSecondary    = oklch(0.70, 0.012, 264);
+        p.textTertiary     = oklch(0.55, 0.012, 264);
 
         p.accent           = oklch(0.64, 0.1, 252);
         p.accentHover      = oklch(0.7,  0.1, 252);
@@ -50,19 +65,23 @@ const Palette& darkPalette()
         p.redSoft          = oklch(0.66, 0.15, 25, 0.14);
         p.yellow           = oklch(0.78, 0.12, 95);
 
-        p.synKeyword       = oklch(0.68, 0.12, 300);
-        p.synString        = oklch(0.72, 0.1,  150);
-        p.synNumber        = oklch(0.75, 0.11, 60);
-        p.synFunction      = oklch(0.72, 0.1,  252);
-        p.synType          = oklch(0.75, 0.08, 190);
-        p.synTag           = oklch(0.68, 0.12, 25);
-        p.synComment       = oklch(0.45, 0.01, 255);
-        p.synPlain         = oklch(0.94, 0.004, 255);
-        p.synPunct         = oklch(0.63, 0.01, 255);
-        p.synPreproc       = oklch(0.7,  0.11, 330);
-        p.synConstant      = oklch(0.74, 0.1,  285);
-        p.synOperator      = oklch(0.78, 0.04, 220);
-        p.synAttribute     = oklch(0.76, 0.08, 90);
+        // Syntax follows One Dark: magenta keywords, green strings, warm
+        // orange numbers, blue functions, yellow types. Softer and warmer than
+        // the previous set, which was pitched at full chroma and made a dense
+        // file read as noisy.
+        p.synKeyword       = oklch(0.70, 0.14, 315);
+        p.synString        = oklch(0.76, 0.13, 140);
+        p.synNumber        = oklch(0.77, 0.11, 70);
+        p.synFunction      = oklch(0.72, 0.11, 245);
+        p.synType          = oklch(0.83, 0.11, 90);
+        p.synTag           = oklch(0.67, 0.15, 20);
+        p.synComment       = oklch(0.53, 0.015, 264);
+        p.synPlain         = oklch(0.90, 0.008, 264);
+        p.synPunct         = oklch(0.72, 0.012, 264);
+        p.synPreproc       = oklch(0.71, 0.13, 330);
+        p.synConstant      = oklch(0.77, 0.10, 70);
+        p.synOperator      = oklch(0.74, 0.09, 190);
+        p.synAttribute     = oklch(0.80, 0.10, 85);
         return p;
     }();
     return palette;

@@ -46,6 +46,11 @@ class EditorViewModel : public QObject {
     Q_PROPERTY(bool hasDocument READ hasDocument NOTIFY documentChanged)
     Q_PROPERTY(bool highlighted READ isHighlighted NOTIFY documentChanged)
 
+    /// The language's display name, for the status bar. Empty when Keys has no
+    /// rules for the file, which the bar reports as plain text rather than
+    /// guessing at a name.
+    Q_PROPERTY(QString languageName READ languageName NOTIFY documentChanged)
+
 public:
     /// Takes the editor's resolved settings so indentation follows the user's
     /// preference. Passed in rather than looked up so the view model stays
@@ -115,6 +120,8 @@ public:
     Q_INVOKABLE QString selectedText() const;
 
     [[nodiscard]] int revision() const { return m_revision; }
+
+    [[nodiscard]] QString languageName() const;
 
     Q_INVOKABLE void undo();
     Q_INVOKABLE void redo();
