@@ -15,7 +15,7 @@ layout, the decisions behind it, and the milestone plan.
 | 3. File explorer | Done |
 | 4. Editor | Done |
 | 5. Tabs & editor splits | Done |
-| 6. Terminal | In progress — VT layer done, ConPTY attachment unresolved |
+| 6. Terminal | Done |
 | 7. Search | Done |
 | 8. Command palette | Done |
 | 9. Settings & themes | Done |
@@ -26,11 +26,20 @@ layout, the decisions behind it, and the milestone plan.
 | 14. Extensions | Done |
 | 15. Performance & polish | Done |
 
-Syntax highlighting is in. The terminal (milestone 6) has a complete VT parser
-and screen model, but its ConPTY attachment does not work on the development
-machine - reproduced identically with a bare Microsoft-sample probe and with
-`pywinpty`, so it is the environment rather than Keys. Nothing else depends on
-it: build, run and debug all use plain pipes.
+Syntax highlighting covers 17 languages, checked over whole files of idiomatic
+code rather than snippets (`tools/language-check.cpp`).
+
+The terminal runs a real shell through ConPTY. The attachment appeared broken
+for a long time and was not: **ConPTY behaves differently depending on whether
+the parent process owns a console.** From a console parent - and from an
+MSYS/Git-Bash pty in particular - the child joins the parent's console instead
+of the pseudo-console, and only the handful of bytes ConPTY writes itself ever
+reach the pipe. Measured with a minimal program independent of Keys, same
+machine, only the subsystem changed: 16 bytes from a console parent, 222 from a
+GUI parent. `keys.exe` is a GUI process, so the terminal works; the probe that
+said otherwise was a console application measuring its own environment.
+
+`tools/pty-check.cpp` must therefore be run detached, never from a shell.
 
 Features that are not implemented yet are visibly absent or explicitly
 disabled — nothing in the interface pretends to work. The same rule governs

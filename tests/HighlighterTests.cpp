@@ -249,6 +249,64 @@ private slots:
                  TokenKind::Keyword);
     }
 
+    void marksMarkdownInlineSpans()
+    {
+        // The gap this closes: only headings, fences and bullets were marked,
+        // so a document - which is mostly prose with emphasis and links in it -
+        // came out almost entirely plain. Measured over a real file, coverage
+        // was 47%.
+        const SyntaxHighlighter highlighter(SyntaxHighlighter::Language::Markdown);
+        LineState outgoing = LineState::Normal;
+
+        const QString line =
+            QStringLiteral("Some **bold**, *italic*, `code`, and [a link](http://x.y).");
+        const std::vector<Token> tokens =
+            highlighter.tokenize(line, LineState::Normal, outgoing);
+
+        QHash<TokenKind, int> found;
+        for (const Token& token : tokens) {
+            ++found[token.kind];
+        }
+
+        QVERIFY2(found.value(TokenKind::Keyword) >= 1, "bold was not marked");
+        QVERIFY2(found.value(TokenKind::Type) >= 1, "italic was not marked");
+        QVERIFY2(found.value(TokenKind::String) >= 1, "a code span was not marked");
+        QVERIFY2(found.value(TokenKind::Constant) >= 1, "a link target was not marked");
+    }
+
+    void marksMarkdownOrderedListMarkers()
+    {
+        QCOMPARE(kindOf(QStringLiteral("1. First item"), QStringLiteral("1."),
+                        SyntaxHighlighter::Language::Markdown),
+                 TokenKind::Number);
+    }
+
+    void anUnclosedMarkdownMarkerDoesNotSwallowTheLine()
+    {
+        // A lone asterisk is ordinary in prose. Treating it as the start of
+        // emphasis that never closes would colour the rest of the line, and
+        // with a carried state, the rest of the document.
+        const SyntaxHighlighter highlighter(SyntaxHighlighter::Language::Markdown);
+        LineState outgoing = LineState::Normal;
+
+        const QString line = QStringLiteral("A lone * asterisk and a ` backtick.");
+        const std::vector<Token> tokens =
+            highlighter.tokenize(line, LineState::Normal, outgoing);
+
+        for (const Token& token : tokens) {
+            QVERIFY(token.start >= 0);
+            QVERIFY(token.start + token.length <= line.size());
+        }
+        QCOMPARE(outgoing, LineState::Normal);
+    }
+
+    void markdownFencesOwnTheirLine()
+    {
+        QCOMPARE(kindOf(QStringLiteral("```cpp"), QStringLiteral("```"),
+                        SyntaxHighlighter::Language::Markdown),
+                 TokenKind::Comment);
+    }
+
     // ---- Robustness --------------------------------------------------------
 
     void tokensNeverOverlapOrExceedTheLine()

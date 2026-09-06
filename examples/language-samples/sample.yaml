@@ -1,0 +1,21 @@
+# Real YAML: anchors, nested maps, lists, multiline.
+version: "3.9"
+
+x-defaults: &defaults
+  restart: unless-stopped
+  logging:
+    driver: json-file
+
+services:
+  api:
+    <<: *defaults
+    image: example/api:1.4.0
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgres://user:pass@db:5432/app
+    command: >
+      sh -c "migrate up && exec ./server"
+  db:
+    <<: *defaults
+    image: postgres:16

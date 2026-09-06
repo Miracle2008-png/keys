@@ -52,3 +52,12 @@ target_link_libraries(keys_terminal_panel_check PRIVATE
     Keys::ui keys_uiplugin Keys::config Keys::terminal)
 set_target_properties(keys_terminal_panel_check PROPERTIES FOLDER "Tools")
 keys_apply_compile_options(keys_terminal_panel_check)
+
+# Runs the real highlighter over whole files of idiomatic code, one per
+# language. HighlighterTests checks tokens in snippets; this catches what a
+# snippet cannot - a string state that never closes, a comment that leaks
+# across lines, an extension languageForPath does not know.
+add_executable(keys_language_check language-check.cpp)
+target_link_libraries(keys_language_check PRIVATE Qt6::Core Keys::editor)
+set_target_properties(keys_language_check PROPERTIES FOLDER "Tools")
+keys_apply_compile_options(keys_language_check)

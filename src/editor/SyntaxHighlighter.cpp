@@ -841,19 +841,136 @@ std::vector<Token> SyntaxHighlighter::tokenize(const QString& line, LineState in
     const QStringList& typeList = types();
 
     // Markdown is handled separately: it has no keywords, and what matters is
-    // its line-level structure.
+    // its structure - both the line-level kind and the inline spans, which the
+    // first version of this ignored entirely. A document is mostly prose, so a
+    // highlighter that only marks headings leaves nearly every line plain.
     if (m_language == Language::Markdown) {
         const QString trimmed = line.trimmed();
+        const int indent = static_cast<int>(line.size() - line.trimmed().size());
+
+        // A fenced block owns its lines. Everything inside is code in another
+        // language, and marking its punctuation as Markdown's would be wrong.
+        if (trimmed.startsWith(QLatin1String("```"))
+            || trimmed.startsWith(QLatin1String("~~~"))) {
+            tokens.push_back({0, length, TokenKind::Comment});
+            return tokens;
+        }
+
+        // A heading is the line. Bold and links inside one are not marked
+        // separately: the heading already reads as the strongest thing there.
         if (trimmed.startsWith(QLatin1Char('#'))) {
             tokens.push_back({0, length, TokenKind::Keyword});
-        } else if (trimmed.startsWith(QLatin1String("```"))) {
-            tokens.push_back({0, length, TokenKind::Comment});
+            return tokens;
+        }
+
+        // A horizontal rule, before the bullet check - `---` and `***` both
+        // start like list markers.
+        if (trimmed.size() >= 3
+            && (trimmed.count(QLatin1Char('-')) == trimmed.size()
+                || trimmed.count(QLatin1Char('*')) == trimmed.size()
+                || trimmed.count(QLatin1Char('_')) == trimmed.size())) {
+            tokens.push_back({indent, static_cast<int>(trimmed.size()),
+                              TokenKind::Punctuation});
+            return tokens;
+        }
+
+        // The line's marker: a bullet, an ordered number, a quote, or a table
+        // row. Marked first so the inline pass below does not treat a leading
+        // `*` as the start of emphasis.
+        int inlineStart = indent;
+
+        if (trimmed.startsWith(QLatin1Char('>'))) {
+            tokens.push_back({indent, 1, TokenKind::Punctuation});
+            inlineStart = indent + 1;
         } else if (trimmed.startsWith(QLatin1String("- "))
                    || trimmed.startsWith(QLatin1String("* "))
-                   || trimmed.startsWith(QLatin1Char('>'))) {
-            const int indent = static_cast<int>(line.size() - line.trimmed().size());
+                   || trimmed.startsWith(QLatin1String("+ "))) {
             tokens.push_back({indent, 1, TokenKind::Punctuation});
+            inlineStart = indent + 1;
+        } else if (trimmed.at(0).isDigit()) {
+            // `1.` or `1)` - an ordered marker, which the first version missed
+            // entirely, so every numbered list read as prose.
+            int digits = 0;
+            while (digits < trimmed.size() && trimmed.at(digits).isDigit()) {
+                ++digits;
+            }
+            if (digits < trimmed.size()
+                && (trimmed.at(digits) == QLatin1Char('.')
+                    || trimmed.at(digits) == QLatin1Char(')'))) {
+                tokens.push_back({indent, digits + 1, TokenKind::Number});
+                inlineStart = indent + digits + 1;
+            }
         }
+
+        // A table row: the pipes are the structure.
+        if (trimmed.startsWith(QLatin1Char('|'))) {
+            for (int at = inlineStart; at < length; ++at) {
+                if (line.at(at) == QLatin1Char('|')) {
+                    tokens.push_back({at, 1, TokenKind::Punctuation});
+                }
+            }
+        }
+
+        // Inline spans. Scanned once, left to right, so an unclosed marker
+        // cannot swallow the rest of the line - a `*` in prose is common, and
+        // treating it as the start of emphasis that never ends would colour
+        // everything after it.
+        int at = inlineStart;
+        while (at < length) {
+            const QChar character = line.at(at);
+
+            // `code`, and ``code with a backtick``.
+            if (character == QLatin1Char('`')) {
+                int ticks = 0;
+                while (at + ticks < length && line.at(at + ticks) == QLatin1Char('`')) {
+                    ++ticks;
+                }
+                const QString fence(ticks, QLatin1Char('`'));
+                const int close = line.indexOf(fence, at + ticks);
+                if (close > 0) {
+                    tokens.push_back({at, close + ticks - at, TokenKind::String});
+                    at = close + ticks;
+                    continue;
+                }
+                at += ticks;
+                continue;
+            }
+
+            // **bold**, __bold__, *italic*, _italic_.
+            if (character == QLatin1Char('*') || character == QLatin1Char('_')) {
+                const int run = (at + 1 < length && line.at(at + 1) == character) ? 2 : 1;
+                const QString marker(run, character);
+                const int close = line.indexOf(marker, at + run);
+                if (close > 0) {
+                    tokens.push_back({at, close + run - at,
+                                      run == 2 ? TokenKind::Keyword : TokenKind::Type});
+                    at = close + run;
+                    continue;
+                }
+                at += run;
+                continue;
+            }
+
+            // [text](url) and ![alt](src). The url is what the reader needs to
+            // pick out; the text is prose and stays prose.
+            if (character == QLatin1Char('[')) {
+                const int textEnd = line.indexOf(QLatin1Char(']'), at);
+                if (textEnd > 0 && textEnd + 1 < length
+                    && line.at(textEnd + 1) == QLatin1Char('(')) {
+                    const int urlEnd = line.indexOf(QLatin1Char(')'), textEnd + 1);
+                    if (urlEnd > 0) {
+                        tokens.push_back({at, textEnd - at + 1, TokenKind::Punctuation});
+                        tokens.push_back({textEnd + 1, urlEnd - textEnd,
+                                          TokenKind::Constant});
+                        at = urlEnd + 1;
+                        continue;
+                    }
+                }
+            }
+
+            ++at;
+        }
+
         return tokens;
     }
 

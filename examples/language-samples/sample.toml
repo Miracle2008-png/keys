@@ -1,0 +1,17 @@
+# Real TOML: tables, arrays of tables, typed values.
+[package]
+name = "keys"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+
+[[bin]]
+name = "keys"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+debug = false
