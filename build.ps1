@@ -19,6 +19,13 @@ if (-not $vs) {
 }
 
 # Enter the MSVC environment so cl.exe, the Windows SDK and the linker are on PATH.
+#
+# The installer directory goes on PATH first: Enter-VsDevShell runs a batch
+# script that invokes vswhere by bare name, and without this every build prints
+# "'vswhere.exe' is not recognized" before working correctly anyway. The message
+# is harmless and looks like a broken toolchain.
+$env:PATH = (Split-Path $vswhere) + ";" + $env:PATH
+
 Import-Module (Join-Path $vs "Common7\Tools\Microsoft.VisualStudio.DevShell.dll")
 Enter-VsDevShell -VsInstallPath $vs -SkipAutomaticLocation -DevCmdArguments '-arch=x64 -host_arch=x64' | Out-Null
 
