@@ -41,3 +41,14 @@ target_link_libraries(keys_search_panel_check PRIVATE
     Keys::ui keys_uiplugin Keys::search Keys::project)
 set_target_properties(keys_search_panel_check PROPERTIES FOLDER "Tools")
 keys_apply_compile_options(keys_search_panel_check)
+
+# Drives the real TerminalModel against a real shell. The terminal is the one
+# panel whose correctness cannot be established without running it: shell start,
+# ConPTY delivery, escape parsing and markup generation have each failed
+# silently, and every one of those failures looks the same from outside.
+add_executable(keys_terminal_panel_check terminal-panel-check.cpp)
+target_link_libraries(keys_terminal_panel_check PRIVATE
+    Qt6::Core Qt6::Gui Qt6::Quick
+    Keys::ui keys_uiplugin Keys::config Keys::terminal)
+set_target_properties(keys_terminal_panel_check PROPERTIES FOLDER "Tools")
+keys_apply_compile_options(keys_terminal_panel_check)

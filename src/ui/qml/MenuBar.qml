@@ -493,6 +493,13 @@ Item {
         }
 
         MenuAction {
+            text: qsTr("Terminal")
+            shortcut: "Ctrl+" + String.fromCharCode(96)
+            enabled: App.hasProject
+            onTriggered: App.invokeCommand("workbench.toggleTerminal")
+        }
+
+        MenuAction {
             text: qsTr("Split Editor")
             enabled: App.hasProject
             onTriggered: App.toggleSplit()

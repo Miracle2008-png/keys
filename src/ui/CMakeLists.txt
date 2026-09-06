@@ -37,6 +37,8 @@ qt_add_qml_module(keys_ui
         UpdateModel.h
         TabBarModel.cpp
         TabBarModel.h
+        TerminalModel.cpp
+        TerminalModel.h
         Metrics.h
         OklchColor.cpp
         OklchColor.h
@@ -93,6 +95,7 @@ qt_add_qml_module(keys_ui
         qml/Sidebar.qml
         qml/StatusBar.qml
         qml/StatusItem.qml
+        qml/TerminalPanel.qml
         qml/TopBar.qml
         qml/UpdateNotice.qml
         qml/WelcomeButton.qml
@@ -156,6 +159,7 @@ target_link_libraries(keys_ui PUBLIC
     Keys::core
     Keys::config
     Keys::search
+    Keys::terminal
     Keys::buildrun
     Keys::debugger
     Keys::extensions

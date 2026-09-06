@@ -184,6 +184,11 @@ public:
     /// Splits the editor, or collapses back to one pane if already split.
     Q_INVOKABLE void toggleSplit();
 
+    /// Asks the window to show or hide the terminal. A signal rather than a
+    /// call because the dock is a QML construct: the controller knows the
+    /// command exists, the window knows what a dock is.
+    Q_INVOKABLE void toggleTerminal();
+
     /// Focuses a pane, so typing and commands act on it.
     Q_INVOKABLE void focusGroup(int index);
 
@@ -216,6 +221,9 @@ signals:
     /// Asked for by a command; the view raises the prompt or dialog. The
     /// controller does not own UI, so it reports the intent rather than
     /// constructing a window.
+    /// The terminal was asked for, from the palette, the menu or the shortcut.
+    void terminalToggleRequested();
+
     void newFileRequested();
     void newFolderRequested();
     void saveAsRequested();

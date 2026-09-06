@@ -143,6 +143,11 @@ int AppController::sidebarWidth() const
     return m_settings.intValue(QLatin1String(kSidebarWidthKey));
 }
 
+void AppController::toggleTerminal()
+{
+    emit terminalToggleRequested();
+}
+
 bool AppController::invokeCommand(const QString& id)
 {
     const core::Status status = m_commands.invoke(id);
@@ -606,6 +611,12 @@ void AppController::registerWorkbenchCommands()
         QStringLiteral("Close Project"),
         QStringLiteral("File"),
         [this] { closeProject(); },
+        [this] { return hasProject(); });
+
+    add(QStringLiteral("workbench.toggleTerminal"),
+        QStringLiteral("Toggle Terminal"),
+        QStringLiteral("View"),
+        [this] { toggleTerminal(); },
         [this] { return hasProject(); });
 
     add(QStringLiteral("workbench.toggleSidebar"),

@@ -16,6 +16,7 @@
 #include "ui/SearchModel.h"
 #include "ui/SettingsModel.h"
 #include "ui/SourceControlModel.h"
+#include "ui/TerminalModel.h"
 #include "ui/UpdateModel.h"
 #include "update/UpdateChecker.h"
 #include "ui/Theme.h"
@@ -27,6 +28,8 @@
 #include "vcs/Repository.h"
 #include "workspace/Workspace.h"
 
+#include <QElapsedTimer>
+#include <QFile>
 #include <QFontDatabase>
 #include <QGuiApplication>
 #include <QDir>
@@ -35,11 +38,38 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickStyle>
+#include <QTextStream>
 #include <QStyleHints>
 
 using namespace keys;
 
 namespace {
+
+/// Captures QML warnings when Keys is run with --self-check.
+///
+/// A windowed application has no console, so a QML warning - an anchor to a
+/// non-sibling, a binding to a property that does not exist, a singleton that
+/// was never published - goes nowhere. Every one of those produces a window
+/// that is blank or missing a panel, with no other symptom, and Keys has
+/// shipped that more than once. This makes the warnings a build can read.
+QFile* g_selfCheckLog = nullptr;
+QTextStream* g_selfCheckOut = nullptr;
+int g_selfCheckWarnings = 0;
+QElapsedTimer g_selfCheckElapsed;
+
+void selfCheckMessageHandler(QtMsgType type, const QMessageLogContext& context,
+                             const QString& text)
+{
+    if (g_selfCheckOut && type >= QtWarningMsg) {
+        ++g_selfCheckWarnings;
+        *g_selfCheckOut << "[" << g_selfCheckElapsed.elapsed() << "ms] WARNING: " << text;
+        if (context.file) {
+            *g_selfCheckOut << "  [" << context.file << ":" << context.line << "]";
+        }
+        *g_selfCheckOut << "\n";
+        g_selfCheckOut->flush();
+    }
+}
 
 /// Applies the operating system's colour-scheme preference on first run.
 ///
@@ -233,8 +263,14 @@ int main(int argc, char* argv[])
     // A folder given on the command line opens at startup, so `keys .` behaves
     // the way a developer expects from a terminal.
     const QStringList arguments = QGuiApplication::arguments();
-    if (arguments.size() > 1) {
-        controller.openProject(arguments.at(1));
+    for (qsizetype i = 1; i < arguments.size(); ++i) {
+        // Skipped so --self-check is not mistaken for a folder to open, which
+        // would fail and leave the check measuring the welcome screen.
+        if (arguments.at(i).startsWith(QLatin1String("--"))) {
+            continue;
+        }
+        controller.openProject(arguments.at(i));
+        break;
     }
 
     // ---- QML -------------------------------------------------------------
@@ -259,6 +295,30 @@ int main(int argc, char* argv[])
     ui::SourceControlModel sourceControl(repository);
     ui::SourceControlModel::setInstance(&sourceControl);
 
+    // The terminal reads the theme so a palette index resolves to a colour that
+    // works against the current background rather than a fixed ANSI table.
+    ui::TerminalModel terminalModel(theme);
+    ui::TerminalModel::setInstance(&terminalModel);
+
+    // A shell starts where the project is. Set before anything can open one, so
+    // the first terminal is never rooted in whatever directory Keys launched
+    // from.
+    terminalModel.setWorkingDirectory(workspace.project().root());
+
+    QObject::connect(&workspace, &workspace::Workspace::projectOpened,
+                     &terminalModel, [&terminalModel](const QString& root) {
+                         terminalModel.setWorkingDirectory(root);
+                     });
+    QObject::connect(&workspace, &workspace::Workspace::projectClosed,
+                     &terminalModel, [&terminalModel] {
+                         terminalModel.setWorkingDirectory(QString());
+                     });
+
+    QObject::connect(&terminalModel, &ui::TerminalModel::errorOccurred, &app,
+                     [&controller](const QString& message) {
+                         controller.reportNotice(message);
+                     });
+
     update::UpdateChecker updateChecker(settings);
     ui::UpdateModel updateModel(updateChecker);
     ui::UpdateModel::setInstance(&updateModel);
@@ -281,6 +341,21 @@ int main(int argc, char* argv[])
                      [&language, &workspace](const QString&) {
                          language.documentOpened(workspace.activeDocument());
                      });
+
+    // --self-check loads the window, records every QML warning, and quits.
+    // Not a debug flag: it is how a build finds out whether the interface it
+    // just produced actually assembles, which no unit test can answer.
+    const bool selfCheck = arguments.contains(QStringLiteral("--self-check"));
+    QFile selfCheckLog(QCoreApplication::applicationDirPath()
+                       + QStringLiteral("/self-check-report.txt"));
+    QTextStream selfCheckOut;
+    if (selfCheck && selfCheckLog.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        selfCheckOut.setDevice(&selfCheckLog);
+        g_selfCheckLog = &selfCheckLog;
+        g_selfCheckOut = &selfCheckOut;
+        g_selfCheckElapsed.start();
+        qInstallMessageHandler(selfCheckMessageHandler);
+    }
 
     QQmlApplicationEngine engine;
 
@@ -401,6 +476,69 @@ int main(int argc, char* argv[])
                               << status.error().toString();
         }
     });
+
+    // Opens the terminal at startup. The self-check proves it runs; this is how
+    // a person sees it without having to win a fight with the window manager
+    // for keyboard focus first.
+    if (arguments.contains(QStringLiteral("--open-terminal"))) {
+        QTimer::singleShot(1200, &app, [&engine] {
+            if (!engine.rootObjects().isEmpty()) {
+                QMetaObject::invokeMethod(engine.rootObjects().first(),
+                                          "toggleTerminal");
+            }
+        });
+    }
+
+    if (selfCheck) {
+        // Two stages. First: long enough for the window to be created and laid
+        // out, which is when anchor and binding failures are reported. Then the
+        // terminal is opened, because a panel that assembles is not the same as
+        // one that works - opening it starts a real shell through ConPTY.
+        QTimer::singleShot(2000, &app, [&engine] {
+            const QList<QObject*> roots = engine.rootObjects();
+            if (!roots.isEmpty()) {
+                QMetaObject::invokeMethod(roots.first(), "toggleTerminal");
+            }
+        });
+
+        QTimer::singleShot(5000, &app, [&] {
+            const QList<QObject*> roots = engine.rootObjects();
+
+            selfCheckOut << "--- summary ---\n";
+            selfCheckOut << "root objects: " << roots.size() << "\n";
+
+            bool terminalRan = false;
+            if (!roots.isEmpty()) {
+                const QObject* window = roots.first();
+                selfCheckOut << "terminal dock open: "
+                             << (window->property("dockOpen").toBool() ? "yes" : "no")
+                             << "\n";
+            }
+            terminalRan = terminalModel.sessionCount() > 0
+                          && terminalModel.rowCount() > 0;
+            selfCheckOut << "terminal sessions: " << terminalModel.sessionCount()
+                         << ", lines drawn: " << terminalModel.rowCount() << "\n";
+
+            selfCheckOut << "warnings while running: " << g_selfCheckWarnings << "\n";
+            selfCheckOut << (roots.size() == 1 && g_selfCheckWarnings == 0 && terminalRan
+                                 ? "VERDICT: the window assembled and the terminal ran.\n"
+                                 : "VERDICT: FAILED - see above.\n");
+            selfCheckOut.flush();
+
+            // Stops listening before the object graph comes down. Qt destroys
+            // the C++ models before the QML that binds to them, so every
+            // binding on a destroyed model reports a null dereference on the
+            // way out. Those are real messages about an unavoidable shutdown
+            // order, not defects, and counting them would make the check cry
+            // wolf on every run - which is how a check stops being read.
+            qInstallMessageHandler(nullptr);
+            g_selfCheckOut = nullptr;
+
+            QCoreApplication::exit(
+                g_selfCheckWarnings == 0 && terminalRan ? 0 : 1);
+        });
+        return app.exec();
+    }
 
     // After the window is on screen. Startup time is the first thing anyone
     // judges an editor by, and a network request has no business in it.

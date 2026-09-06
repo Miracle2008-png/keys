@@ -19,6 +19,26 @@ Window {
     title: App.hasProject ? qsTr("%1 - Keys").arg(App.projectName) : qsTr("Keys")
     color: Theme.bgChrome
 
+    /// Whether the bottom dock is showing, and how tall the user has made it.
+    /// Held on the window rather than in the dock so the shortcut, the menu and
+    /// anything else that reveals it all read one answer.
+    property bool dockOpen: false
+    property real dockHeight: 260
+
+    /// Opens the dock and focuses the terminal, starting one if none is running
+    /// - the shortcut means "give me a terminal", not "reveal an empty panel".
+    function toggleTerminal() {
+        if (dockOpen) {
+            dockOpen = false;
+            return;
+        }
+        dockOpen = true;
+        if (Terminal.sessionCount === 0) {
+            Terminal.openSession();
+        }
+        terminalPanel.takeFocus();
+    }
+
     Column {
         anchors.fill: parent
         spacing: 0
@@ -70,17 +90,94 @@ Window {
                     height: parent.height
                 }
 
-                // The editor area takes whatever remains. This is the one element
-                // that absorbs resizing.
-                EditorArea {
-                    id: editorArea
+                // The editor and the bottom dock share what is left. The editor
+                // absorbs resizing; the dock keeps the height the user gave it.
+                Item {
                     width: parent.width - activityRail.width - sidebar.width
                     height: parent.height
 
-                    // The welcome screen asks for a folder; the window owns the
-                    // dialog that makes one.
-                    onNewProjectRequested: nameDialog.open(
-                        NameDialog.CreateFolder, App.newFileDirectory(), "")
+                    EditorArea {
+                        id: editorArea
+
+                        anchors.top: parent.top
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.bottom: bottomDock.visible ? bottomDock.top : parent.bottom
+
+                        // The welcome screen asks for a folder; the window owns
+                        // the dialog that makes one.
+                        onNewProjectRequested: nameDialog.open(
+                            NameDialog.CreateFolder, App.newFileDirectory(), "")
+                    }
+
+                    // The terminal lives across the bottom rather than in the
+                    // sidebar: a shell needs width, and 248px of it would wrap
+                    // every command a build prints.
+                    Item {
+                        id: bottomDock
+
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.bottom: parent.bottom
+                        height: root.dockHeight
+                        visible: root.dockOpen
+
+                        Rectangle {
+                            anchors.fill: parent
+                            color: Theme.bgSurface
+                        }
+
+                        // The grab handle: a one pixel line that reads, over a
+                        // five pixel hit area that can actually be grabbed.
+                        Rectangle {
+                            anchors.top: parent.top
+                            width: parent.width
+                            height: 1
+                            color: dockResize.pressed || dockResize.containsMouse
+                                       ? Theme.accent : Theme.border
+
+                            Behavior on color {
+                                ColorAnimation { duration: App.fastAnimationDuration }
+                            }
+                        }
+
+                        MouseArea {
+                            id: dockResize
+
+                            anchors.top: parent.top
+                            anchors.topMargin: -2
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            height: 5
+                            hoverEnabled: true
+                            cursorShape: Qt.SizeVerCursor
+
+                            property real pressY: 0
+                            property real pressHeight: 0
+
+                            onPressed: (mouse) => {
+                                pressY = mapToItem(null, mouse.x, mouse.y).y;
+                                pressHeight = root.dockHeight;
+                            }
+
+                            onPositionChanged: (mouse) => {
+                                if (!pressed) {
+                                    return;
+                                }
+                                const delta = pressY - mapToItem(null, mouse.x, mouse.y).y;
+                                root.dockHeight = Math.max(
+                                    120, Math.min(bottomDock.parent.height - 120,
+                                                  pressHeight + delta));
+                            }
+                        }
+
+                        TerminalPanel {
+                            id: terminalPanel
+
+                            anchors.fill: parent
+                            anchors.topMargin: 1
+                        }
+                    }
                 }
             }
         }
@@ -106,6 +203,22 @@ Window {
     Shortcut {
         sequence: "Ctrl+B"
         onActivated: App.invokeCommand("workbench.toggleSidebar")
+    }
+
+    // The conventional binding in every editor that has a terminal. Opening it
+    // also focuses it: opening a terminal and then having to click into it is
+    // the kind of small friction that makes a feature feel unfinished.
+    Shortcut {
+        sequence: "Ctrl+" + String.fromCharCode(96)
+        onActivated: root.toggleTerminal()
+    }
+
+    // The same command from the palette and the View menu, so the terminal is
+    // discoverable rather than only reachable by a shortcut nobody is told
+    // about.
+    Connections {
+        target: App
+        function onTerminalToggleRequested() { root.toggleTerminal(); }
     }
 
     Shortcut {
