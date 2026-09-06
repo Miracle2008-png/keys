@@ -41,6 +41,18 @@ Item {
     /// not move the user away from what they were reading.
     property real pendingScroll: -1
 
+    /// Folds or unfolds, and puts the view back where it was.
+    ///
+    /// A function on the editor rather than the delegate touching the timer
+    /// directly: a reused delegate cannot resolve a sibling id under the AOT
+    /// compiler, so the restore silently never ran and every fold threw the
+    /// view back to the top of the file.
+    function toggleFoldKeepingPlace(line) {
+        root.pendingScroll = lines.contentY;
+        root.editor.toggleFold(line);
+        restoreScroll.restart();
+    }
+
     Timer {
         id: restoreScroll
 
@@ -245,15 +257,7 @@ Item {
                     // scroll position - so folding a block threw the view back
                     // to the top of the file. Held and restored, because the
                     // user's place is not something a fold should disturb.
-                    onClicked: {
-                        // Restored after the list has re-laid out, not
-                        // immediately: contentHeight is still the old value at
-                        // this point, so clamping against it here put the view
-                        // back at the top of the file.
-                        root.pendingScroll = lines.contentY;
-                        root.editor.toggleFold(row.line);
-                        restoreScroll.restart();
-                    }
+                    onClicked: root.toggleFoldKeepingPlace(row.line)
                 }
             }
 
