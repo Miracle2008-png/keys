@@ -11,6 +11,7 @@
 #include <QString>
 #include <QVariantList>
 
+#include <utility>
 #include <vector>
 
 namespace keys::ui {
@@ -173,6 +174,20 @@ public:
     /// commented. Deciding line by line would leave a mixed selection half
     /// commented, which is never what was wanted.
     Q_INVOKABLE void toggleLineComment();
+
+    // ---- Line operations ---------------------------------------------------
+    //
+    // Each acts on the selected lines, or the caret's line when nothing is
+    // selected. That default is what makes them usable without selecting
+    // first, which is how they are used nearly all the time.
+
+    Q_INVOKABLE void duplicateLines();
+    Q_INVOKABLE void deleteLines();
+    Q_INVOKABLE void joinLines();
+    Q_INVOKABLE void moveLinesUp();
+    Q_INVOKABLE void moveLinesDown();
+    Q_INVOKABLE void sortLines();
+    Q_INVOKABLE void toggleCase();
     Q_INVOKABLE QString selectedText() const;
 
     [[nodiscard]] int revision() const { return m_revision; }
@@ -275,6 +290,11 @@ signals:
 private:
     /// Counts content changes; only its identity matters, never its value.
     int m_revision = 0;
+
+    /// The lines the next line operation applies to: the selection's span, or
+    /// the caret's line alone. Returned as a pair so callers do not each
+    /// re-derive the "or just this line" rule and get it subtly different.
+    [[nodiscard]] std::pair<int, int> targetLines() const;
 
     /// Recomputes the bracket under the caret and its partner. Called on every
     /// caret move, so it stops at a bound rather than scanning a whole file:

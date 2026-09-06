@@ -1,5 +1,7 @@
 #include "ui/EditorViewModel.h"
 
+#include <QStringList>
+
 #include "ui/Theme.h"
 
 #include <QClipboard>
@@ -684,6 +686,241 @@ void EditorViewModel::unfoldAll()
     m_folds.unfoldAll();
     ++m_revision;
     emit contentsChanged();
+}
+
+
+// ---- Line operations --------------------------------------------------------
+
+std::pair<int, int> EditorViewModel::targetLines() const
+{
+    if (!m_document) {
+        return {0, 0};
+    }
+
+    const editor::Range selection = m_document->cursor().selection();
+    const int first = selection.start.line;
+
+    // A selection ending at column 0 stops on the line above: dragging to the
+    // start of the next line does not mean including it.
+    const int last = (!selection.isEmpty() && selection.end.column == 0)
+                         ? std::max(first, selection.end.line - 1)
+                         : selection.end.line;
+    return {first, last};
+}
+
+void EditorViewModel::duplicateLines()
+{
+    if (!m_document) {
+        return;
+    }
+
+    const auto [first, last] = targetLines();
+
+    QString block;
+    for (int line = first; line <= last; ++line) {
+        block += m_document->line(line);
+        block += QLatin1Char('\n');
+    }
+
+    // Inserted at the start of the line below the block, so the copy lands
+    // beneath the original rather than splitting it.
+    const editor::Position at =
+        last + 1 < m_document->lineCount()
+            ? editor::Position{last + 1, 0}
+            : editor::Position{last, m_document->lineLength(last)};
+
+    if (last + 1 < m_document->lineCount()) {
+        m_document->replaceRange(editor::Range{at, at}, block);
+    } else {
+        // At the end of the file there is no line below to insert before, so
+        // the newline goes first and the trailing one is dropped.
+        block.chop(1);
+        m_document->replaceRange(editor::Range{at, at},
+                                 QLatin1Char('\n') + block);
+    }
+
+    emit scrollToCursorRequested();
+}
+
+void EditorViewModel::deleteLines()
+{
+    if (!m_document) {
+        return;
+    }
+
+    const auto [first, last] = targetLines();
+
+    // Takes the newline that ends the block, so the lines below move up rather
+    // than a blank line being left behind. At the end of the file there is no
+    // trailing newline, so the one before the block goes instead.
+    if (last + 1 < m_document->lineCount()) {
+        m_document->replaceRange(
+            editor::Range{editor::Position{first, 0}, editor::Position{last + 1, 0}},
+            QString());
+    } else if (first > 0) {
+        m_document->replaceRange(
+            editor::Range{editor::Position{first - 1, m_document->lineLength(first - 1)},
+                          editor::Position{last, m_document->lineLength(last)}},
+            QString());
+    } else {
+        m_document->replaceRange(
+            editor::Range{editor::Position{0, 0},
+                          editor::Position{last, m_document->lineLength(last)}},
+            QString());
+    }
+
+    emit scrollToCursorRequested();
+}
+
+void EditorViewModel::joinLines()
+{
+    if (!m_document) {
+        return;
+    }
+
+    const auto [first, last] = targetLines();
+    const int end = std::max(last, first + 1);
+    if (end >= m_document->lineCount()) {
+        return;   // nothing below to join to
+    }
+
+    // Backwards, so each join leaves the earlier lines where they were.
+    for (int line = end - 1; line >= first; --line) {
+        const QString next = m_document->line(line + 1);
+        const int lead = static_cast<int>(next.size() - next.trimmed().size());
+
+        // One space at the seam, and the next line's indentation removed - a
+        // join that kept it would leave a gap in the middle of the sentence.
+        m_document->replaceRange(
+            editor::Range{editor::Position{line, m_document->lineLength(line)},
+                          editor::Position{line + 1, lead}},
+            next.trimmed().isEmpty() ? QString() : QStringLiteral(" "));
+    }
+
+    emit scrollToCursorRequested();
+}
+
+void EditorViewModel::moveLinesUp()
+{
+    if (!m_document) {
+        return;
+    }
+
+    const auto [first, last] = targetLines();
+    if (first == 0) {
+        return;
+    }
+
+    // Swapping by rewriting the pair of blocks: the line above moves below the
+    // selection, which is the same thing as the selection moving up and needs
+    // one edit rather than two.
+    const QString above = m_document->line(first - 1);
+
+    QString block;
+    for (int line = first; line <= last; ++line) {
+        block += m_document->line(line);
+        block += QLatin1Char('\n');
+    }
+
+    m_document->replaceRange(
+        editor::Range{editor::Position{first - 1, 0}, editor::Position{last + 1, 0}},
+        block + above + QLatin1Char('\n'));
+
+    m_document->setCursorPosition(editor::Position{first - 1, 0});
+    emit scrollToCursorRequested();
+}
+
+void EditorViewModel::moveLinesDown()
+{
+    if (!m_document) {
+        return;
+    }
+
+    const auto [first, last] = targetLines();
+    if (last + 1 >= m_document->lineCount()) {
+        return;
+    }
+
+    const QString below = m_document->line(last + 1);
+
+    QString block;
+    for (int line = first; line <= last; ++line) {
+        block += m_document->line(line);
+        block += QLatin1Char('\n');
+    }
+
+    const bool atEnd = last + 2 >= m_document->lineCount();
+    const editor::Position stop =
+        atEnd ? editor::Position{last + 1, m_document->lineLength(last + 1)}
+              : editor::Position{last + 2, 0};
+
+    QString replacement = below + QLatin1Char('\n') + block;
+    if (atEnd) {
+        replacement.chop(1);
+    }
+
+    m_document->replaceRange(editor::Range{editor::Position{first, 0}, stop},
+                             replacement);
+
+    m_document->setCursorPosition(editor::Position{first + 1, 0});
+    emit scrollToCursorRequested();
+}
+
+void EditorViewModel::sortLines()
+{
+    if (!m_document) {
+        return;
+    }
+
+    const auto [first, last] = targetLines();
+    if (last <= first) {
+        return;   // one line is already sorted
+    }
+
+    QStringList lines;
+    for (int line = first; line <= last; ++line) {
+        lines.append(m_document->line(line));
+    }
+
+    // Case-insensitive, because a sorted list of includes or imports that
+    // separates `Apple` from `apple` is not what anyone means by sorted.
+    std::sort(lines.begin(), lines.end(), [](const QString& a, const QString& b) {
+        return a.compare(b, Qt::CaseInsensitive) < 0;
+    });
+
+    m_document->replaceRange(
+        editor::Range{editor::Position{first, 0},
+                      editor::Position{last, m_document->lineLength(last)}},
+        lines.join(QLatin1Char('\n')));
+
+    emit scrollToCursorRequested();
+}
+
+void EditorViewModel::toggleCase()
+{
+    if (!m_document) {
+        return;
+    }
+
+    const editor::Range selection = m_document->cursor().selection();
+    if (selection.isEmpty()) {
+        return;   // nothing selected; there is no sensible default here
+    }
+
+    const QString text = m_document->line(selection.start.line)
+                             .mid(selection.start.column,
+                                  selection.end.column - selection.start.column);
+    if (selection.start.line != selection.end.line) {
+        return;   // one line at a time; a multi-line case flip is rarely meant
+    }
+
+    // Upper unless it already is, which makes the command a toggle rather than
+    // two commands sharing a key.
+    const QString flipped =
+        text == text.toUpper() ? text.toLower() : text.toUpper();
+
+    m_document->replaceRange(selection, flipped);
+    emit scrollToCursorRequested();
 }
 
 QString EditorViewModel::languageName() const

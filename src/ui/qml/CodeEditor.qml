@@ -519,6 +519,52 @@ Item {
             }
         }
 
+        // The line operations. Bound here rather than as window shortcuts so
+        // they act on the pane holding the caret when the editor is split -
+        // and so the menu's shortcut column is telling the truth.
+        if (ctrl && (event.modifiers & Qt.ShiftModifier) === 0
+            && (event.modifiers & Qt.AltModifier) === 0) {
+            switch (event.key) {
+            case Qt.Key_D:
+                root.editor.duplicateLines();
+                event.accepted = true;
+                return;
+            case Qt.Key_Slash:
+                root.editor.toggleLineComment();
+                event.accepted = true;
+                return;
+            }
+        }
+
+        if (ctrl && (event.modifiers & Qt.ShiftModifier) !== 0) {
+            switch (event.key) {
+            case Qt.Key_J:
+                root.editor.joinLines();
+                event.accepted = true;
+                return;
+            case Qt.Key_U:
+                root.editor.toggleCase();
+                event.accepted = true;
+                return;
+            }
+        }
+
+        // Alt+Shift+Up/Down move the selected lines, the binding CLion and
+        // VS Code share.
+        if ((event.modifiers & Qt.AltModifier) !== 0
+            && (event.modifiers & Qt.ShiftModifier) !== 0) {
+            if (event.key === Qt.Key_Up) {
+                root.editor.moveLinesUp();
+                event.accepted = true;
+                return;
+            }
+            if (event.key === Qt.Key_Down) {
+                root.editor.moveLinesDown();
+                event.accepted = true;
+                return;
+            }
+        }
+
         // Ctrl+Alt+Up/Down add a caret; Escape drops them. The same bindings
         // every editor uses, so nobody has to learn them here.
         if (ctrl && (event.modifiers & Qt.AltModifier) !== 0) {

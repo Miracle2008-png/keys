@@ -147,6 +147,39 @@ Item {
             onTriggered: root.openProjectRequested()
         }
 
+        // The recent list, where CLion puts it. Built from the same model the
+        // welcome screen uses, so the two can never disagree about what is
+        // recent or in what order.
+        Menu {
+            id: recentMenu
+
+            title: qsTr("Recent Projects")
+            enabled: App.recentProjects.length > 0
+
+            implicitWidth: 320
+            topPadding: 6
+            bottomPadding: 6
+
+            background: Rectangle {
+                color: Theme.bgElevated
+                border.width: 1
+                border.color: Theme.borderStrong
+                radius: Metrics.radiusMedium
+            }
+
+            Repeater {
+                model: App.recentProjects
+
+                delegate: MenuAction {
+                    required property var modelData
+
+                    text: modelData.name
+                    shortcut: modelData.when
+                    onTriggered: App.openProject(modelData.path)
+                }
+            }
+        }
+
         MenuAction {
             text: qsTr("Close Project")
             enabled: App.hasProject
@@ -189,6 +222,8 @@ Item {
             shortcut: "Ctrl+,"
             onTriggered: App.setSettingsOpen(true)
         }
+
+        MenuSeparator {}
 
         MenuSeparator {}
 
@@ -251,8 +286,67 @@ Item {
 
         MenuAction {
             text: qsTr("Copy Path")
+            shortcut: "Ctrl+Shift+C"
             enabled: App.hasOpenFile
             onTriggered: App.copyActivePath()
+        }
+
+        MenuSeparator {}
+
+        // The line operations. Every one acts on the selection, or the caret's
+        // line when there is none, which is what makes them usable without
+        // selecting first.
+        MenuAction {
+            text: qsTr("Duplicate Line")
+            shortcut: "Ctrl+D"
+            enabled: root.activeEditor !== null
+            onTriggered: root.activeEditor.duplicateLines()
+        }
+
+        // No shortcut listed. CLion binds this to Ctrl+Y, which Keys already
+        // uses for redo - and taking redo's key would surprise people far more
+        // than a menu item without a shortcut. Listing one that does nothing
+        // would be worse than either.
+        MenuAction {
+            text: qsTr("Delete Line")
+            enabled: root.activeEditor !== null
+            onTriggered: root.activeEditor.deleteLines()
+        }
+
+        MenuAction {
+            text: qsTr("Join Lines")
+            shortcut: "Ctrl+Shift+J"
+            enabled: root.activeEditor !== null
+            onTriggered: root.activeEditor.joinLines()
+        }
+
+        MenuAction {
+            text: qsTr("Move Line Up")
+            shortcut: "Alt+Shift+Up"
+            enabled: root.activeEditor !== null
+            onTriggered: root.activeEditor.moveLinesUp()
+        }
+
+        MenuAction {
+            text: qsTr("Move Line Down")
+            shortcut: "Alt+Shift+Down"
+            enabled: root.activeEditor !== null
+            onTriggered: root.activeEditor.moveLinesDown()
+        }
+
+        MenuSeparator {}
+
+        MenuAction {
+            text: qsTr("Sort Lines")
+            enabled: root.activeEditor !== null
+            onTriggered: root.activeEditor.sortLines()
+        }
+
+        MenuAction {
+            text: qsTr("Toggle Case")
+            shortcut: "Ctrl+Shift+U"
+            enabled: root.activeEditor !== null
+            onTriggered: root.activeEditor.toggleCase()
         }
 
         MenuSeparator {}
