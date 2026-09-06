@@ -25,18 +25,34 @@ Window {
     property bool dockOpen: false
     property real dockHeight: 260
 
+    /// Which panel the dock is showing: "terminal" or "problems".
+    property string dockPanel: "terminal"
+
     /// Opens the dock and focuses the terminal, starting one if none is running
     /// - the shortcut means "give me a terminal", not "reveal an empty panel".
     function toggleTerminal() {
-        if (dockOpen) {
+        // Closes only when the terminal is what is showing. Ctrl+` while the
+        // problems panel is up means "give me the terminal", not "hide this".
+        if (dockOpen && dockPanel === "terminal") {
             dockOpen = false;
             return;
         }
         dockOpen = true;
+        dockPanel = "terminal";
         if (Terminal.sessionCount === 0) {
             Terminal.openSession();
         }
         terminalPanel.takeFocus();
+    }
+
+    /// Shows the problems list, or hides the dock when it is already showing.
+    function toggleProblems() {
+        if (dockOpen && dockPanel === "problems") {
+            dockOpen = false;
+            return;
+        }
+        dockOpen = true;
+        dockPanel = "problems";
     }
 
     Column {
@@ -171,11 +187,118 @@ Window {
                             }
                         }
 
+                        // The dock's own tab strip. Two panels share the
+                        // bottom: a terminal and the problems list both need
+                        // width, and neither is worth its own permanent strip
+                        // of screen.
+                        Row {
+                            id: dockTabs
+
+                            anchors.top: parent.top
+                            anchors.topMargin: 1
+                            anchors.left: parent.left
+                            anchors.leftMargin: Metrics.spacingSmall
+                            height: 28
+                            spacing: 2
+
+                            Repeater {
+                                model: [
+                                    { id: "terminal", label: qsTr("Terminal") },
+                                    { id: "problems", label: qsTr("Problems") }
+                                ]
+
+                                Rectangle {
+                                    required property var modelData
+
+                                    readonly property bool current:
+                                        root.dockPanel === modelData.id
+
+                                    width: dockLabel.implicitWidth + 20
+                                    height: 24
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    radius: Metrics.radiusSmall
+                                    color: current ? Theme.bgEditor
+                                         : dockTabMouse.containsMouse ? Theme.bgHover
+                                         : "transparent"
+
+                                    Behavior on color {
+                                        ColorAnimation {
+                                            duration: App.fastAnimationDuration
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        anchors.bottom: parent.bottom
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        width: parent.width - 12
+                                        height: 2
+                                        radius: 1
+                                        color: Theme.activeIndicator
+                                        opacity: parent.current ? 1 : 0
+
+                                        Behavior on opacity {
+                                            NumberAnimation {
+                                                duration: App.fastAnimationDuration
+                                                easing.type: Easing.OutQuad
+                                            }
+                                        }
+                                    }
+
+                                    Text {
+                                        id: dockLabel
+
+                                        anchors.centerIn: parent
+                                        text: parent.modelData.label
+                                        color: parent.current ? Theme.textPrimary
+                                                              : Theme.textSecondary
+                                        font.family: Fonts.ui
+                                        font.pointSize: Metrics.fontSizeLabel
+                                    }
+
+                                    // A badge on the Problems tab, so a new
+                                    // error is noticed without the panel being
+                                    // open. Errors outrank warnings: one number
+                                    // that changes meaning would be worse than
+                                    // no number.
+                                    Rectangle {
+                                        anchors.right: parent.right
+                                        anchors.rightMargin: 2
+                                        anchors.top: parent.top
+                                        anchors.topMargin: 1
+                                        width: 6
+                                        height: 6
+                                        radius: 3
+                                        visible: parent.modelData.id === "problems"
+                                                 && (Problems.errorCount > 0
+                                                     || Problems.warningCount > 0)
+                                        color: Problems.errorCount > 0 ? Theme.red
+                                                                       : Theme.yellow
+                                    }
+
+                                    MouseArea {
+                                        id: dockTabMouse
+
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: root.dockPanel = parent.modelData.id
+                                    }
+                                }
+                            }
+                        }
+
                         TerminalPanel {
                             id: terminalPanel
 
                             anchors.fill: parent
-                            anchors.topMargin: 1
+                            anchors.topMargin: dockTabs.height + 1
+                            visible: root.dockPanel === "terminal"
+                        }
+
+                        ProblemsPanel {
+                            anchors.fill: parent
+                            anchors.topMargin: dockTabs.height + 1
+                            visible: root.dockPanel === "problems"
                         }
                     }
                 }
@@ -219,6 +342,19 @@ Window {
     Connections {
         target: App
         function onTerminalToggleRequested() { root.toggleTerminal(); }
+        function onProblemsToggleRequested() { root.toggleProblems(); }
+    }
+
+    // Alt+6 is where JetBrains puts Problems, and Ctrl+Shift+M is where VS Code
+    // does. Both are bound, because either is a reasonable thing to reach for.
+    Shortcut {
+        sequence: "Alt+6"
+        onActivated: root.toggleProblems()
+    }
+
+    Shortcut {
+        sequence: "Ctrl+Shift+M"
+        onActivated: root.toggleProblems()
     }
 
     Shortcut {

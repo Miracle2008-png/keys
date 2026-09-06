@@ -12,6 +12,7 @@
 #include "ui/DebugModel.h"
 #include "ui/ExtensionsModel.h"
 #include "ui/LanguageModel.h"
+#include "ui/ProblemsModel.h"
 #include "ui/RunPanelModel.h"
 #include "ui/SearchModel.h"
 #include "ui/SettingsModel.h"
@@ -298,6 +299,9 @@ int main(int argc, char* argv[])
     ui::SearchModel searchModel(textSearch, settings);
     ui::SearchModel::setInstance(&searchModel);
 
+    ui::ProblemsModel problemsModel(languageServices, workspace.project());
+    ui::ProblemsModel::setInstance(&problemsModel);
+
     ui::SourceControlModel sourceControl(repository);
     ui::SourceControlModel::setInstance(&sourceControl);
 
@@ -451,6 +455,18 @@ int main(int argc, char* argv[])
                          controller.openFileAt(path, line, column);
                      });
 
+    QObject::connect(&problemsModel, &ui::ProblemsModel::problemActivated, &app,
+                     [&controller](const QString& path, int line, int column) {
+                         controller.openFileAt(path, line, column);
+                     });
+
+    // Diagnostics name files in the project that was open. Keeping them across
+    // a project change would point the panel at paths that are no longer there.
+    QObject::connect(&workspace, &workspace::Workspace::projectOpened,
+                     &problemsModel, [&problemsModel] { problemsModel.clear(); });
+    QObject::connect(&workspace, &workspace::Workspace::projectClosed,
+                     &problemsModel, [&problemsModel] { problemsModel.clear(); });
+
     for (int i = 0; i < workspace::EditorLayout::kMaxGroups; ++i) {
         engine.rootContext()->setContextProperty(
             QStringLiteral("Editor%1").arg(i), editors.editorFor(i));
@@ -496,6 +512,13 @@ int main(int argc, char* argv[])
             const QString file = arguments.at(i + 1);
             QTimer::singleShot(900, &app, [&controller, file] {
                 controller.openFile(QDir().absoluteFilePath(file));
+            });
+        } else if (argument == QLatin1String("--open-problems")) {
+            QTimer::singleShot(1200, &app, [&engine] {
+                if (!engine.rootObjects().isEmpty()) {
+                    QMetaObject::invokeMethod(engine.rootObjects().first(),
+                                              "toggleProblems");
+                }
             });
         } else if (argument == QLatin1String("--open-settings")) {
             QTimer::singleShot(900, &app, [&controller] {

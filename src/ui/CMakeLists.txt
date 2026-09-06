@@ -29,6 +29,8 @@ qt_add_qml_module(keys_ui
         LanguageModel.h
         RunPanelModel.cpp
         RunPanelModel.h
+        ProblemsModel.cpp
+        ProblemsModel.h
         SearchModel.cpp
         SearchModel.h
         SourceControlModel.cpp
@@ -75,6 +77,8 @@ qt_add_qml_module(keys_ui
         qml/KeysDialog.qml
         qml/NameDialog.qml
         qml/PrimaryButton.qml
+        qml/ProblemRow.qml
+        qml/ProblemsPanel.qml
         qml/ProjectRow.qml
         qml/SearchField.qml
         qml/SearchPanel.qml

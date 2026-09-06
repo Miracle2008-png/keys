@@ -189,6 +189,10 @@ public:
     /// command exists, the window knows what a dock is.
     Q_INVOKABLE void toggleTerminal();
 
+    /// Asks the window to show or hide the problems list. A signal for the same
+    /// reason as the terminal: the dock is a QML construct.
+    Q_INVOKABLE void toggleProblems();
+
     /// Focuses a pane, so typing and commands act on it.
     Q_INVOKABLE void focusGroup(int index);
 
@@ -223,6 +227,9 @@ signals:
     /// constructing a window.
     /// The terminal was asked for, from the palette, the menu or the shortcut.
     void terminalToggleRequested();
+
+    /// The problems list was asked for.
+    void problemsToggleRequested();
 
     void newFileRequested();
     void newFolderRequested();

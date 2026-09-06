@@ -493,6 +493,13 @@ Item {
         }
 
         MenuAction {
+            text: qsTr("Problems")
+            shortcut: "Alt+6"
+            enabled: App.hasProject
+            onTriggered: App.invokeCommand("workbench.toggleProblems")
+        }
+
+        MenuAction {
             text: qsTr("Terminal")
             shortcut: "Ctrl+" + String.fromCharCode(96)
             enabled: App.hasProject

@@ -70,3 +70,14 @@ target_link_libraries(keys_subsystem_check PRIVATE
     Qt6::Core Keys::buildrun Keys::vcs Keys::core)
 set_target_properties(keys_subsystem_check PROPERTIES FOLDER "Tools")
 keys_apply_compile_options(keys_subsystem_check)
+
+# Renders the real ProblemsPanel against real diagnostics. The panel cannot be
+# seen working on a machine with no language server installed - it correctly
+# says nothing has been analysed - so this publishes through the same signal a
+# server would.
+add_executable(keys_problems_panel_check problems-panel-check.cpp)
+target_link_libraries(keys_problems_panel_check PRIVATE
+    Qt6::Core Qt6::Gui Qt6::Quick
+    Keys::ui keys_uiplugin Keys::config Keys::langsvc Keys::project)
+set_target_properties(keys_problems_panel_check PROPERTIES FOLDER "Tools")
+keys_apply_compile_options(keys_problems_panel_check)

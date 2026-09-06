@@ -148,6 +148,11 @@ void AppController::toggleTerminal()
     emit terminalToggleRequested();
 }
 
+void AppController::toggleProblems()
+{
+    emit problemsToggleRequested();
+}
+
 bool AppController::invokeCommand(const QString& id)
 {
     const core::Status status = m_commands.invoke(id);
@@ -611,6 +616,12 @@ void AppController::registerWorkbenchCommands()
         QStringLiteral("Close Project"),
         QStringLiteral("File"),
         [this] { closeProject(); },
+        [this] { return hasProject(); });
+
+    add(QStringLiteral("workbench.toggleProblems"),
+        QStringLiteral("Toggle Problems"),
+        QStringLiteral("View"),
+        [this] { toggleProblems(); },
         [this] { return hasProject(); });
 
     add(QStringLiteral("workbench.toggleTerminal"),
