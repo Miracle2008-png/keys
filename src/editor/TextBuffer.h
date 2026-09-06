@@ -130,7 +130,25 @@ private:
 
     /// Rebuilds the line index from the current pieces. O(n) in document size,
     /// so it runs on a full replacement rather than on every edit.
+    /// Rebuilds the whole index. Used when the document is replaced wholesale;
+    /// an edit updates it in place instead.
     void rebuildLineIndex();
+
+    /// Updates the index for an insertion of `text` at `offset`.
+    ///
+    /// An insertion adds line starts only for the newlines it contains, and
+    /// shifts every later start by its length - both bounded by what actually
+    /// changed rather than by the size of the document. Rebuilding instead is
+    /// O(document) per keystroke, which is the difference between an editor
+    /// that keeps up in a large file and one that does not.
+    void updateLineIndexForInsert(int offset, const QString& text);
+
+    /// Updates the index for a removal of `length` characters at `offset`.
+    void updateLineIndexForRemove(int offset, int length);
+
+    /// The index of the line containing `offset`. Used by the incremental
+    /// updates to find where to splice.
+    [[nodiscard]] int lineIndexForOffset(int offset) const;
 
     /// Locates the piece containing `offset`.
     /// Returns the piece index and how far into it the offset falls.
@@ -150,6 +168,9 @@ private:
 
     /// Absolute offset of each line's first character. Always starts with 0, so
     /// its size is the line count.
+    /// Offsets at which each line begins, so a line can be addressed without
+    /// walking the pieces. Maintained incrementally: rebuilding it costs a pass
+    /// over the whole document, which at 200k lines is well past a frame.
     std::vector<int> m_lineStarts;
 
     int m_length = 0;

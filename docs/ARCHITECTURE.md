@@ -354,6 +354,28 @@ Measurement is built in rather than bolted on: `core` carries a lightweight scop
 tracer, and startup and search paths are instrumented from the beginning so
 optimisation targets measured bottlenecks rather than guesses.
 
+**Measured at milestone 15** (release build, this machine):
+
+| Operation | Budget | Measured |
+|---|---|---|
+| Cold start to interactive window | < 400 ms | 89 ms |
+| Open a 10k-file project | < 500 ms | 9 ms |
+| Switch between open tabs | < 16 ms | < 0.001 ms |
+| Keystroke in a 200k-line file | < 16 ms | 0.06 ms |
+| Quick open, 50k files | < 100 ms | 89 ms |
+| Idle CPU with a project open | ~0% | 0 ms over 10 s |
+
+`tests/BudgetTests.cpp` holds these, so a regression is a failing test rather than
+something noticed later. They assert only in a release build - a debug build is
+several times slower for reasons unrelated to the algorithm - and report their
+numbers either way so a run shows where the headroom is.
+
+One budget was missed and fixed. A keystroke in a 200,000-line file took 22 ms,
+past the frame budget, because every edit rebuilt the line index by walking the
+whole document. The index is now updated in place: an edit touches only the line
+starts it actually moves. That is 0.06 ms, a 370x improvement, and the case that
+found it is the one the original code comment said milestone 15 should look at.
+
 ---
 
 ## 9. Testing strategy

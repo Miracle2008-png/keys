@@ -89,6 +89,14 @@ function(keys_add_test name)
 
     add_test(NAME ${name} COMMAND ${target})
 
+    # Timing measurements need the machine to themselves. Sharing it with other
+    # suites - several of which spawn processes and hammer the disk - measures
+    # contention rather than the code, and a budget test that fails for that
+    # reason teaches people to ignore it.
+    if(name STREQUAL "budget")
+        set_tests_properties(${name} PROPERTIES RUN_SERIAL TRUE TIMEOUT 600)
+    endif()
+
     # Qt DLLs live outside the build tree on Windows; put them on PATH for the run.
     #
     # ENVIRONMENT_MODIFICATION rather than ENVIRONMENT: the latter *replaces* PATH
