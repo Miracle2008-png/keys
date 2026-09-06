@@ -749,6 +749,14 @@ Item {
         id: helpMenu
 
         MenuAction {
+            text: qsTr("Check for Updates…")
+            enabled: !Updates.checking
+            onTriggered: Updates.checkNow()
+        }
+
+        MenuSeparator {}
+
+        MenuAction {
             text: qsTr("About Keys")
             onTriggered: root.aboutRequested()
         }

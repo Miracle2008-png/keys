@@ -15,6 +15,8 @@
 #include "ui/RunPanelModel.h"
 #include "ui/SettingsModel.h"
 #include "ui/SourceControlModel.h"
+#include "ui/UpdateModel.h"
+#include "update/UpdateChecker.h"
 #include "ui/Theme.h"
 #include "buildrun/TaskRunner.h"
 #include "debugger/DebugSession.h"
@@ -27,6 +29,7 @@
 #include <QGuiApplication>
 #include <QDir>
 #include <QIcon>
+#include <QTimer>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickStyle>
@@ -246,6 +249,10 @@ int main(int argc, char* argv[])
     ui::SourceControlModel sourceControl(repository);
     ui::SourceControlModel::setInstance(&sourceControl);
 
+    update::UpdateChecker updateChecker(settings);
+    ui::UpdateModel updateModel(updateChecker);
+    ui::UpdateModel::setInstance(&updateModel);
+
     ui::RunPanelModel runPanel(taskRunner, workspace.project());
     ui::RunPanelModel::setInstance(&runPanel);
 
@@ -366,6 +373,10 @@ int main(int argc, char* argv[])
                               << status.error().toString();
         }
     });
+
+    // After the window is on screen. Startup time is the first thing anyone
+    // judges an editor by, and a network request has no business in it.
+    QTimer::singleShot(4000, &app, [&updateChecker] { updateChecker.checkIfDue(); });
 
     return app.exec();
 }

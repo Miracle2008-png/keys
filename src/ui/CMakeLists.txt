@@ -31,6 +31,8 @@ qt_add_qml_module(keys_ui
         RunPanelModel.h
         SourceControlModel.cpp
         SourceControlModel.h
+        UpdateModel.cpp
+        UpdateModel.h
         TabBarModel.cpp
         TabBarModel.h
         Metrics.h
@@ -88,6 +90,7 @@ qt_add_qml_module(keys_ui
         qml/StatusBar.qml
         qml/StatusItem.qml
         qml/TopBar.qml
+        qml/UpdateNotice.qml
         qml/WelcomeButton.qml
         qml/WelcomeView.qml
 )
@@ -153,6 +156,7 @@ target_link_libraries(keys_ui PUBLIC
     Keys::debugger
     Keys::extensions
     Keys::langsvc
+    Keys::update
     Keys::vcs
     Keys::workspace
 )

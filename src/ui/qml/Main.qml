@@ -164,6 +164,37 @@ Window {
         onNameAccepted: (name) => Language.renameSymbol(name)
     }
 
+    // An update is not an error and not urgent, so it gets its own notice in
+    // the opposite corner: persistent, with an action, and dismissable.
+    UpdateNotice {
+        id: updateNotice
+
+        anchors.right: parent.right
+        anchors.bottom: statusBar.top
+        anchors.rightMargin: Metrics.spacingLarge
+        anchors.bottomMargin: Metrics.spacingLarge
+        z: 50
+    }
+
+    Connections {
+        target: Updates
+
+        function onUpdateFound(version) {
+            updateNotice.show(version);
+        }
+
+        // A check the user asked for answers either way; the daily one stays
+        // silent unless there is something to say.
+        function onUpToDate() {
+            App.reportNotice(qsTr("Keys %1 is the latest version.")
+                             .arg(Updates.currentVersion));
+        }
+
+        function onCheckFailed(reason) {
+            App.reportNotice(qsTr("Could not check for updates: %1").arg(reason));
+        }
+    }
+
     // Failures the user caused are shown, never swallowed.
     ErrorToast {
         id: errorToast
