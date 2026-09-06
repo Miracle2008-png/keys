@@ -30,6 +30,7 @@ class Metrics : public QObject {
 
     // ---- Controls --------------------------------------------------------
     Q_PROPERTY(int railButtonSize MEMBER railButtonSize CONSTANT)
+    Q_PROPERTY(int railIconSize MEMBER railIconSize CONSTANT)
     Q_PROPERTY(int iconButtonSize MEMBER iconButtonSize CONSTANT)
     Q_PROPERTY(int searchFieldWidth MEMBER searchFieldWidth CONSTANT)
     Q_PROPERTY(int paletteWidth MEMBER paletteWidth CONSTANT)
@@ -86,8 +87,11 @@ public:
     int terminalHeaderHeight = 32;
     int breadcrumbHeight = 26;
 
-    int railButtonSize = 30;
+    // The rail's targets are larger than its icons, so an icon can read at a
+    // recognisable size while the strip stays narrow.
+    int railButtonSize = 32;
     int iconButtonSize = 26;
+    int railIconSize = 17;
     int searchFieldWidth = 340;
     int paletteWidth = 560;
     int paletteMaxHeight = 420;
@@ -103,19 +107,28 @@ public:
     /// The height of a row in a tree, a list or a menu. One number, so the
     /// explorer, the menus and the palette share a rhythm rather than each
     /// choosing its own.
-    int rowHeight = 24;
+    int rowHeight = 26;
 
     int spacingTight = 4;
     int spacingSmall = 8;
     int spacingMedium = 14;
     int spacingLarge = 20;
 
-    qreal fontSizeLabel = 11.0 * kPxToPt;
-    qreal fontSizeSmall = 11.5 * kPxToPt;
-    qreal fontSizeBody = 12.5 * kPxToPt;
-    qreal fontSizeMedium = 13.0 * kPxToPt;
-    qreal fontSizeLarge = 13.5 * kPxToPt;
-    qreal fontSizeTitle = 17.0 * kPxToPt;
+    // A scale with real steps in it.
+    //
+    // These ran 11 to 13.5 across five sizes - a 2.5px range, which is not a
+    // hierarchy, it is five ways of writing the same size. Nothing looked more
+    // important than anything else because nothing was.
+    //
+    // The floor moves up too. 11px is below what anyone should read for eight
+    // hours, and the brief forbids tiny text; 12 is the smallest here and it is
+    // used only for gutter numbers and keycaps.
+    qreal fontSizeLabel = 12.0 * kPxToPt;    ///< keycaps, gutter, status readouts
+    qreal fontSizeSmall = 12.5 * kPxToPt;    ///< secondary rows, paths
+    qreal fontSizeBody = 13.5 * kPxToPt;     ///< the default for everything
+    qreal fontSizeMedium = 15.0 * kPxToPt;   ///< panel headings, dialog titles
+    qreal fontSizeLarge = 17.0 * kPxToPt;    ///< section headings
+    qreal fontSizeTitle = 22.0 * kPxToPt;    ///< the one title on a page
 };
 
 } // namespace keys::ui

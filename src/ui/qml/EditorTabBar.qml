@@ -49,6 +49,37 @@ Rectangle {
         // the honest behaviour until then, and never makes a name unreadable.
         ScrollBar.horizontal: ScrollBar { policy: ScrollBar.AsNeeded; height: 3 }
 
+        // Tabs slide in and out and close the gap behind them. Opening a file
+        // is the most frequent thing anyone does in an editor, and a tab that
+        // simply materialises makes the bar feel like a list being rewritten
+        // rather than one gaining an item.
+        add: Transition {
+            NumberAnimation {
+                property: "opacity"
+                from: 0
+                to: 1
+                duration: App.fastAnimationDuration
+                easing.type: Easing.OutCubic
+            }
+        }
+
+        displaced: Transition {
+            NumberAnimation {
+                properties: "x"
+                duration: App.animationDuration
+                easing.type: Easing.OutCubic
+            }
+        }
+
+        remove: Transition {
+            NumberAnimation {
+                property: "opacity"
+                to: 0
+                duration: App.fastAnimationDuration
+                easing.type: Easing.InCubic
+            }
+        }
+
         delegate: Item {
             id: tab
 

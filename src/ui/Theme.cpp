@@ -11,6 +11,8 @@ constexpr auto kThemeKey = "appearance.theme";
 /// so it can be verified against the design document directly.
 struct Palette {
     QColor bgChrome, bgSurface, bgEditor, bgElevated, bgHover;
+    QColor bgChromeSunken;
+    QColor borderFaint;
     QColor border, borderStrong;
     QColor textPrimary, textSecondary, textTertiary;
     QColor accent, accentHover, accentSoft, accentSoftBorder;
@@ -40,23 +42,45 @@ const Palette& darkPalette()
         // surface because that is where the work is; the chrome around it
         // recedes. Hue 255 rather than 264 takes the violet cast off, which
         // was reading as a theme rather than as a neutral dark interface.
-        p.bgChrome         = oklch(0.185, 0.010, 255);
-        p.bgSurface        = oklch(0.215, 0.011, 255);
-        p.bgEditor         = oklch(0.245, 0.012, 255);
-        p.bgElevated       = oklch(0.285, 0.013, 255);
-        p.bgHover          = oklch(0.315, 0.014, 255);
+        // Five surfaces, but not five even steps.
+        //
+        // Evenly spaced values read as a gradient of greys rather than as a
+        // hierarchy: nothing groups, because every neighbour is equally far
+        // away. Chrome and the sidebar sit close together as the frame around
+        // the work; the editor steps clearly away from them because it is the
+        // work; elevated and hover step again because they are temporary things
+        // laid over it.
+        p.bgChrome         = oklch(0.175, 0.009, 255);   // window frame, menus
+        p.bgSurface        = oklch(0.195, 0.010, 255);   // sidebar, panels
+        p.bgEditor         = oklch(0.235, 0.011, 255);   // the editor itself
+        p.bgElevated       = oklch(0.275, 0.012, 255);   // popups, inputs
+        p.bgHover          = oklch(0.310, 0.013, 255);   // pointer feedback
+
+        // Below the chrome, for inputs set into it. A field lighter than its
+        // bar reads as dropped on top; darker reads as part of it.
+        p.bgChromeSunken   = oklch(0.145, 0.008, 255);
 
         // Borders are white at low alpha so they read consistently over any
         // surface. Stronger than before: panels in CLion have visible edges,
         // and an edge is what turns a region into a panel.
-        p.border           = oklch(1.0, 0.0, 0.0, 0.12);
-        p.borderStrong     = oklch(1.0, 0.0, 0.0, 0.22);
+        // Lighter than before. With the surfaces stepping properly a border is
+        // a seam rather than a wall, and heavy lines were doing work the
+        // background should do.
+        p.border           = oklch(1.0, 0.0, 0.0, 0.07);
+        p.borderStrong     = oklch(1.0, 0.0, 0.0, 0.14);
+
+        // Barely there. For a seam that should be felt rather than seen.
+        p.borderFaint      = oklch(1.0, 0.0, 0.0, 0.04);
 
         // One Dark's foreground is a soft off-white, never pure. Secondary and
         // tertiary keep enough contrast to be read rather than merely seen.
-        p.textPrimary      = oklch(0.90, 0.008, 264);
-        p.textSecondary    = oklch(0.70, 0.012, 264);
-        p.textTertiary     = oklch(0.55, 0.012, 264);
+        // Secondary text was close enough to tertiary to be the same colour,
+        // and tertiary was nearly invisible - the brief asks for muted, not
+        // gone. Primary brightens slightly and the gaps below it widen, so
+        // three levels actually read as three.
+        p.textPrimary      = oklch(0.93, 0.006, 255);
+        p.textSecondary    = oklch(0.755, 0.010, 255);
+        p.textTertiary     = oklch(0.615, 0.011, 255);
 
         // Teal rather than blue. Hue 252 is the blue every UI framework ships
         // with, and it made Keys look like a web dashboard; 195 is the hue
@@ -100,6 +124,7 @@ const Palette& lightPalette()
     static const Palette palette = [] {
         Palette p;
         p.bgChrome         = oklch(0.965, 0.003, 255);
+        p.bgChromeSunken   = oklch(0.925, 0.004, 255);
         p.bgSurface        = oklch(0.975, 0.003, 255);
         p.bgEditor         = oklch(0.99,  0.002, 255);
         p.bgElevated       = oklch(1.0,   0.0,   0.0);
@@ -108,6 +133,7 @@ const Palette& lightPalette()
         // Black at low alpha in light mode, mirroring the dark theme's approach.
         p.border           = oklch(0.0, 0.0, 0.0, 0.09);
         p.borderStrong     = oklch(0.0, 0.0, 0.0, 0.18);
+        p.borderFaint      = oklch(0.0, 0.0, 0.0, 0.05);
 
         p.textPrimary      = oklch(0.24, 0.006, 255);
         p.textSecondary    = oklch(0.48, 0.01,  255);
@@ -231,6 +257,8 @@ KEYS_THEME_COLOR(bgSurface)
 KEYS_THEME_COLOR(bgEditor)
 KEYS_THEME_COLOR(bgElevated)
 KEYS_THEME_COLOR(bgHover)
+KEYS_THEME_COLOR(bgChromeSunken)
+KEYS_THEME_COLOR(borderFaint)
 KEYS_THEME_COLOR(border)
 KEYS_THEME_COLOR(borderStrong)
 KEYS_THEME_COLOR(textPrimary)

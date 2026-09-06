@@ -100,11 +100,20 @@ Rectangle {
 
         anchors.centerIn: parent
         width: Metrics.searchFieldWidth
-        height: 30
-        radius: Metrics.radiusMedium
-        color: Theme.bgSurface
+        height: 28
+        radius: Metrics.radiusSmall
+
+        // Recessed into the bar rather than raised off it. The field sat on a
+        // lighter surface than the chrome around it, which read as a control
+        // dropped onto the window instead of part of it - the same reason a
+        // search box in a browser toolbar is sunken, not floating.
+        color: searchMouse.containsMouse ? Theme.bgSurface : Theme.bgChromeSunken
         border.width: 1
-        border.color: searchMouse.containsMouse ? Theme.borderStrong : Theme.border
+        border.color: searchMouse.containsMouse ? Theme.border : Theme.borderFaint
+
+        Behavior on color {
+            ColorAnimation { duration: App.fastAnimationDuration }
+        }
 
         Behavior on border.color {
             ColorAnimation { duration: App.fastAnimationDuration }

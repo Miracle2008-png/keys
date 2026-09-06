@@ -37,6 +37,8 @@ class Theme : public QObject {
     Q_PROPERTY(QColor bgEditor READ bgEditor NOTIFY changed)
     Q_PROPERTY(QColor bgElevated READ bgElevated NOTIFY changed)
     Q_PROPERTY(QColor bgHover READ bgHover NOTIFY changed)
+    Q_PROPERTY(QColor bgChromeSunken READ bgChromeSunken NOTIFY changed)
+    Q_PROPERTY(QColor borderFaint READ borderFaint NOTIFY changed)
 
     Q_PROPERTY(QColor border READ border NOTIFY changed)
     Q_PROPERTY(QColor borderStrong READ borderStrong NOTIFY changed)
@@ -105,6 +107,8 @@ public:
     [[nodiscard]] QColor bgEditor() const;
     [[nodiscard]] QColor bgElevated() const;
     [[nodiscard]] QColor bgHover() const;
+    [[nodiscard]] QColor bgChromeSunken() const;
+    [[nodiscard]] QColor borderFaint() const;
 
     [[nodiscard]] QColor border() const;
     [[nodiscard]] QColor borderStrong() const;

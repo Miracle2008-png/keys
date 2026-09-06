@@ -80,13 +80,29 @@ Item {
                     width: 12
                     height: 12
 
+                    // One chevron that turns, rather than two that swap. A
+                    // swap is a jump; a rotation reads as the folder opening,
+                    // which is what actually happened.
                     Icon {
                         anchors.centerIn: parent
                         visible: row.isDirectory && row.hasChildren
-                        source: row.isExpanded ? Icons.chevronDown : Icons.chevronRight
+                        source: Icons.chevronRight
                         size: 12
                         strokeWidth: 2.2
-                        color: Theme.textTertiary
+                        color: rowMouse.containsMouse ? Theme.textSecondary
+                                                      : Theme.textTertiary
+                        rotation: row.isExpanded ? 90 : 0
+
+                        Behavior on rotation {
+                            NumberAnimation {
+                                duration: App.fastAnimationDuration
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+
+                        Behavior on color {
+                            ColorAnimation { duration: App.fastAnimationDuration }
+                        }
                     }
                 }
 

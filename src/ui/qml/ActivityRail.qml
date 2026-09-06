@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import Keys.Ui
 
 /// The 52px vertical rail of primary views, with theme and settings pinned to
@@ -31,14 +32,72 @@ Rectangle {
                 { id: "extensions",    icon: Icons.puzzle, label: qsTr("Extensions") }
             ]
 
-            IconButton {
+            // The active view is marked by a bar on the leading edge and a
+            // brighter icon, not by a filled block. A filled square in a 44px
+            // rail is a large amount of accent for a small amount of meaning,
+            // and the brief asks for the accent to be spent selectively.
+            Item {
                 required property var modelData
 
-                size: Metrics.railButtonSize
-                source: modelData.icon
-                tooltip: modelData.label
-                active: App.activeView === modelData.id && App.sidebarVisible
-                onClicked: App.selectView(modelData.id)
+                width: Metrics.railButtonSize
+                height: Metrics.railButtonSize
+
+                readonly property bool current:
+                    App.activeView === modelData.id && App.sidebarVisible
+
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.leftMargin: -8
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 2
+                    height: parent.current ? parent.height - 8 : 0
+                    radius: 1
+                    color: Theme.accent
+
+                    Behavior on height {
+                        NumberAnimation {
+                            duration: App.fastAnimationDuration
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+                }
+
+                Rectangle {
+                    anchors.fill: parent
+                    radius: Metrics.radiusSmall
+                    color: railMouse.containsMouse && !parent.current
+                           ? Theme.bgHover : "transparent"
+
+                    Behavior on color {
+                        ColorAnimation { duration: App.fastAnimationDuration }
+                    }
+                }
+
+                Icon {
+                    anchors.centerIn: parent
+                    source: parent.modelData.icon
+                    size: Metrics.railIconSize
+                    color: parent.current ? Theme.textPrimary
+                         : railMouse.containsMouse ? Theme.textSecondary
+                         : Theme.textTertiary
+
+                    Behavior on color {
+                        ColorAnimation { duration: App.fastAnimationDuration }
+                    }
+                }
+
+                MouseArea {
+                    id: railMouse
+
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: App.selectView(parent.modelData.id)
+                }
+
+                ToolTip.visible: railMouse.containsMouse
+                ToolTip.text: parent.modelData.label
+                ToolTip.delay: 500
             }
         }
     }

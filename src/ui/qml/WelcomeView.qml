@@ -204,16 +204,32 @@ Item {
         // ---- The pane ------------------------------------------------------
 
         Item {
+            id: pane
+
             width: parent.width - (root.wide ? 208 : 0)
             height: parent.height
+
+            /// The width the content is allowed to occupy.
+            ///
+            /// Stretching a project row across a 1600px window puts a
+            /// forty-character path in a fourteen-hundred-pixel row, which is
+            /// what made the page read as empty - not too little content, but
+            /// content spread far too thin.
+            ///
+            /// Held to a readable measure and anchored to the left at a fixed
+            /// margin rather than centred. Centring a narrow column in a wide
+            /// window leaves a void on both sides and makes the page look like
+            /// a document; an IDE's start page reads better as a panel that
+            /// begins where the sidebar ends.
+            readonly property int measure: Math.min(width - 88, 720)
 
             // ---- Projects --------------------------------------------------
 
             Item {
                 anchors.fill: parent
-                anchors.topMargin: 34
-                anchors.leftMargin: 34
-                anchors.rightMargin: 34
+                anchors.topMargin: 44
+                anchors.leftMargin: 44
+                anchors.rightMargin: Math.max(44, pane.width - 44 - pane.measure)
                 anchors.bottomMargin: Metrics.spacingLarge
                 visible: root.section === "projects"
 
@@ -225,27 +241,41 @@ Item {
                     anchors.top: parent.top
                     spacing: Metrics.spacingLarge
 
-                    Row {
+                    // Title on the left, actions on the right of the same
+                    // line - one band across the top rather than two, so the
+                    // page begins with a single clear edge.
+                    Item {
                         width: parent.width
-                        spacing: Metrics.spacingMedium
+                        height: 40
 
-                        Text {
-                            text: qsTr("Projects")
-                            color: Theme.textPrimary
+                        Column {
+                            anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
-                            font.family: Fonts.ui
-                            font.pointSize: Metrics.fontSizeTitle
-                            font.weight: Font.DemiBold
-                            font.letterSpacing: -0.3
+                            spacing: 2
+
+                            Text {
+                                text: qsTr("Projects")
+                                color: Theme.textPrimary
+                                font.family: Fonts.ui
+                                font.pointSize: Metrics.fontSizeTitle
+                                font.weight: Font.DemiBold
+                                font.letterSpacing: -0.4
+                            }
+
+                            Text {
+                                text: App.recentProjects.length === 0
+                                      ? qsTr("Nothing opened yet")
+                                      : qsTr("%1 recent").arg(App.recentProjects.length)
+                                color: Theme.textTertiary
+                                font.family: Fonts.ui
+                                font.pointSize: Metrics.fontSizeSmall
+                            }
                         }
 
-                        Item {
-                            width: parent.width - openButton.width
-                                   - newButton.width - searchBox.width
-                                   - Metrics.spacingMedium * 3
-                                   - parent.children[0].implicitWidth
-                            height: 1
-                        }
+                        Row {
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: Metrics.spacingSmall
 
                         // Search sits with the actions rather than above the
                         // list: filtering and opening are the same task.
@@ -301,6 +331,7 @@ Item {
                             primary: true
                             anchors.verticalCenter: parent.verticalCenter
                             onClicked: root.browseForProject()
+                        }
                         }
                     }
                 }
@@ -611,9 +642,9 @@ Item {
 
             Item {
                 anchors.fill: parent
-                anchors.topMargin: 34
-                anchors.leftMargin: 34
-                anchors.rightMargin: 34
+                anchors.topMargin: 44
+                anchors.leftMargin: 44
+                anchors.rightMargin: Math.max(44, pane.width - 44 - pane.measure)
                 visible: root.section === "shortcuts"
 
                 Column {
@@ -708,9 +739,9 @@ Item {
 
             Item {
                 anchors.fill: parent
-                anchors.topMargin: 34
-                anchors.leftMargin: 34
-                anchors.rightMargin: 34
+                anchors.topMargin: 44
+                anchors.leftMargin: 44
+                anchors.rightMargin: Math.max(44, pane.width - 44 - pane.measure)
                 visible: root.section === "about"
 
                 Column {
