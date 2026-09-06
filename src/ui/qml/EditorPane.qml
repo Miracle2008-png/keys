@@ -30,14 +30,47 @@ Item {
         showSplitControl: root.groupIndex === 0
     }
 
+    // Between the tabs and the text: the bar belongs to this document, and
+    // putting it over the editor would cover the matches it is finding.
+    FindBar {
+        id: findBar
+
+        anchors.top: tabBar.bottom
+        width: parent.width
+        editor: root.editorModel
+
+        onEditorFocusRequested: code.forceActiveFocus()
+    }
+
     CodeEditor {
         id: code
-        anchors.top: tabBar.bottom
+        anchors.top: findBar.bottom
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         editor: root.editorModel
         visible: root.tabs.count > 0
+
+        // Ctrl+F and Ctrl+H are handled here rather than as window shortcuts,
+        // so they act on the pane the caret is in when the editor is split.
+        Keys.onPressed: (event) => {
+            if ((event.modifiers & Qt.ControlModifier) === 0) {
+                return;
+            }
+            if (event.key === Qt.Key_F) {
+                root.openFind(false);
+                event.accepted = true;
+            } else if (event.key === Qt.Key_H) {
+                root.openFind(true);
+                event.accepted = true;
+            }
+        }
+    }
+
+    /// Opens the find bar and puts the caret in its query field.
+    function openFind(withReplace) {
+        root.editorModel.openFind(withReplace);
+        findBar.takeFocus();
     }
 
     // The completion popup, over the editor rather than inside it: it must be
@@ -48,6 +81,7 @@ Item {
         caretX: code.gutterWidth + code.editor.cursorColumn * code.charWidth
         caretY: (code.editor.cursorLine + 1) * code.lineHeight - code.scrollOffset
         lineHeight: code.lineHeight
+
         visible: Language.completionVisible && root.focused
     }
 

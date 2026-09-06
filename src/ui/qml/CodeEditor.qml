@@ -216,6 +216,27 @@ Item {
                         opacity: 0.25
                     }
 
+                    // Find matches, behind the glyphs. Every hit on the line is
+                    // drawn, with the current one brighter - seeing where the
+                    // other matches are is most of why a find bar beats
+                    // stepping blindly through a file.
+                    Repeater {
+                        model: (root.editor.revision,
+                                root.editor.matchesOnLine(row.index))
+
+                        delegate: Rectangle {
+                            required property var modelData
+
+                            x: modelData.start * root.charWidth
+                            width: Math.max(2, (modelData.end - modelData.start)
+                                               * root.charWidth)
+                            height: parent.height
+                            radius: 2
+                            color: modelData.current ? Theme.yellow : Theme.textTertiary
+                            opacity: modelData.current ? 0.45 : 0.22
+                        }
+                    }
+
                     Text {
                         id: contentText
                         height: parent.height

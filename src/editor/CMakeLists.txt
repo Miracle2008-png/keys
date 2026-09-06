@@ -2,11 +2,13 @@
 
 keys_add_module(editor
     SOURCES
+        DocumentSearch.cpp
         SyntaxHighlighter.cpp
         TextBuffer.cpp
         TextDocument.cpp
         UndoStack.cpp
     HEADERS
+        DocumentSearch.h
         SyntaxHighlighter.h
         TextBuffer.h
         TextDocument.h

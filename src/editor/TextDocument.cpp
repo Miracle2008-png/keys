@@ -160,6 +160,20 @@ void TextDocument::removeRange(const Range& range)
     applyEdit(ordered, QString());
 }
 
+void TextDocument::replaceRange(const Range& range, const QString& replacement)
+{
+    const Range ordered = range.normalized();
+    if (ordered.isEmpty() && replacement.isEmpty()) {
+        return;
+    }
+
+    // Ends any run of coalesced typing: a replacement is a separate intent from
+    // whatever was being typed before it, and merging the two would make one
+    // undo take back both.
+    m_undo.breakMergePoint();
+    applyEdit(ordered, replacement);
+}
+
 bool TextDocument::undo()
 {
     const Edit* edit = m_undo.undo();

@@ -36,6 +36,21 @@ Item {
         anchors.fill: parent
         color: Theme.bgSurface
 
+        // Not rendered at all once the sidebar has finished collapsing.
+        //
+        // The Column below is held at the sidebar's full width on purpose, so
+        // its content does not reflow while the panel animates - which means it
+        // overflows a collapsed sidebar by its entire width. `clip` does not
+        // contain it: a clip rectangle of zero width is degenerate, so Qt skips
+        // the clip and the content paints straight over the editor. That was
+        // the black band covering the workbench whenever no project was open.
+        //
+        // Tied to width rather than to `expanded` so the content stays visible
+        // for the whole collapse animation and disappears only once there is no
+        // room left for it.
+        visible: root.width > 0
+        clip: true
+
         Rectangle {
             anchors.right: parent.right
             width: 1
@@ -68,40 +83,24 @@ Item {
                 width: parent.width
                 height: parent.height - Metrics.spacingLarge - Metrics.spacingSmall
 
-                FadeLayer {
+                ExplorerPanel {
                     anchors.fill: parent
-                    shown: App.activeView === "explorer" && App.hasProject
-
-                    ExplorerPanel {
-                        anchors.fill: parent
-                    }
+                    visible: App.activeView === "explorer" && App.hasProject
                 }
 
-                FadeLayer {
+                SourceControlPanel {
                     anchors.fill: parent
-                    shown: App.activeView === "sourceControl" && App.hasProject
-
-                    SourceControlPanel {
-                        anchors.fill: parent
-                    }
+                    visible: App.activeView === "sourceControl" && App.hasProject
                 }
 
-                FadeLayer {
+                RunPanel {
                     anchors.fill: parent
-                    shown: App.activeView === "debug" && App.hasProject
-
-                    RunPanel {
-                        anchors.fill: parent
-                    }
+                    visible: App.activeView === "debug" && App.hasProject
                 }
 
-                FadeLayer {
+                ExtensionsPanel {
                     anchors.fill: parent
-                    shown: App.activeView === "extensions" && App.hasProject
-
-                    ExtensionsPanel {
-                        anchors.fill: parent
-                    }
+                    visible: App.activeView === "extensions" && App.hasProject
                 }
 
                 Text {

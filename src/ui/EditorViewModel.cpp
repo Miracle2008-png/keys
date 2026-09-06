@@ -180,6 +180,217 @@ QString EditorViewModel::colourFor(editor::TokenKind kind)
     return QString();
 }
 
+// ---- Find and replace ------------------------------------------------------
+
+void EditorViewModel::openFind(bool withReplace)
+{
+    m_findOpen = true;
+    m_replaceOpen = withReplace;
+
+    // A selection is almost always what the user means to search for, so
+    // opening the bar with text selected fills the field with it. Only a
+    // single-line selection: a multi-line one is a block being moved, not a
+    // term being looked for.
+    if (m_document) {
+        const editor::Range selection = m_document->cursor().selection();
+        if (!selection.isEmpty() && selection.start.line == selection.end.line) {
+            const QString line = m_document->line(selection.start.line);
+            m_findOptions.query =
+                line.mid(selection.start.column,
+                         selection.end.column - selection.start.column);
+        }
+    }
+
+    refreshFind(true);
+    emit findChanged();
+}
+
+void EditorViewModel::closeFind()
+{
+    if (!m_findOpen) {
+        return;
+    }
+    m_findOpen = false;
+    m_replaceOpen = false;
+    m_find.clear();
+
+    // The highlights disappear with the bar, so the view has to repaint.
+    ++m_revision;
+    emit contentsChanged();
+    emit findChanged();
+}
+
+void EditorViewModel::setFindQuery(const QString& query)
+{
+    if (m_findOptions.query == query) {
+        return;
+    }
+    m_findOptions.query = query;
+    refreshFind(true);
+    emit findChanged();
+}
+
+void EditorViewModel::setFindCaseSensitive(bool enabled)
+{
+    if (m_findOptions.caseSensitive == enabled) {
+        return;
+    }
+    m_findOptions.caseSensitive = enabled;
+    refreshFind(true);
+    emit findChanged();
+}
+
+void EditorViewModel::setFindWholeWord(bool enabled)
+{
+    if (m_findOptions.wholeWord == enabled) {
+        return;
+    }
+    m_findOptions.wholeWord = enabled;
+    refreshFind(true);
+    emit findChanged();
+}
+
+void EditorViewModel::setFindRegex(bool enabled)
+{
+    if (m_findOptions.regularExpression == enabled) {
+        return;
+    }
+    m_findOptions.regularExpression = enabled;
+    refreshFind(true);
+    emit findChanged();
+}
+
+void EditorViewModel::refreshFind(bool keepPosition)
+{
+    if (!m_document) {
+        m_find.clear();
+        return;
+    }
+
+    const editor::Position caret = m_document->cursor().position;
+    m_find.search(*m_document, m_findOptions);
+
+    // Typing in the find field should walk forward from where the caret
+    // already is, not snap to the top of the file on every keystroke.
+    if (keepPosition) {
+        m_find.selectNearest(caret);
+    }
+
+    // Match highlights are drawn by the line renderer, so a changed result set
+    // is a changed view even though the text has not moved.
+    ++m_revision;
+    emit contentsChanged();
+}
+
+void EditorViewModel::revealCurrentMatch()
+{
+    if (!m_document || m_find.isEmpty()) {
+        return;
+    }
+
+    const editor::Range match = m_find.current();
+
+    // Selected, not merely scrolled to: the user's next keystroke usually
+    // replaces the hit, and selecting it makes that work without a further
+    // click.
+    m_document->setCursorPosition(match.start);
+    m_document->setCursorPosition(match.end, true);
+
+    emit scrollToCursorRequested();
+}
+
+void EditorViewModel::findNext()
+{
+    m_find.next();
+    revealCurrentMatch();
+    ++m_revision;
+    emit contentsChanged();
+    emit findChanged();
+}
+
+void EditorViewModel::findPrevious()
+{
+    m_find.previous();
+    revealCurrentMatch();
+    ++m_revision;
+    emit contentsChanged();
+    emit findChanged();
+}
+
+void EditorViewModel::replaceCurrent(const QString& replacement)
+{
+    if (!m_document || m_find.isEmpty()) {
+        return;
+    }
+
+    const editor::Range match = m_find.current();
+    m_document->replaceRange(match, replacement);
+
+    // The document moved, so every match after this one is at a different
+    // place. Re-running from the caret leaves the user on the next hit, which
+    // is what pressing Replace repeatedly should do.
+    refreshFind(true);
+    revealCurrentMatch();
+    emit findChanged();
+}
+
+void EditorViewModel::replaceAll(const QString& replacement)
+{
+    if (!m_document || m_find.isEmpty()) {
+        return;
+    }
+
+    // Built as one new document and applied as a single edit, so replace-all
+    // is one undo step. Doing it match by match would push one step each, and
+    // undoing a forty-match replacement would take forty presses.
+    //
+    // Assembled backwards from the end so each match's recorded position stays
+    // valid: replacing forwards would shift everything after the first edit.
+    const std::vector<editor::Range> matches = m_find.matches();
+
+    QString text = m_document->text();
+    const editor::TextBuffer& buffer = m_document->buffer();
+
+    for (auto it = matches.rbegin(); it != matches.rend(); ++it) {
+        const int from = buffer.offsetOf(it->start);
+        const int to = buffer.offsetOf(it->end);
+        text.replace(from, to - from, replacement);
+    }
+
+    m_document->replaceRange(
+        editor::Range{editor::Position{0, 0}, buffer.endPosition()}, text);
+
+    refreshFind(false);
+    emit findChanged();
+}
+
+QVariantList EditorViewModel::matchesOnLine(int line) const
+{
+    QVariantList result;
+    if (!m_findOpen) {
+        return result;
+    }
+
+    const std::vector<editor::Range>& matches = m_find.matches();
+    const int currentIndex = m_find.currentIndex();
+
+    for (size_t i = 0; i < matches.size(); ++i) {
+        const editor::Range& match = matches[i];
+        if (match.start.line != line) {
+            continue;
+        }
+
+        // The current match is drawn differently from the rest, so the user can
+        // see which one Enter will move away from.
+        QVariantMap entry;
+        entry.insert(QStringLiteral("start"), match.start.column);
+        entry.insert(QStringLiteral("end"), match.end.column);
+        entry.insert(QStringLiteral("current"), static_cast<int>(i) == currentIndex);
+        result.append(entry);
+    }
+    return result;
+}
+
 QString EditorViewModel::languageName() const
 {
     // Named for the reader, not for the enumerator: "C++" rather than "C", and

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "editor/DocumentSearch.h"
 #include "editor/SyntaxHighlighter.h"
 #include "editor/TextDocument.h"
 #include "ui/EditorSettings.h"
@@ -7,6 +8,7 @@
 #include <QObject>
 #include <QQmlEngine>
 #include <QString>
+#include <QVariantList>
 
 #include <vector>
 
@@ -50,6 +52,26 @@ class EditorViewModel : public QObject {
     /// rules for the file, which the bar reports as plain text rather than
     /// guessing at a name.
     Q_PROPERTY(QString languageName READ languageName NOTIFY documentChanged)
+
+    // ---- Find and replace --------------------------------------------------
+
+    Q_PROPERTY(bool findOpen READ isFindOpen NOTIFY findChanged)
+    Q_PROPERTY(bool replaceOpen READ isReplaceOpen NOTIFY findChanged)
+    Q_PROPERTY(QString findQuery READ findQuery WRITE setFindQuery NOTIFY findChanged)
+    Q_PROPERTY(bool findCaseSensitive READ findCaseSensitive
+                   WRITE setFindCaseSensitive NOTIFY findChanged)
+    Q_PROPERTY(bool findWholeWord READ findWholeWord
+                   WRITE setFindWholeWord NOTIFY findChanged)
+    Q_PROPERTY(bool findRegex READ findRegex WRITE setFindRegex NOTIFY findChanged)
+
+    /// How many matches, and which one is current (one-based, 0 when none).
+    /// The bar shows "3 of 47", which is most of what makes a find useful.
+    Q_PROPERTY(int findCount READ findCount NOTIFY findChanged)
+    Q_PROPERTY(int findCurrent READ findCurrent NOTIFY findChanged)
+
+    /// False while the query is a malformed regex, so the field can say so
+    /// rather than appearing to match nothing.
+    Q_PROPERTY(bool findQueryValid READ isFindQueryValid NOTIFY findChanged)
 
 public:
     /// Takes the editor's resolved settings so indentation follows the user's
@@ -123,6 +145,42 @@ public:
 
     [[nodiscard]] QString languageName() const;
 
+    // ---- Find and replace --------------------------------------------------
+
+    [[nodiscard]] bool isFindOpen() const { return m_findOpen; }
+    [[nodiscard]] bool isReplaceOpen() const { return m_replaceOpen; }
+    [[nodiscard]] QString findQuery() const { return m_findOptions.query; }
+    [[nodiscard]] bool findCaseSensitive() const { return m_findOptions.caseSensitive; }
+    [[nodiscard]] bool findWholeWord() const { return m_findOptions.wholeWord; }
+    [[nodiscard]] bool findRegex() const { return m_findOptions.regularExpression; }
+    [[nodiscard]] int findCount() const { return m_find.count(); }
+    [[nodiscard]] int findCurrent() const { return m_find.currentIndex() + 1; }
+    [[nodiscard]] bool isFindQueryValid() const { return m_find.isQueryValid(); }
+
+    void setFindQuery(const QString& query);
+    void setFindCaseSensitive(bool enabled);
+    void setFindWholeWord(bool enabled);
+    void setFindRegex(bool enabled);
+
+    /// Opens the bar. `withReplace` opens it with the replace field showing;
+    /// the two are one bar because they are one task.
+    Q_INVOKABLE void openFind(bool withReplace = false);
+    Q_INVOKABLE void closeFind();
+
+    /// Steps through matches, wrapping at either end.
+    Q_INVOKABLE void findNext();
+    Q_INVOKABLE void findPrevious();
+
+    /// Replaces the current match, or every match, with `replacement`.
+    /// Replacing all is one undo step: it is one action as far as the user is
+    /// concerned, and forty presses of Ctrl+Z to undo it would be absurd.
+    Q_INVOKABLE void replaceCurrent(const QString& replacement);
+    Q_INVOKABLE void replaceAll(const QString& replacement);
+
+    /// Whether a match covers this line, and where - so the view can paint
+    /// every hit rather than only the current one.
+    Q_INVOKABLE QVariantList matchesOnLine(int line) const;
+
     Q_INVOKABLE void undo();
     Q_INVOKABLE void redo();
 
@@ -132,6 +190,7 @@ public:
 
 signals:
     void contentsChanged();
+    void findChanged();
     void cursorChanged();
     void modifiedChanged();
     void documentChanged();
@@ -142,6 +201,18 @@ signals:
 private:
     /// Counts content changes; only its identity matters, never its value.
     int m_revision = 0;
+
+    /// Re-runs the search and moves the caret to the current match.
+    void refreshFind(bool keepPosition = false);
+
+    /// Puts the caret on the current match and selects it, so Enter in the
+    /// find field leaves the editor ready to type over the hit.
+    void revealCurrentMatch();
+
+    editor::DocumentSearch m_find;
+    editor::FindOptions m_findOptions;
+    bool m_findOpen = false;
+    bool m_replaceOpen = false;
 
     EditorSettings& m_settings;
     editor::TextDocument* m_document = nullptr;

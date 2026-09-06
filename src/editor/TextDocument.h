@@ -78,6 +78,13 @@ public:
     /// Removes an explicit range, leaving the caret at its start.
     void removeRange(const Range& range);
 
+    /// Replaces an explicit range with `replacement`, as one undoable edit.
+    ///
+    /// One edit rather than a remove followed by an insert: replace-all covers
+    /// a whole document in a single action as far as the user is concerned, and
+    /// undoing it should take one press of Ctrl+Z rather than one per match.
+    void replaceRange(const Range& range, const QString& replacement);
+
     bool undo();
     bool redo();
 

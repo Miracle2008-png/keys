@@ -58,6 +58,8 @@ qt_add_qml_module(keys_ui
         qml/ExplorerContextMenu.qml
         qml/ExplorerPanel.qml
         qml/FadeLayer.qml
+        qml/FindBar.qml
+        qml/FindToggle.qml
         qml/FolderPicker.qml
         qml/Icon.qml
         qml/IconButton.qml
@@ -65,6 +67,7 @@ qt_add_qml_module(keys_ui
         qml/KeysDialog.qml
         qml/NameDialog.qml
         qml/PrimaryButton.qml
+        qml/SearchField.qml
         qml/SectionLabel.qml
         qml/SettingsPanel.qml
         qml/SourceControlPanel.qml
