@@ -80,7 +80,7 @@ Rectangle {
             width: list.width
             height: 24
             radius: 5
-            color: row.index === Language.selectedIndex ? Theme.accentSoft
+            color: row.index === Language.selectedIndex ? Theme.selection
                  : rowHover.hovered ? Theme.bgHover
                  : "transparent"
 

@@ -54,7 +54,7 @@ Rectangle {
                     width: 2
                     height: railItem.current ? railItem.height - 8 : 0
                     radius: 1
-                    color: Theme.accent
+                    color: Theme.activeIndicator
 
                     Behavior on height {
                         NumberAnimation {

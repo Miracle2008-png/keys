@@ -26,7 +26,7 @@ Rectangle {
     radius: Metrics.radiusSmall
 
     color: !enabled ? "transparent"
-         : root.active ? Theme.accentSoft
+         : root.active ? Theme.selection
          : mouse.containsMouse ? Theme.bgHover
          : "transparent"
 

@@ -31,7 +31,7 @@ KeysDialog {
         radius: Metrics.radiusSmall
         color: Theme.bgSurface
         border.width: 1
-        border.color: input.activeFocus ? Theme.accent : Theme.border
+        border.color: input.activeFocus ? Theme.focusRing : Theme.border
 
         TextInput {
             id: input
@@ -44,7 +44,7 @@ KeysDialog {
             font.family: Fonts.mono
             font.pointSize: Metrics.fontSizeBody
             selectByMouse: true
-            selectionColor: Theme.accentSoft
+            selectionColor: Theme.selection
             selectedTextColor: Theme.textPrimary
 
             // Digits only. A validator is kinder than accepting anything and

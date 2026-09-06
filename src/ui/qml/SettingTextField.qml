@@ -20,7 +20,7 @@ Rectangle {
     radius: Metrics.radiusSmall
     color: Theme.bgChrome
     border.width: 1
-    border.color: input.activeFocus ? Theme.accent : Theme.border
+    border.color: input.activeFocus ? Theme.focusRing : Theme.border
 
     Behavior on border.color {
         ColorAnimation { duration: App.fastAnimationDuration }
@@ -39,7 +39,7 @@ Rectangle {
         font.family: Fonts.ui
         font.pointSize: Metrics.fontSizeBody
         selectByMouse: true
-        selectionColor: Theme.accentSoft
+        selectionColor: Theme.selection
         selectedTextColor: Theme.textPrimary
         clip: true
 

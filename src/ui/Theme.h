@@ -52,6 +52,18 @@ class Theme : public QObject {
     Q_PROPERTY(QColor accentSoft READ accentSoft NOTIFY changed)
     Q_PROPERTY(QColor accentSoftBorder READ accentSoftBorder NOTIFY changed)
 
+    // ---- Accent roles ------------------------------------------------------
+    //
+    // Named for meaning rather than appearance, so a use site says why it wants
+    // the colour. Retuning the accent then moves every one of them together
+    // instead of leaving a dozen hand-picked tints behind.
+    Q_PROPERTY(QColor accentPressed READ accentPressed NOTIFY changed)
+    Q_PROPERTY(QColor accentMuted READ accentMuted NOTIFY changed)
+    Q_PROPERTY(QColor accentSubtle READ accentSubtle NOTIFY changed)
+    Q_PROPERTY(QColor focusRing READ focusRing NOTIFY changed)
+    Q_PROPERTY(QColor selection READ selection NOTIFY changed)
+    Q_PROPERTY(QColor activeIndicator READ activeIndicator NOTIFY changed)
+
     Q_PROPERTY(QColor green READ green NOTIFY changed)
     Q_PROPERTY(QColor greenSoft READ greenSoft NOTIFY changed)
     Q_PROPERTY(QColor red READ red NOTIFY changed)
@@ -121,6 +133,12 @@ public:
     [[nodiscard]] QColor accentHover() const;
     [[nodiscard]] QColor accentSoft() const;
     [[nodiscard]] QColor accentSoftBorder() const;
+    [[nodiscard]] QColor accentPressed() const;
+    [[nodiscard]] QColor accentMuted() const;
+    [[nodiscard]] QColor accentSubtle() const;
+    [[nodiscard]] QColor focusRing() const;
+    [[nodiscard]] QColor selection() const;
+    [[nodiscard]] QColor activeIndicator() const;
 
     [[nodiscard]] QColor green() const;
     [[nodiscard]] QColor greenSoft() const;

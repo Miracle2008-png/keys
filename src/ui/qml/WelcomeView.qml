@@ -80,21 +80,17 @@ Item {
             Row {
                 spacing: 10
 
-                Rectangle {
+                // The mark itself, not a letter standing in for it. The
+                // rendered PNG rather than the SVG so it matches the taskbar
+                // and the installer exactly.
+                Image {
                     width: 26
                     height: 26
-                    radius: Metrics.radiusSmall
-                    color: Theme.accent
                     anchors.verticalCenter: parent.verticalCenter
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "K"
-                        color: "#ffffff"
-                        font.family: Fonts.ui
-                        font.pointSize: Metrics.fontSizeBody
-                        font.weight: Font.Bold
-                    }
+                    source: "qrc:/branding/generated/keys-256.png"
+                    sourceSize.width: 52
+                    sourceSize.height: 52
+                    smooth: true
                 }
 
                 Text {
@@ -129,7 +125,7 @@ Item {
                         Rectangle {
                             anchors.fill: parent
                             radius: Metrics.radiusSmall
-                            color: parent.current ? Theme.accentSoft
+                            color: parent.current ? Theme.selection
                                  : navMouse.containsMouse ? Theme.bgHover
                                  : "transparent"
 
@@ -267,7 +263,7 @@ Item {
                     radius: Metrics.radiusSmall
                     color: Theme.bgElevated
                     border.width: 1
-                    border.color: searchInput.activeFocus ? Theme.accent : Theme.border
+                    border.color: searchInput.activeFocus ? Theme.focusRing : Theme.border
 
                     Behavior on border.color {
                         ColorAnimation { duration: App.fastAnimationDuration }
@@ -298,7 +294,7 @@ Item {
                         font.pointSize: Metrics.fontSizeBody
                         clip: true
                         selectByMouse: true
-                        selectionColor: Theme.accentSoft
+                        selectionColor: Theme.selection
                         selectedTextColor: Theme.textPrimary
 
                         Text {

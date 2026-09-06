@@ -24,7 +24,7 @@ Rectangle {
     color: Theme.bgElevated
     border.width: 1
     border.color: root.invalid ? Theme.red
-                 : input.activeFocus ? Theme.accent
+                 : input.activeFocus ? Theme.focusRing
                  : Theme.border
 
     Behavior on border.color {
@@ -43,7 +43,7 @@ Rectangle {
         font.pointSize: Metrics.fontSizeBody
         clip: true
         selectByMouse: true
-        selectionColor: Theme.accentSoft
+        selectionColor: Theme.selection
         selectedTextColor: Theme.textPrimary
 
         // Only user edits are reported. Assigning `text` from the model would

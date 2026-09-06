@@ -31,7 +31,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: Metrics.radiusMedium
-        color: root.active ? Theme.accentSoft
+        color: root.active ? Theme.selection
              : (mouse.containsMouse && root.enabled) ? Theme.bgHover
              : "transparent"
 

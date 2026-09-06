@@ -56,7 +56,7 @@ Item {
                 anchors.topMargin: 1
                 anchors.bottomMargin: 1
                 radius: Metrics.radiusSmall
-                color: row.isSelected ? Theme.accentSoft
+                color: row.isSelected ? Theme.selection
                      : rowMouse.containsMouse ? Theme.bgHover
                      : "transparent"
 

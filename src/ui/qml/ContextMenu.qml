@@ -103,7 +103,7 @@ Menu {
             anchors.leftMargin: 5
             anchors.rightMargin: 5
             radius: Metrics.radiusSmall
-            color: item.highlighted ? Theme.accentSoft : "transparent"
+            color: item.highlighted ? Theme.selection : "transparent"
         }
     }
 }

@@ -21,6 +21,7 @@ Rectangle {
 
     readonly property color fill: destructive ? Theme.red : Theme.accent
     readonly property color fillHover: destructive ? Theme.red : Theme.accentHover
+    readonly property color fillPressed: destructive ? Theme.red : Theme.accentPressed
 
     signal clicked()
 
@@ -28,8 +29,13 @@ Rectangle {
     implicitHeight: 32
     radius: Metrics.radiusSmall
 
-    color: primary ? (mouse.containsMouse ? fillHover : fill)
-                   : (mouse.containsMouse ? Theme.bgHover : "transparent")
+    // Pressed goes darker than resting. A button that only lightens on hover
+    // gives no feedback at the moment of the click, which is the one moment
+    // the user is looking for it.
+    color: primary ? (mouse.pressed ? fillPressed
+                      : mouse.containsMouse ? fillHover : fill)
+                   : (mouse.pressed ? Theme.bgElevated
+                      : mouse.containsMouse ? Theme.bgHover : "transparent")
     border.width: primary ? 0 : 1
     border.color: Theme.border
 

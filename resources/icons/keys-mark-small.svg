@@ -1,42 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <!--
-    The Keys mark, optically sized for 16 and 20 pixels.
+    The Keys mark at small sizes: 16, 20, 24, 32 pixels.
 
-    At those sizes the full mark's keycap outline and caret fall within two or
-    three pixels of each other and merge into noise - which is precisely the size
-    a user looks at all day in the taskbar. This variant drops the keycap
-    entirely and keeps only the caret, drawn heavier and larger so it survives
-    the pixel grid.
+    The same Access Mark, opened up. At 16px the full version closes: the hole
+    fills in and the slash merges with it, leaving a blue square with a smudge.
+    So the hole grows, the slash thickens, and the gap between them widens -
+    the shape stays the same idea while the details survive being shrunk.
 
-    This is optical sizing, not a different logo: same tile, same colour, same
-    caret angle. At a glance in a taskbar the two read as the same mark, which is
-    the point - the small version simply removes detail that cannot be resolved
-    rather than shrinking detail into mush.
+    This is the ordinary reason an icon has two drawings rather than one. A
+    single file scaled down is a resampled bitmap; two files tuned for their
+    sizes are the same mark drawn twice.
 
-    Compare with keys-mark.svg, used at 24px and above.
+      - tile  : inset 24, corner radius 96 (a touch tighter, so the silhouette
+                still reads as square at 16px rather than as a circle)
+      - hole  : radius 11% of the grid, up from 9
+      - slash : stroke 56, up from 44, and moved further from the hole
   -->
   <title>Keys</title>
 
   <defs>
-    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#6f9dd2"/>
-      <stop offset="1" stop-color="#5183ba"/>
-    </linearGradient>
-
-    <mask id="cut">
+    <mask id="keyhole-small">
       <rect x="0" y="0" width="512" height="512" fill="#fff"/>
-
-      <!--
-        Larger and heavier than the full mark's caret: at 16px this stroke lands
-        on roughly two device pixels, which is the minimum that renders as a
-        deliberate shape rather than a grey smear.
-      -->
-      <path d="M 196 156 L 316 256 L 196 356"
-            fill="none" stroke="#000" stroke-width="62"
-            stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="184" cy="184" r="56" fill="#000"/>
+      <path d="M 208 356 L 356 208"
+            fill="none" stroke="#000" stroke-width="56" stroke-linecap="round"/>
     </mask>
   </defs>
 
-  <rect x="30" y="30" width="452" height="452" rx="102" ry="102"
-        fill="url(#tile)" mask="url(#cut)"/>
+  <rect x="24" y="24" width="464" height="464" rx="96" ry="96"
+        fill="#3d7eff" mask="url(#keyhole-small)"/>
 </svg>

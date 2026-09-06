@@ -141,7 +141,7 @@ Item {
                         font.family: Fonts.ui
                         font.pointSize: Metrics.fontSizeBody
                         wrapMode: TextArea.Wrap
-                        selectionColor: Theme.accentSoft
+                        selectionColor: Theme.selection
                         selectedTextColor: Theme.textPrimary
                         background: null
 

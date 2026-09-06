@@ -15,7 +15,13 @@ struct Palette {
     QColor borderFaint;
     QColor border, borderStrong;
     QColor textPrimary, textSecondary, textTertiary;
-    QColor accent, accentHover, accentSoft, accentSoftBorder;
+    // The accent, as a set of roles rather than a colour and three tints.
+    // Every use site names what it means - a focus ring, a selection, an active
+    // indicator - so the relationship between them survives a retune.
+    QColor accent, accentHover, accentPressed;
+    QColor accentMuted, accentSubtle;
+    QColor focusRing, selection, activeIndicator;
+    QColor accentSoft, accentSoftBorder;   // legacy names, kept as aliases
     QColor green, greenSoft, red, redSoft, yellow;
     QColor synKeyword, synString, synNumber, synFunction, synType;
     QColor synTag, synComment, synPlain, synPunct;
@@ -82,14 +88,30 @@ const Palette& darkPalette()
         p.textSecondary    = oklch(0.755, 0.010, 255);
         p.textTertiary     = oklch(0.615, 0.011, 255);
 
-        // Teal rather than blue. Hue 252 is the blue every UI framework ships
-        // with, and it made Keys look like a web dashboard; 195 is the hue
-        // JetBrains uses for selection and CLion for its own accents. It reads
-        // as a tool, and it is far from the orange the brief rules out.
-        p.accent           = oklch(0.70, 0.11, 195);
-        p.accentHover      = oklch(0.76, 0.11, 195);
-        p.accentSoft       = oklch(0.70, 0.11, 195, 0.18);
-        p.accentSoftBorder = oklch(0.70, 0.11, 195, 0.42);
+        // #3d7eff. A confident technical blue, not the pale one this had
+        // before: lightness 0.70 at chroma 0.11 was washed out on a dark
+        // surface, and teal read as a theme rather than as a tool.
+        //
+        // Eight roles from one hue. Hover lifts, pressed drops - the press
+        // must go darker than the resting state or a click feels like nothing
+        // happened. Muted and subtle are the same hue at low alpha, for fills
+        // that sit behind text and must never fight it.
+        p.accent           = QColor(0x3d, 0x7e, 0xff);
+        p.accentHover      = QColor(0x5a, 0x92, 0xff);
+        p.accentPressed    = QColor(0x2b, 0x66, 0xdb);
+
+        p.accentMuted      = QColor(0x3d, 0x7e, 0xff, 0x38);   // 22%
+        p.accentSubtle     = QColor(0x3d, 0x7e, 0xff, 0x1f);   // 12%
+
+        // Named for what they do. A focus ring has to be visible against every
+        // surface, so it is the accent at full strength; a selection sits under
+        // text and must not, so it is the muted fill.
+        p.focusRing        = p.accent;
+        p.selection        = p.accentMuted;
+        p.activeIndicator  = p.accent;
+
+        p.accentSoft       = p.accentMuted;
+        p.accentSoftBorder = QColor(0x3d, 0x7e, 0xff, 0x80);
 
         p.green            = oklch(0.68, 0.11, 152);
         p.greenSoft        = oklch(0.68, 0.11, 152, 0.15);
@@ -139,10 +161,21 @@ const Palette& lightPalette()
         p.textSecondary    = oklch(0.48, 0.01,  255);
         p.textTertiary     = oklch(0.62, 0.01,  255);
 
-        p.accent           = oklch(0.55, 0.11, 195);
-        p.accentHover      = oklch(0.48, 0.11, 195);
-        p.accentSoft       = oklch(0.55, 0.11, 195, 0.12);
-        p.accentSoftBorder = oklch(0.55, 0.11, 195, 0.34);
+        // The same hue, darkened for a light ground: #3d7eff on white does not
+        // carry enough contrast for text or a thin indicator.
+        p.accent           = QColor(0x25, 0x5f, 0xd6);
+        p.accentHover      = QColor(0x1c, 0x4d, 0xb8);
+        p.accentPressed    = QColor(0x16, 0x3e, 0x99);
+
+        p.accentMuted      = QColor(0x25, 0x5f, 0xd6, 0x2b);
+        p.accentSubtle     = QColor(0x25, 0x5f, 0xd6, 0x14);
+
+        p.focusRing        = p.accent;
+        p.selection        = p.accentMuted;
+        p.activeIndicator  = p.accent;
+
+        p.accentSoft       = p.accentMuted;
+        p.accentSoftBorder = QColor(0x25, 0x5f, 0xd6, 0x6b);
 
         p.green            = oklch(0.5,  0.12, 152);
         p.greenSoft        = oklch(0.5,  0.12, 152, 0.12);
@@ -268,6 +301,12 @@ KEYS_THEME_COLOR(accent)
 KEYS_THEME_COLOR(accentHover)
 KEYS_THEME_COLOR(accentSoft)
 KEYS_THEME_COLOR(accentSoftBorder)
+KEYS_THEME_COLOR(accentPressed)
+KEYS_THEME_COLOR(accentMuted)
+KEYS_THEME_COLOR(accentSubtle)
+KEYS_THEME_COLOR(focusRing)
+KEYS_THEME_COLOR(selection)
+KEYS_THEME_COLOR(activeIndicator)
 KEYS_THEME_COLOR(green)
 KEYS_THEME_COLOR(greenSoft)
 KEYS_THEME_COLOR(red)

@@ -25,8 +25,12 @@ Item {
         anchors.fill: parent
         radius: Metrics.radiusSmall
 
+        // Pressed goes darker than resting. A button that only lightens on
+        // hover gives no feedback at the moment of the click, which is the one
+        // moment the user is looking for it.
         color: root.primary
-               ? (hover.hovered ? Theme.accentHover : Theme.accent)
+               ? (tap.pressed ? Theme.accentPressed
+                  : hover.hovered ? Theme.accentHover : Theme.accent)
                : (hover.hovered ? Theme.bgHover : "transparent")
 
         border.width: root.primary ? 0 : 1
@@ -57,6 +61,7 @@ Item {
     }
 
     TapHandler {
+        id: tap
         onTapped: root.clicked()
     }
 }

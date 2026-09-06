@@ -83,7 +83,7 @@ Item {
                 font.family: Fonts.ui
                 font.pointSize: Metrics.fontSizeLarge
                 selectByMouse: true
-                selectionColor: Theme.accentSoft
+                selectionColor: Theme.selection
                 selectedTextColor: Theme.textPrimary
 
                 onTextChanged: Palette.query = text
@@ -182,7 +182,7 @@ Item {
                     width: parent.width
                     height: 34
                     radius: 7
-                    color: row.index === Palette.selectedIndex ? Theme.accentSoft
+                    color: row.index === Palette.selectedIndex ? Theme.selection
                          : rowMouse.containsMouse ? Theme.bgHover
                          : "transparent"
 

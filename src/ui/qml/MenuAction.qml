@@ -60,6 +60,6 @@ MenuItem {
         anchors.leftMargin: 5
         anchors.rightMargin: 5
         radius: Metrics.radiusSmall
-        color: root.highlighted ? Theme.accentSoft : "transparent"
+        color: root.highlighted ? Theme.selection : "transparent"
     }
 }
