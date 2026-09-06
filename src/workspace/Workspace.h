@@ -81,6 +81,14 @@ public:
     /// the user to hunt for what they just made.
     core::Status createFile(const QString& path);
 
+    /// Writes every modified document. Reports the first failure but keeps
+    /// going: one unwritable file should not silently abandon the rest.
+    core::Status saveAllFiles();
+
+    /// Re-reads the active document from disk, discarding unsaved edits.
+    /// The caller confirms first - this throws work away.
+    core::Status reloadActiveFile();
+
     core::Status createFolder(const QString& path);
 
     /// Closes a tab in the active group, discarding unsaved changes. The UI

@@ -37,6 +37,12 @@ Window {
             onAboutRequested: aboutDialog.open()
             onPaletteRequested: palette.open(">")
             onQuickOpenRequested: palette.open("")
+
+            // Find belongs to a pane, not the window: with the editor split it
+            // has to open in whichever one holds the caret.
+            onFindRequested: (withReplace) => editorArea.openFind(withReplace)
+            onGoToLineRequested: goToLineDialog.open()
+            onReloadRequested: App.reloadActiveFile()
         }
 
         TopBar {
@@ -145,6 +151,11 @@ Window {
 
     AboutDialog {
         id: aboutDialog
+    }
+
+    GoToLineDialog {
+        id: goToLineDialog
+        onLineAccepted: (line) => App.goToLine(line)
     }
 
     // Failures the user caused are shown, never swallowed.

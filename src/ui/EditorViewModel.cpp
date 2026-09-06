@@ -391,6 +391,67 @@ QVariantList EditorViewModel::matchesOnLine(int line) const
     return result;
 }
 
+void EditorViewModel::toggleLineComment()
+{
+    if (!m_document) {
+        return;
+    }
+
+    const QString prefix = m_highlighter.lineCommentPrefix();
+    if (prefix.isEmpty()) {
+        return;   // a language with no line comment; nothing honest to do
+    }
+
+    const editor::Range selection = m_document->cursor().selection();
+    const int first = selection.start.line;
+    // A selection ending at column 0 stops on the line above: the user dragged
+    // to the start of the next line, they did not mean to include it.
+    const int last = (!selection.isEmpty() && selection.end.column == 0)
+                         ? std::max(first, selection.end.line - 1)
+                         : selection.end.line;
+
+    // Commented only if every non-blank line already is. One uncommented line
+    // in the block means the intent is to comment.
+    bool allCommented = true;
+    for (int line = first; line <= last; ++line) {
+        const QString text = m_document->line(line);
+        if (text.trimmed().isEmpty()) {
+            continue;
+        }
+        if (!text.trimmed().startsWith(prefix)) {
+            allCommented = false;
+            break;
+        }
+    }
+
+    // Backwards, so each edit leaves the lines above it at the same numbers.
+    for (int line = last; line >= first; --line) {
+        const QString text = m_document->line(line);
+        if (text.trimmed().isEmpty()) {
+            continue;
+        }
+
+        const int indent = static_cast<int>(text.size() - text.trimmed().size());
+        if (allCommented) {
+            // Remove the marker and the single space after it, if it is there -
+            // which is what this puts in, so a round trip is lossless.
+            int width = prefix.size();
+            if (text.mid(indent + width, 1) == QLatin1String(" ")) {
+                ++width;
+            }
+            m_document->replaceRange(
+                editor::Range{editor::Position{line, indent},
+                              editor::Position{line, indent + width}},
+                QString());
+        } else {
+            m_document->replaceRange(
+                editor::Range{editor::Position{line, indent},
+                              editor::Position{line, indent}},
+                prefix + QLatin1Char(' '));
+        }
+    }
+}
+
 QString EditorViewModel::languageName() const
 {
     // Named for the reader, not for the enumerator: "C++" rather than "C", and

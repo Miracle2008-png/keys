@@ -126,14 +126,17 @@ public:
     [[nodiscard]] std::vector<Token> tokenize(const QString& line, LineState incoming,
                                               LineState& outgoing) const;
 
+    /// The line comment marker for the active language, empty where it has
+    /// none. Public because commenting a selection is an editing command, not
+    /// only a detail of tokenising.
+    [[nodiscard]] QString lineCommentPrefix() const;
+
 private:
     /// The keywords of the active language, sorted for lookup.
     [[nodiscard]] const QStringList& keywords() const;
     [[nodiscard]] const QStringList& types() const;
 
-    /// The comment syntax of the active language. Empty means the language has
-    /// no comment of that shape.
-    [[nodiscard]] QString lineCommentPrefix() const;
+    /// The comment syntax of the active language.
     [[nodiscard]] bool hasBlockComments() const;
 
     /// Whether identifiers are matched without regard to case. SQL keywords are

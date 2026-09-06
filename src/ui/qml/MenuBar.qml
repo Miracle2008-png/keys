@@ -47,11 +47,16 @@ Item {
 
         Repeater {
             model: [
-                { title: qsTr("File"),  menu: fileMenu },
-                { title: qsTr("Edit"),  menu: editMenu },
-                { title: qsTr("View"),  menu: viewMenu },
-                { title: qsTr("Build"), menu: buildMenu },
-                { title: qsTr("Help"),  menu: helpMenu },
+                { title: qsTr("File"),     menu: fileMenu },
+                { title: qsTr("Edit"),     menu: editMenu },
+                { title: qsTr("View"),     menu: viewMenu },
+                { title: qsTr("Navigate"), menu: navigateMenu },
+                { title: qsTr("Code"),     menu: codeMenu },
+                { title: qsTr("Build"),    menu: buildMenu },
+                { title: qsTr("Run"),      menu: runMenu },
+                { title: qsTr("VCS"),      menu: vcsMenu },
+                { title: qsTr("Window"),   menu: windowMenu },
+                { title: qsTr("Help"),     menu: helpMenu },
             ]
 
             delegate: Rectangle {
@@ -97,7 +102,9 @@ Item {
                     // feel right.
                     onEntered: {
                         for (const other of [fileMenu, editMenu, viewMenu,
-                                             buildMenu, helpMenu]) {
+                                             navigateMenu, codeMenu, buildMenu,
+                                             runMenu, vcsMenu, windowMenu,
+                                             helpMenu]) {
                             if (other.opened && other !== titleButton.modelData.menu) {
                                 other.close();
                                 titleButton.modelData.menu.popup(
@@ -154,10 +161,23 @@ Item {
         }
 
         MenuAction {
+            text: qsTr("Save All")
+            shortcut: "Ctrl+K, S"
+            enabled: App.hasUnsavedChanges
+            onTriggered: App.saveAllFiles()
+        }
+
+        MenuAction {
             text: qsTr("Save As…")
             shortcut: "Ctrl+Shift+S"
-            enabled: App.hasProject
+            enabled: App.hasOpenFile
             onTriggered: root.saveAsRequested()
+        }
+
+        MenuAction {
+            text: qsTr("Reload from Disk")
+            enabled: App.hasOpenFile
+            onTriggered: root.reloadRequested()
         }
 
         MenuSeparator {}
@@ -228,10 +248,100 @@ Item {
         MenuSeparator {}
 
         MenuAction {
+            text: qsTr("Copy Path")
+            enabled: App.hasOpenFile
+            onTriggered: App.copyActivePath()
+        }
+
+        MenuSeparator {}
+
+        MenuAction {
+            text: qsTr("Find…")
+            shortcut: "Ctrl+F"
+            enabled: App.hasOpenFile
+            onTriggered: root.findRequested(false)
+        }
+
+        MenuAction {
+            text: qsTr("Replace…")
+            shortcut: "Ctrl+H"
+            enabled: App.hasOpenFile
+            onTriggered: root.findRequested(true)
+        }
+
+        MenuAction {
             text: qsTr("Find in Files…")
             shortcut: "Ctrl+Shift+F"
             enabled: App.hasProject
             onTriggered: App.selectView("search")
+        }
+    }
+
+    // ---- Navigate ----------------------------------------------------------
+
+    ContextMenu {
+        id: navigateMenu
+
+        MenuAction {
+            text: qsTr("Go to File…")
+            shortcut: "Ctrl+P"
+            enabled: App.hasProject
+            onTriggered: root.quickOpenRequested()
+        }
+
+        MenuAction {
+            text: qsTr("Go to Line…")
+            shortcut: "Ctrl+G"
+            enabled: App.hasOpenFile
+            onTriggered: root.goToLineRequested()
+        }
+
+        MenuSeparator {}
+
+        MenuAction {
+            text: qsTr("Go to Definition")
+            shortcut: "F12"
+            enabled: App.hasOpenFile
+            onTriggered: Language.goToDefinition()
+        }
+
+        MenuAction {
+            text: qsTr("Switch Header/Source")
+            shortcut: "Alt+O"
+            enabled: App.hasOpenFile
+            onTriggered: App.switchHeaderSource()
+        }
+
+        MenuSeparator {}
+
+        // Enabled against the diagnostic count, so it dims on a clean file
+        // rather than doing nothing when pressed.
+        MenuAction {
+            text: qsTr("Next Problem")
+            enabled: Language.errorCount + Language.warningCount > 0
+            onTriggered: App.selectView("search")
+        }
+    }
+
+    // ---- Code --------------------------------------------------------------
+
+    ContextMenu {
+        id: codeMenu
+
+        MenuAction {
+            text: qsTr("Completion")
+            shortcut: "Ctrl+Space"
+            enabled: App.hasOpenFile
+            onTriggered: Language.requestCompletion()
+        }
+
+        MenuSeparator {}
+
+        MenuAction {
+            text: qsTr("Comment Lines")
+            shortcut: "Ctrl+/"
+            enabled: root.activeEditor !== null
+            onTriggered: root.activeEditor.toggleLineComment()
         }
     }
 
@@ -343,6 +453,182 @@ Item {
         }
     }
 
+    // ---- Run ---------------------------------------------------------------
+    //
+    // The debugger's stepping commands were implemented from the start and
+    // reachable only from a panel. A menu is where people look for them.
+
+    ContextMenu {
+        id: runMenu
+
+        MenuAction {
+            text: qsTr("Run")
+            shortcut: "Shift+F10"
+            enabled: App.hasProject && !Runner.running
+            onTriggered: Runner.runRun()
+        }
+
+        MenuAction {
+            text: qsTr("Stop")
+            shortcut: "Ctrl+F2"
+            enabled: Runner.running
+            onTriggered: Runner.stop()
+        }
+
+        MenuSeparator {}
+
+        MenuAction {
+            text: qsTr("Start Debugging")
+            shortcut: "Shift+F9"
+            enabled: Debugger.configured && !Debugger.active
+            onTriggered: Debugger.start()
+        }
+
+        MenuAction {
+            text: qsTr("Stop Debugging")
+            enabled: Debugger.active
+            onTriggered: Debugger.stop()
+        }
+
+        MenuSeparator {}
+
+        // Only while stopped at a breakpoint - stepping a running program is
+        // meaningless, and offering it would be a lie.
+        MenuAction {
+            text: qsTr("Step Over")
+            shortcut: "F8"
+            enabled: Debugger.stopped
+            onTriggered: Debugger.stepOver()
+        }
+
+        MenuAction {
+            text: qsTr("Step Into")
+            shortcut: "F7"
+            enabled: Debugger.stopped
+            onTriggered: Debugger.stepInto()
+        }
+
+        MenuAction {
+            text: qsTr("Step Out")
+            shortcut: "Shift+F8"
+            enabled: Debugger.stopped
+            onTriggered: Debugger.stepOut()
+        }
+
+        MenuAction {
+            text: qsTr("Resume")
+            shortcut: "F9"
+            enabled: Debugger.stopped
+            onTriggered: Debugger.resume()
+        }
+
+        MenuAction {
+            text: qsTr("Pause")
+            enabled: Debugger.active && !Debugger.stopped
+            onTriggered: Debugger.pause()
+        }
+
+        MenuSeparator {}
+
+        MenuAction {
+            text: qsTr("Toggle Breakpoint")
+            shortcut: "Ctrl+F8"
+            enabled: root.activeEditor !== null
+            onTriggered: Debugger.toggleBreakpoint(root.activeEditor.path,
+                                                   root.activeEditor.cursorLine)
+        }
+    }
+
+    // ---- VCS ---------------------------------------------------------------
+
+    ContextMenu {
+        id: vcsMenu
+
+        MenuAction {
+            text: qsTr("Commit…")
+            shortcut: "Ctrl+K"
+            enabled: SourceControl.canCommit
+            onTriggered: App.selectView("sourceControl")
+        }
+
+        MenuSeparator {}
+
+        MenuAction {
+            text: qsTr("Stage All")
+            enabled: SourceControl.unstagedCount > 0
+            onTriggered: SourceControl.stageAll()
+        }
+
+        MenuAction {
+            text: qsTr("Unstage All")
+            enabled: SourceControl.stagedCount > 0
+            onTriggered: SourceControl.unstageAll()
+        }
+
+        MenuSeparator {}
+
+        MenuAction {
+            text: qsTr("Refresh")
+            enabled: SourceControl.hasRepository && !SourceControl.refreshing
+            onTriggered: SourceControl.refresh()
+        }
+
+        MenuAction {
+            text: qsTr("Show Changes")
+            enabled: SourceControl.hasRepository
+            onTriggered: App.selectView("sourceControl")
+        }
+    }
+
+    // ---- Window ------------------------------------------------------------
+
+    ContextMenu {
+        id: windowMenu
+
+        MenuAction {
+            text: qsTr("Next Tab")
+            shortcut: "Ctrl+Tab"
+            enabled: App.tabCount > 1
+            onTriggered: App.nextTab()
+        }
+
+        MenuAction {
+            text: qsTr("Previous Tab")
+            shortcut: "Ctrl+Shift+Tab"
+            enabled: App.tabCount > 1
+            onTriggered: App.previousTab()
+        }
+
+        MenuSeparator {}
+
+        MenuAction {
+            text: qsTr("Close Tab")
+            shortcut: "Ctrl+W"
+            enabled: App.tabCount > 0
+            onTriggered: App.closeTab(-1)
+        }
+
+        MenuAction {
+            text: qsTr("Close Other Tabs")
+            enabled: App.tabCount > 1
+            onTriggered: App.closeOtherTabs()
+        }
+
+        MenuAction {
+            text: qsTr("Close All Tabs")
+            enabled: App.tabCount > 0
+            onTriggered: App.closeAllTabs()
+        }
+
+        MenuSeparator {}
+
+        MenuAction {
+            text: qsTr("Split Editor")
+            enabled: App.hasProject
+            onTriggered: App.toggleSplit()
+        }
+    }
+
     ContextMenu {
         id: helpMenu
 
@@ -364,4 +650,10 @@ Item {
 
     signal paletteRequested()
     signal quickOpenRequested()
+
+    /// Raised where the menu needs something the window owns - a dialog, or a
+    /// pane's own find bar.
+    signal findRequested(bool withReplace)
+    signal goToLineRequested()
+    signal reloadRequested()
 }

@@ -45,6 +45,14 @@ Rectangle {
         welcome.browseForProject();
     }
 
+    /// Opens the find bar in the focused pane. The menu cannot do this itself:
+    /// with the editor split there are two bars, and only one of them belongs
+    /// to the document the user is looking at.
+    function openFind(withReplace) {
+        const pane = App.activeGroup === 1 ? secondPane : firstPane;
+        pane.openFind(withReplace);
+    }
+
     // Settings take the whole editor area rather than opening as a tab: the page
     // is not a document, and giving it a tab would imply it can be split,
     // reordered and saved alongside files.
@@ -106,6 +114,8 @@ Rectangle {
         }
 
         EditorPane {
+            id: secondPane
+
             anchors.left: divider.right
             anchors.right: parent.right
             anchors.top: parent.top

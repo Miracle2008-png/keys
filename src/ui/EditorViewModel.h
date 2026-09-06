@@ -139,6 +139,14 @@ public:
     Q_INVOKABLE void movePage(int lines, bool extend);
 
     Q_INVOKABLE void selectAll();
+
+    /// Comments or uncomments the selected lines, or the caret's line.
+    ///
+    /// Toggling on the whole block rather than per line: if every line is
+    /// already commented the block is uncommented, otherwise all of it is
+    /// commented. Deciding line by line would leave a mixed selection half
+    /// commented, which is never what was wanted.
+    Q_INVOKABLE void toggleLineComment();
     Q_INVOKABLE QString selectedText() const;
 
     [[nodiscard]] int revision() const { return m_revision; }

@@ -218,6 +218,58 @@ Status Workspace::createFolder(const QString& path)
     return fs::FileSystem::createDirectory(normalized);
 }
 
+Status Workspace::saveAllFiles()
+{
+    Status firstFailure = Ok();
+
+    for (int group = 0; group < m_editors.groupCount(); ++group) {
+        EditorGroup* editors = m_editors.groupAt(group);
+        if (!editors) {
+            continue;
+        }
+        for (int tab = 0; tab < editors->tabCount(); ++tab) {
+            editor::TextDocument* document = editors->documentAt(tab);
+            if (!document || !document->isModified() || document->path().isEmpty()) {
+                continue;
+            }
+
+            m_watcher.suppress(document->path());
+            const Status status =
+                fs::FileSystem::writeTextFile(document->path(), document->text());
+            m_watcher.unsuppress(document->path());
+
+            if (status) {
+                document->markSaved();
+            } else if (firstFailure) {
+                // Kept, but not thrown: the remaining documents are still
+                // worth writing, and reporting one failure is more useful
+                // than abandoning the save half-done.
+                firstFailure = status;
+            }
+        }
+    }
+    return firstFailure;
+}
+
+Status Workspace::reloadActiveFile()
+{
+    editor::TextDocument* document = m_editors.activeDocument();
+    if (!document || document->path().isEmpty()) {
+        return core::Err(core::ErrorCode::InvalidArgument,
+                         QStringLiteral("There is nothing to reload"));
+    }
+
+    const QString path = document->path();
+    const auto contents = fs::FileSystem::readTextFile(path);
+    if (!contents) {
+        return contents.error();
+    }
+
+    document->setText(contents.value());
+    document->markSaved();
+    return Ok();
+}
+
 Status Workspace::saveFile()
 {
     editor::TextDocument* document = m_editors.activeDocument();

@@ -61,6 +61,7 @@ qt_add_qml_module(keys_ui
         qml/FindBar.qml
         qml/FindToggle.qml
         qml/FolderPicker.qml
+        qml/GoToLineDialog.qml
         qml/Icon.qml
         qml/IconButton.qml
         qml/Keycap.qml

@@ -62,6 +62,13 @@ class AppController : public QObject {
     Q_PROPERTY(int activeGroup READ activeGroup NOTIFY editorsChanged)
     Q_PROPERTY(bool isSplit READ isSplit NOTIFY editorsChanged)
 
+    /// Whether the active group has more than one tab, and whether anything
+    /// anywhere is unsaved. The menus dim against these rather than offering
+    /// actions that would do nothing.
+    Q_PROPERTY(int tabCount READ tabCount NOTIFY editorsChanged)
+    Q_PROPERTY(bool hasUnsavedChanges READ hasUnsavedChanges NOTIFY editorsChanged)
+    Q_PROPERTY(bool hasOpenFile READ hasOpenFile NOTIFY editorsChanged)
+
 public:
     AppController(core::CommandRegistry& commands,
                   config::Settings& settings,
@@ -94,6 +101,10 @@ public:
     [[nodiscard]] QString projectRoot() const;
     [[nodiscard]] bool hasProject() const;
     [[nodiscard]] QVariantList recentProjects() const;
+
+    [[nodiscard]] int tabCount() const;
+    [[nodiscard]] bool hasUnsavedChanges() const;
+    [[nodiscard]] bool hasOpenFile() const;
 
     /// Pins or unpins a recent project, and forgets one entirely. Both write
     /// the history immediately: this is the user editing a list they can see,
@@ -148,6 +159,27 @@ public:
 
     /// Closes a tab in the active group.
     Q_INVOKABLE void closeTab(int index);
+
+    /// Tabs in the active group. The menu acts on whichever pane holds the
+    /// caret, which is what "close this tab" means when the editor is split.
+    Q_INVOKABLE void closeOtherTabs();
+    Q_INVOKABLE void closeAllTabs();
+    Q_INVOKABLE void nextTab();
+    Q_INVOKABLE void previousTab();
+
+    Q_INVOKABLE bool saveAllFiles();
+    Q_INVOKABLE bool reloadActiveFile();
+
+    /// The header for a source file, or the source for a header. A filename
+    /// rule rather than a parse: it is right almost always, costs nothing, and
+    /// is what the shortcut is for.
+    Q_INVOKABLE bool switchHeaderSource();
+
+    /// Moves the caret, opening the file first if it is not already open.
+    Q_INVOKABLE void goToLine(int line);
+
+    /// Copies the active file's path to the clipboard.
+    Q_INVOKABLE void copyActivePath();
 
     /// Splits the editor, or collapses back to one pane if already split.
     Q_INVOKABLE void toggleSplit();

@@ -1,6 +1,8 @@
 #include "ui/AppController.h"
 
 #include <QDir>
+#include <QClipboard>
+#include <QGuiApplication>
 #include <QFileInfo>
 
 #include "core/Log.h"
@@ -188,6 +190,158 @@ QString AppController::projectRoot() const
 bool AppController::hasProject() const
 {
     return m_workspace.hasProject();
+}
+
+// ---- Tabs ------------------------------------------------------------------
+//
+// All of these act on the active group, which is the pane holding the caret.
+// With the editor split, "close this tab" has to mean the one the user is
+// looking at rather than whichever group happens to be first.
+
+int AppController::tabCount() const
+{
+    const workspace::EditorGroup* group =
+        m_workspace.editors().groupAt(m_workspace.editors().activeGroupIndex());
+    return group ? group->tabCount() : 0;
+}
+
+bool AppController::hasUnsavedChanges() const
+{
+    return m_workspace.editors().hasUnsavedChanges();
+}
+
+bool AppController::hasOpenFile() const
+{
+    return m_workspace.activeDocument() != nullptr;
+}
+
+void AppController::closeOtherTabs()
+{
+    workspace::EditorGroup* group =
+        m_workspace.editors().groupAt(m_workspace.editors().activeGroupIndex());
+    if (!group || group->tabCount() < 2) {
+        return;
+    }
+
+    // Backwards, and skipping the one being kept: closing forwards would
+    // renumber every tab after each removal and take the wrong ones.
+    const int keep = group->activeIndex();
+    for (int i = group->tabCount() - 1; i >= 0; --i) {
+        if (i != keep) {
+            group->closeTab(i);
+        }
+    }
+}
+
+void AppController::closeAllTabs()
+{
+    workspace::EditorGroup* group =
+        m_workspace.editors().groupAt(m_workspace.editors().activeGroupIndex());
+    if (group) {
+        group->closeAll();
+    }
+}
+
+void AppController::nextTab()
+{
+    workspace::EditorGroup* group =
+        m_workspace.editors().groupAt(m_workspace.editors().activeGroupIndex());
+    if (!group || group->tabCount() < 2) {
+        return;
+    }
+    // Wraps, the way every editor's Ctrl+Tab does.
+    group->setActiveIndex((group->activeIndex() + 1) % group->tabCount());
+}
+
+void AppController::previousTab()
+{
+    workspace::EditorGroup* group =
+        m_workspace.editors().groupAt(m_workspace.editors().activeGroupIndex());
+    if (!group || group->tabCount() < 2) {
+        return;
+    }
+    const int count = group->tabCount();
+    group->setActiveIndex((group->activeIndex() - 1 + count) % count);
+}
+
+// ---- Files -----------------------------------------------------------------
+
+bool AppController::saveAllFiles()
+{
+    const core::Status status = m_workspace.saveAllFiles();
+    if (!status) {
+        m_lastError = status.error().toString();
+        emit errorOccurred(m_lastError);
+        return false;
+    }
+    m_lastError.clear();
+    return true;
+}
+
+bool AppController::reloadActiveFile()
+{
+    const core::Status status = m_workspace.reloadActiveFile();
+    if (!status) {
+        m_lastError = status.error().toString();
+        emit errorOccurred(m_lastError);
+        return false;
+    }
+    m_lastError.clear();
+    return true;
+}
+
+bool AppController::switchHeaderSource()
+{
+    const editor::TextDocument* document = m_workspace.activeDocument();
+    if (!document || document->path().isEmpty()) {
+        return false;
+    }
+
+    const QFileInfo info(document->path());
+    const QString suffix = info.suffix().toLower();
+    const QString base = info.absolutePath() + QLatin1Char('/') + info.completeBaseName();
+
+    // Tried in order, first hit wins. A project may use any of these and there
+    // is no way to know which without looking.
+    static const QStringList headers = {QStringLiteral("h"), QStringLiteral("hpp"),
+                                        QStringLiteral("hh"), QStringLiteral("hxx")};
+    static const QStringList sources = {QStringLiteral("cpp"), QStringLiteral("c"),
+                                        QStringLiteral("cc"), QStringLiteral("cxx")};
+
+    const QStringList& candidates = headers.contains(suffix) ? sources : headers;
+    for (const QString& extension : candidates) {
+        const QString path = base + QLatin1Char('.') + extension;
+        if (QFileInfo::exists(path)) {
+            return openFile(path);
+        }
+    }
+
+    // Reported rather than silent: a shortcut that does nothing reads as
+    // broken, and the honest answer is that the counterpart is not there.
+    m_lastError = QStringLiteral("No counterpart file for %1").arg(info.fileName());
+    emit errorOccurred(m_lastError);
+    return false;
+}
+
+void AppController::goToLine(int line)
+{
+    const editor::TextDocument* document = m_workspace.activeDocument();
+    if (!document) {
+        return;
+    }
+    // Clamped: a line number past the end of the file should land at the end
+    // rather than being refused, which is what every Go to Line does.
+    const int target = std::clamp(line - 1, 0, document->lineCount() - 1);
+    openFileAt(document->path(), target, 0);
+}
+
+void AppController::copyActivePath()
+{
+    const editor::TextDocument* document = m_workspace.activeDocument();
+    if (!document || document->path().isEmpty()) {
+        return;
+    }
+    QGuiApplication::clipboard()->setText(QDir::toNativeSeparators(document->path()));
 }
 
 QVariantList AppController::recentProjects() const
