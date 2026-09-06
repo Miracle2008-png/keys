@@ -37,6 +37,27 @@ Item {
     /// than the content's.
     readonly property real scrollOffset: lines.contentY
 
+    /// Where the view was before a fold changed the row count. Folding must
+    /// not move the user away from what they were reading.
+    property real pendingScroll: -1
+
+    Timer {
+        id: restoreScroll
+
+        // Not zero. The list re-lays out over more than one frame after its
+        // model count changes, and contentHeight is still the old value on the
+        // next tick - restoring against it puts the view back at the top.
+        interval: 16
+        onTriggered: {
+            if (root.pendingScroll < 0) {
+                return;
+            }
+            const limit = Math.max(0, lines.contentHeight - lines.height);
+            lines.contentY = Math.max(0, Math.min(root.pendingScroll, limit));
+            root.pendingScroll = -1;
+        }
+    }
+
     /// Wide enough for the widest line number, plus a column for the fold
     /// arrow. The arrow needs its own space rather than overlapping the
     /// numbers, which left it a two-pixel sliver nobody could hit.
@@ -136,13 +157,16 @@ Item {
                 visible: Debugger.currentLine === row.line + 1
             }
 
+            // Toggles a breakpoint. Stops short of the fold column, which
+            // belongs to the fold arrow - spanning the whole gutter meant every
+            // click meant for a fold set a breakpoint instead.
             MouseArea {
                 id: gutterMouse
 
                 anchors.left: parent.left
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
-                width: root.gutterWidth
+                width: root.gutterWidth - root.foldColumnWidth - 4
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
                 onClicked: Debugger.toggleBreakpoint(root.editor.path, row.line + 1)
@@ -216,7 +240,20 @@ Item {
                     anchors.rightMargin: -4
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: root.editor.toggleFold(row.line)
+
+                    // The row count changes under the list, which resets its
+                    // scroll position - so folding a block threw the view back
+                    // to the top of the file. Held and restored, because the
+                    // user's place is not something a fold should disturb.
+                    onClicked: {
+                        // Restored after the list has re-laid out, not
+                        // immediately: contentHeight is still the old value at
+                        // this point, so clamping against it here put the view
+                        // back at the top of the file.
+                        root.pendingScroll = lines.contentY;
+                        root.editor.toggleFold(row.line);
+                        restoreScroll.restart();
+                    }
                 }
             }
 
