@@ -142,7 +142,10 @@ Rectangle {
             opacity: root.hovered ? 0 : 1
 
             Behavior on opacity {
-                NumberAnimation { duration: App.fastAnimationDuration }
+                NumberAnimation {
+                    duration: App.fastAnimationDuration
+                    easing.type: Easing.OutQuad
+                }
             }
         }
 
@@ -159,7 +162,10 @@ Rectangle {
             opacity: root.hovered ? 1 : 0
 
             Behavior on opacity {
-                NumberAnimation { duration: App.fastAnimationDuration }
+                NumberAnimation {
+                    duration: App.fastAnimationDuration
+                    easing.type: Easing.OutQuad
+                }
             }
 
             Rectangle {
@@ -204,7 +210,10 @@ Rectangle {
             opacity: root.hovered || root.entry.pinned ? 1 : 0
 
             Behavior on opacity {
-                NumberAnimation { duration: App.fastAnimationDuration }
+                NumberAnimation {
+                    duration: App.fastAnimationDuration
+                    easing.type: Easing.OutQuad
+                }
             }
 
             Rectangle {

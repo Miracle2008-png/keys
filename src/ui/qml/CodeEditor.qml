@@ -267,7 +267,10 @@ Item {
                 font.pointSize: EditorConfig.fontSize
 
                 Behavior on opacity {
-                    NumberAnimation { duration: App.fastAnimationDuration }
+                    NumberAnimation {
+                        duration: App.fastAnimationDuration
+                        easing.type: Easing.OutQuad
+                    }
                 }
 
                 // Reaches past the glyph on both sides. A 14px target is hard

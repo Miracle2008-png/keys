@@ -76,7 +76,10 @@ Item {
                         opacity: parent.current ? 1 : 0
 
                         Behavior on opacity {
-                            NumberAnimation { duration: App.fastAnimationDuration }
+                            NumberAnimation {
+                                duration: App.fastAnimationDuration
+                                easing.type: Easing.OutQuad
+                            }
                         }
                     }
 

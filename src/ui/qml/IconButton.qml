@@ -23,6 +23,16 @@ Item {
     // Disabled buttons stay visible but dim and unfocusable: the layout does not
     // shift when a feature lands, and nothing invites a click that will not work.
     opacity: enabled ? 1.0 : 0.38
+
+    scale: mouse.pressed && root.enabled ? 0.92 : 1.0
+
+    Behavior on scale {
+        NumberAnimation {
+            duration: App.fastAnimationDuration
+            easing.type: Easing.OutQuad
+        }
+    }
+
     activeFocusOnTab: enabled
     Accessible.role: Accessible.Button
     Accessible.name: tooltip
@@ -31,7 +41,13 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: Metrics.radiusMedium
-        color: root.active ? Theme.selection
+
+        // Pressed is its own state. Without it the button lit up when the
+        // pointer arrived and then looked identical while being clicked, so
+        // every icon button in the rail, the tabs and the terminal registered a
+        // press without acknowledging one.
+        color: (mouse.pressed && root.enabled) ? Theme.bgElevated
+             : root.active ? Theme.selection
              : (mouse.containsMouse && root.enabled) ? Theme.bgHover
              : "transparent"
 

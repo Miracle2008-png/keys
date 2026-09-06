@@ -177,7 +177,10 @@ Rectangle {
                     color: closeMouse.containsMouse ? Theme.textPrimary : Theme.textTertiary
 
                     Behavior on opacity {
-                        NumberAnimation { duration: App.fastAnimationDuration }
+                        NumberAnimation {
+                            duration: App.fastAnimationDuration
+                            easing.type: Easing.OutQuad
+                        }
                     }
                 }
 

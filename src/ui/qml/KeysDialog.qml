@@ -50,7 +50,10 @@ Dialog {
         color: Qt.rgba(0, 0, 0, 0.45)
 
         Behavior on opacity {
-            NumberAnimation { duration: App.animationDuration }
+            NumberAnimation {
+                duration: App.animationDuration
+                easing.type: Easing.OutQuad
+            }
         }
     }
 

@@ -89,7 +89,10 @@ Item {
             scale: knobMouse.pressed ? 1.15 : 1
 
             Behavior on scale {
-                NumberAnimation { duration: App.fastAnimationDuration }
+                NumberAnimation {
+                    duration: App.fastAnimationDuration
+                    easing.type: Easing.OutQuad
+                }
             }
         }
 

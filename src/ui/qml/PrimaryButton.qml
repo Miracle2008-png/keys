@@ -19,13 +19,28 @@ Rectangle {
     implicitWidth: label.implicitWidth + Metrics.spacingLarge * 2
     implicitHeight: 36
     radius: Metrics.radiusMedium
+    // Pressed is darker, not the same as hovered. They were identical, which
+    // meant a click produced no feedback at all - the button lit up when the
+    // pointer arrived and then did nothing when it was actually pressed.
     color: !root.enabled ? Theme.bgHover
-         : mouse.pressed ? Theme.accentHover
+         : mouse.pressed ? Theme.accentPressed
          : mouse.containsMouse ? Theme.accentHover
          : Theme.accent
 
     Behavior on color {
         ColorAnimation { duration: App.fastAnimationDuration }
+    }
+
+    // A press takes a little off the size. Small enough not to shift the layout
+    // around it, large enough that the button feels like it takes the press
+    // rather than merely registering it.
+    scale: mouse.pressed && root.enabled ? 0.97 : 1.0
+
+    Behavior on scale {
+        NumberAnimation {
+            duration: App.fastAnimationDuration
+            easing.type: Easing.OutQuad
+        }
     }
 
     activeFocusOnTab: enabled

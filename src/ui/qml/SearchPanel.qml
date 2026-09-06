@@ -100,7 +100,10 @@ Item {
                     }
                 }
                 Behavior on opacity {
-                    NumberAnimation { duration: App.fastAnimationDuration }
+                    NumberAnimation {
+                        duration: App.fastAnimationDuration
+                        easing.type: Easing.OutQuad
+                    }
                 }
 
                 Column {
