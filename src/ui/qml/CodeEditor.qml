@@ -288,6 +288,24 @@ Item {
                                                             : Text.PlainText
                     }
 
+                    // Extra carets. Drawn only when there are any, so the
+                    // ordinary single-caret case pays nothing for the feature.
+                    Repeater {
+                        model: (root.editor.cursorCount > 1
+                                    ? root.editor.cursorsOnLine(row.index)
+                                    : [])
+
+                        delegate: Rectangle {
+                            required property int modelData
+
+                            x: modelData * root.charWidth
+                            width: 2
+                            height: parent.height * 0.8
+                            anchors.verticalCenter: parent.verticalCenter
+                            color: Theme.accent
+                        }
+                    }
+
                     // Caret. Only the cursor line draws one.
                     Rectangle {
                         visible: row.isCursorLine && root.activeFocus
@@ -345,6 +363,12 @@ Item {
         onPressed: (mouse) => {
             root.forceActiveFocus();
             const at = positionAt(mouse.x, mouse.y);
+            if ((mouse.modifiers & Qt.AltModifier) !== 0) {
+                // Alt+Click puts a caret where you point, which is how most
+                // people reach for multi-cursor before learning the keys.
+                root.editor.addCursorAt(at.line, at.column);
+                return;
+            }
             root.editor.moveCursor(at.line, at.column, mouse.modifiers & Qt.ShiftModifier);
         }
 
@@ -378,6 +402,27 @@ Item {
                 }
                 break;
             }
+        }
+
+        // Ctrl+Alt+Up/Down add a caret; Escape drops them. The same bindings
+        // every editor uses, so nobody has to learn them here.
+        if (ctrl && (event.modifiers & Qt.AltModifier) !== 0) {
+            if (event.key === Qt.Key_Up) {
+                root.editor.addCursorAbove();
+                event.accepted = true;
+                return;
+            }
+            if (event.key === Qt.Key_Down) {
+                root.editor.addCursorBelow();
+                event.accepted = true;
+                return;
+            }
+        }
+
+        if (event.key === Qt.Key_Escape && root.editor.cursorCount > 1) {
+            root.editor.clearExtraCursors();
+            event.accepted = true;
+            return;
         }
 
         // Ctrl+Space asks for completions explicitly, which is what a user

@@ -7,6 +7,9 @@
 #include <QObject>
 #include <QString>
 
+#include <functional>
+#include <vector>
+
 namespace keys::editor {
 
 /// A caret and its selection.
@@ -98,6 +101,40 @@ public:
 
     [[nodiscard]] const Cursor& cursor() const { return m_cursor; }
 
+    // ---- Additional carets -------------------------------------------------
+    //
+    // The primary caret stays `m_cursor` and every existing operation keeps
+    // working through it untouched. Extra carets live beside it rather than
+    // replacing it with a list, because a rewrite of all 50-odd uses would put
+    // the whole editor at risk to add one feature.
+    //
+    // Edits are applied per caret, from the last to the first, so each one is
+    // made at a position the earlier edits have not yet shifted.
+
+    /// Every caret, primary first. One entry when multi-cursor is not in use,
+    /// which is the case the editor spends almost all its time in.
+    [[nodiscard]] std::vector<Cursor> cursors() const;
+
+    [[nodiscard]] int cursorCount() const
+    {
+        return 1 + static_cast<int>(m_extraCursors.size());
+    }
+
+    [[nodiscard]] bool hasMultipleCursors() const { return !m_extraCursors.empty(); }
+
+    /// Adds a caret. Ignored if one is already there - two carets in the same
+    /// place would double every character typed.
+    void addCursor(const Position& position);
+
+    /// Drops every caret but the primary. What Escape does, and what any
+    /// ordinary click does.
+    void clearExtraCursors();
+
+    /// Adds a caret one line above or below the lowest or highest existing one,
+    /// at the same column. The usual Ctrl+Alt+Up/Down.
+    void addCursorAbove();
+    void addCursorBelow();
+
     /// Moves the caret, collapsing any selection unless `extend` is true.
     void setCursorPosition(const Position& position, bool extend = false);
 
@@ -147,9 +184,25 @@ private:
     [[nodiscard]] Position wordBoundaryLeft(const Position& from) const;
     [[nodiscard]] Position wordBoundaryRight(const Position& from) const;
 
+    /// Applies one replacement at every caret, bottom-up, as a single undo
+    /// step. `rangeFor` says what each caret replaces - its selection when it
+    /// has one, or the empty range at its position.
+    void applyAtEveryCursor(const std::function<Range(const Cursor&)>& rangeFor,
+                            const QString& replacement);
+
+    /// Runs `edit` at every caret, last to first, as one undo step.
+    ///
+    /// Backwards because an edit at an earlier position shifts everything after
+    /// it: going forwards, the second caret would already be pointing at the
+    /// wrong character.
+    void forEachCursorReversed(const std::function<void(Cursor&)>& edit);
+
     TextBuffer m_buffer;
     UndoStack m_undo;
     Cursor m_cursor;
+
+    /// Carets beyond the primary, in document order.
+    std::vector<Cursor> m_extraCursors;
 
     QString m_path;
     bool m_modified = false;

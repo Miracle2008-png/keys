@@ -87,6 +87,11 @@ class EditorViewModel : public QObject {
     /// view can mark it as unbalanced rather than simply not highlighting.
     Q_PROPERTY(bool bracketMatched READ isBracketMatched NOTIFY cursorChanged)
 
+    /// How many carets there are. The view draws extra ones only when this is
+    /// above 1, which is almost never - the cost of multi-cursor should be
+    /// nothing at all when it is not in use.
+    Q_PROPERTY(int cursorCount READ cursorCount NOTIFY cursorChanged)
+
 public:
     /// Takes the editor's resolved settings so indentation follows the user's
     /// preference. Passed in rather than looked up so the view model stays
@@ -172,6 +177,21 @@ public:
     [[nodiscard]] int matchLine() const { return m_bracketMatch.line; }
     [[nodiscard]] int matchColumn() const { return m_bracketMatch.column; }
     [[nodiscard]] bool isBracketMatched() const { return m_bracketMatched; }
+
+    [[nodiscard]] int cursorCount() const;
+
+    /// The columns of every caret on one line, for the view to draw. Empty on
+    /// a line with none, which is most of them.
+    Q_INVOKABLE QVariantList cursorsOnLine(int line) const;
+
+    /// Adds a caret above or below the outermost one, and drops all but the
+    /// primary. Escape clears, which is what every editor binds.
+    Q_INVOKABLE void addCursorAbove();
+    Q_INVOKABLE void addCursorBelow();
+    Q_INVOKABLE void clearExtraCursors();
+
+    /// Adds a caret at a point the user clicked, for Alt+Click.
+    Q_INVOKABLE void addCursorAt(int line, int column);
 
     // ---- Find and replace --------------------------------------------------
 

@@ -61,9 +61,30 @@ void UndoStack::push(const Edit& edit)
     ++m_index;
 
     // Only a single-character insertion can start a mergeable run.
+    if (m_grouping) {
+        // The first edit opens the step; the rest continue it.
+        m_edits.back().continuesGroup = m_groupStarted;
+        m_groupStarted = true;
+    }
+
     m_canMerge = edit.removedText.isEmpty()
                  && edit.insertedText.size() == 1
                  && !edit.insertedText.contains(QLatin1Char('\n'));
+}
+
+void UndoStack::beginGroup()
+{
+    // A group is its own step, never joined to the typing before it.
+    m_canMerge = false;
+    m_grouping = true;
+    m_groupStarted = false;
+}
+
+void UndoStack::endGroup()
+{
+    m_grouping = false;
+    m_groupStarted = false;
+    m_canMerge = false;
 }
 
 const Edit* UndoStack::undo()
@@ -77,6 +98,20 @@ const Edit* UndoStack::undo()
 
     --m_index;
     return &m_edits.at(static_cast<size_t>(m_index));
+}
+
+bool UndoStack::undoContinues() const
+{
+    // Whether the edit now at the top was part of the same group as the one
+    // just returned, so the caller knows to keep going.
+    return m_index > 0
+           && m_edits.at(static_cast<size_t>(m_index)).continuesGroup;
+}
+
+bool UndoStack::redoContinues() const
+{
+    return m_index < static_cast<int>(m_edits.size())
+           && m_edits.at(static_cast<size_t>(m_index)).continuesGroup;
 }
 
 const Edit* UndoStack::redo()

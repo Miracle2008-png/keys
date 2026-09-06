@@ -18,6 +18,7 @@ keys_add_test(extensions SOURCES ExtensionsTests.cpp DEPENDS extensions filesyst
 keys_add_test(budget     SOURCES BudgetTests.cpp     DEPENDS workspace search editor filesystem core project)
 keys_add_test(highlighter SOURCES HighlighterTests.cpp DEPENDS editor)
 keys_add_test(docsearch SOURCES DocumentSearchTests.cpp DEPENDS editor)
+keys_add_test(multicursor SOURCES MultiCursorTests.cpp DEPENDS editor)
 keys_add_test(highlightrender SOURCES HighlightRenderTests.cpp DEPENDS ui QT Gui Quick)
 keys_add_test(brackets SOURCES BracketTests.cpp DEPENDS ui)
 keys_add_test(theme      SOURCES ThemeTests.cpp      DEPENDS ui QT Gui Quick)

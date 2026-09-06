@@ -565,6 +565,56 @@ void EditorViewModel::updateBracketMatch()
     emit cursorChanged();
 }
 
+// ---- Additional carets ------------------------------------------------------
+
+int EditorViewModel::cursorCount() const
+{
+    return m_document ? m_document->cursorCount() : 0;
+}
+
+QVariantList EditorViewModel::cursorsOnLine(int line) const
+{
+    QVariantList result;
+    if (!m_document || !m_document->hasMultipleCursors()) {
+        return result;   // the ordinary case costs nothing
+    }
+
+    for (const editor::Cursor& cursor : m_document->cursors()) {
+        if (cursor.position.line == line) {
+            result.append(cursor.position.column);
+        }
+    }
+    return result;
+}
+
+void EditorViewModel::addCursorAbove()
+{
+    if (m_document) {
+        m_document->addCursorAbove();
+    }
+}
+
+void EditorViewModel::addCursorBelow()
+{
+    if (m_document) {
+        m_document->addCursorBelow();
+    }
+}
+
+void EditorViewModel::clearExtraCursors()
+{
+    if (m_document) {
+        m_document->clearExtraCursors();
+    }
+}
+
+void EditorViewModel::addCursorAt(int line, int column)
+{
+    if (m_document) {
+        m_document->addCursor(editor::Position{line, column});
+    }
+}
+
 QString EditorViewModel::languageName() const
 {
     // Named for the reader, not for the enumerator: "C++" rather than "C", and

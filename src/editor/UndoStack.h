@@ -22,6 +22,16 @@ struct Edit {
     /// elsewhere makes the user hunt for their place.
     Position cursorBefore;
     Position cursorAfter;
+
+    /// True when this edit continues the one below it in the stack, so undo
+    /// takes both back together.
+    ///
+    /// Coalescing handles a run of typing, but not a single action that
+    /// deliberately makes several edits at once - typing one character at four
+    /// carets is one thing the user did, and four presses of Ctrl+Z to take it
+    /// back would be absurd. Coalescing cannot express that: the edits are at
+    /// different places and would never merge.
+    bool continuesGroup = false;
 };
 
 /// Undo and redo for a document.
@@ -49,9 +59,20 @@ public:
     /// The edit to reapply, or nullptr if there is nothing to redo.
     [[nodiscard]] const Edit* redo();
 
+    /// Whether the next undo or redo belongs to the same group as the one just
+    /// returned. The document loops on these so a grouped action is taken back
+    /// in one press.
+    [[nodiscard]] bool undoContinues() const;
+    [[nodiscard]] bool redoContinues() const;
+
     /// Ends the current coalescing run, so the next edit starts a fresh step.
     /// Called on save, on a caret move, and when the document loses focus.
     void breakMergePoint() { m_canMerge = false; }
+
+    /// Opens and closes a group. Every edit pushed between the two is undone
+    /// and redone as one step, however far apart in the document they are.
+    void beginGroup();
+    void endGroup();
 
     void clear();
 
@@ -79,6 +100,11 @@ private:
 
     /// Whether the next insertion may join the previous one.
     bool m_canMerge = false;
+
+    /// Inside beginGroup()/endGroup(). The first edit of a group starts a new
+    /// step; every later one is marked as continuing it.
+    bool m_grouping = false;
+    bool m_groupStarted = false;
 };
 
 } // namespace keys::editor

@@ -1,5 +1,7 @@
 #include "editor/TextDocument.h"
 
+#include <algorithm>
+
 #include <QChar>
 
 namespace keys::editor {
@@ -36,6 +38,7 @@ void TextDocument::setText(const QString& text)
     m_buffer.setText(text);
     m_undo.clear();
     m_cursor = Cursor{};
+    m_extraCursors.clear();
 
     setModified(false);
 
@@ -67,6 +70,156 @@ void TextDocument::markSaved()
 {
     m_undo.markSavePoint();
     setModified(false);
+}
+
+// ---- Additional carets ------------------------------------------------------
+
+std::vector<Cursor> TextDocument::cursors() const
+{
+    std::vector<Cursor> all;
+    all.reserve(m_extraCursors.size() + 1);
+    all.push_back(m_cursor);
+    all.insert(all.end(), m_extraCursors.begin(), m_extraCursors.end());
+
+    std::sort(all.begin(), all.end(), [](const Cursor& a, const Cursor& b) {
+        return a.position < b.position;
+    });
+    return all;
+}
+
+void TextDocument::addCursor(const Position& position)
+{
+    const Position clamped = m_buffer.clamp(position);
+
+    // Two carets in one place would type every character twice.
+    if (clamped == m_cursor.position) {
+        return;
+    }
+    for (const Cursor& existing : m_extraCursors) {
+        if (existing.position == clamped) {
+            return;
+        }
+    }
+
+    Cursor cursor;
+    cursor.position = clamped;
+    cursor.anchor = clamped;
+    m_extraCursors.push_back(cursor);
+
+    emit cursorChanged();
+}
+
+void TextDocument::clearExtraCursors()
+{
+    if (m_extraCursors.empty()) {
+        return;
+    }
+    m_extraCursors.clear();
+    emit cursorChanged();
+}
+
+void TextDocument::addCursorBelow()
+{
+    // From the lowest caret, so repeating the shortcut walks down the file
+    // rather than adding the same caret again.
+    Position lowest = m_cursor.position;
+    for (const Cursor& cursor : m_extraCursors) {
+        if (lowest < cursor.position) {
+            lowest = cursor.position;
+        }
+    }
+    if (lowest.line + 1 < m_buffer.lineCount()) {
+        addCursor(Position{lowest.line + 1, lowest.column});
+    }
+}
+
+void TextDocument::addCursorAbove()
+{
+    Position highest = m_cursor.position;
+    for (const Cursor& cursor : m_extraCursors) {
+        if (cursor.position < highest) {
+            highest = cursor.position;
+        }
+    }
+    if (highest.line > 0) {
+        addCursor(Position{highest.line - 1, highest.column});
+    }
+}
+
+void TextDocument::forEachCursorReversed(const std::function<void(Cursor&)>& edit)
+{
+    if (m_extraCursors.empty()) {
+        edit(m_cursor);
+        return;
+    }
+
+    // Every caret in one list, applied from the bottom of the document upwards
+    // so that each edit happens at a position the ones before it have not moved.
+    std::vector<Cursor*> ordered;
+    ordered.reserve(m_extraCursors.size() + 1);
+    ordered.push_back(&m_cursor);
+    for (Cursor& cursor : m_extraCursors) {
+        ordered.push_back(&cursor);
+    }
+
+    std::sort(ordered.begin(), ordered.end(), [](const Cursor* a, const Cursor* b) {
+        return b->position < a->position;
+    });
+
+    // One undo step for the whole thing: typing a character at four carets is
+    // one action, and taking it back should be one press.
+    m_undo.breakMergePoint();
+    for (Cursor* cursor : ordered) {
+        edit(*cursor);
+    }
+}
+
+void TextDocument::applyAtEveryCursor(
+    const std::function<Range(const Cursor&)>& rangeFor, const QString& replacement)
+{
+    // Bottom-up, so each edit lands at a position the ones before it have not
+    // shifted. Going forwards, the second caret would already be stale.
+    std::vector<Cursor> ordered = cursors();
+    std::sort(ordered.begin(), ordered.end(), [](const Cursor& a, const Cursor& b) {
+        return b.position < a.position;
+    });
+
+    // One undo step for the lot: typing a character at four carets is one
+    // action, and taking it back should be one press of Ctrl+Z.
+    m_undo.beginGroup();
+
+    std::vector<Position> resulting;
+    resulting.reserve(ordered.size());
+
+    for (const Cursor& cursor : ordered) {
+        const Range target = rangeFor(cursor);
+        if (target.isEmpty() && replacement.isEmpty()) {
+            resulting.push_back(cursor.position);
+            continue;
+        }
+        applyEdit(target, replacement);
+        resulting.push_back(m_cursor.position);
+    }
+
+    m_undo.endGroup();
+
+    // applyEdit leaves m_cursor wherever the last edit finished; rebuild the
+    // full set from where each one actually ended up.
+    std::sort(resulting.begin(), resulting.end());
+
+    m_extraCursors.clear();
+    m_cursor.position = resulting.front();
+    m_cursor.anchor = resulting.front();
+    m_cursor.desiredColumn = -1;
+
+    for (size_t i = 1; i < resulting.size(); ++i) {
+        Cursor extra;
+        extra.position = resulting[i];
+        extra.anchor = resulting[i];
+        m_extraCursors.push_back(extra);
+    }
+
+    emit cursorChanged();
 }
 
 void TextDocument::applyEdit(const Range& range, const QString& replacement)
@@ -107,18 +260,39 @@ void TextDocument::applyEdit(const Range& range, const QString& replacement)
 
 void TextDocument::insertText(const QString& text)
 {
-    if (text.isEmpty() && !m_cursor.hasSelection()) {
+    if (m_extraCursors.empty()) {
+        if (text.isEmpty() && !m_cursor.hasSelection()) {
+            return;
+        }
+        const Range target = m_cursor.hasSelection()
+                                 ? m_cursor.selection()
+                                 : Range{m_cursor.position, m_cursor.position};
+        applyEdit(target, text);
         return;
     }
-
-    const Range target = m_cursor.hasSelection()
-                             ? m_cursor.selection()
-                             : Range{m_cursor.position, m_cursor.position};
-    applyEdit(target, text);
+    applyAtEveryCursor([&](const Cursor& cursor) {
+        return cursor.hasSelection() ? cursor.selection()
+                                     : Range{cursor.position, cursor.position};
+    }, text);
 }
 
 void TextDocument::deleteBackward()
 {
+    if (!m_extraCursors.empty()) {
+        applyAtEveryCursor([this](const Cursor& cursor) {
+            if (cursor.hasSelection()) {
+                return cursor.selection();
+            }
+            if (cursor.position.line == 0 && cursor.position.column == 0) {
+                return Range{cursor.position, cursor.position};  // nothing before
+            }
+            const Position previous =
+                m_buffer.positionOf(m_buffer.offsetOf(cursor.position) - 1);
+            return Range{previous, cursor.position};
+        }, QString());
+        return;
+    }
+
     if (m_cursor.hasSelection()) {
         applyEdit(m_cursor.selection(), QString());
         return;
@@ -137,6 +311,21 @@ void TextDocument::deleteBackward()
 
 void TextDocument::deleteForward()
 {
+    if (!m_extraCursors.empty()) {
+        applyAtEveryCursor([this](const Cursor& cursor) {
+            if (cursor.hasSelection()) {
+                return cursor.selection();
+            }
+            if (cursor.position == m_buffer.endPosition()) {
+                return Range{cursor.position, cursor.position};
+            }
+            const Position next =
+                m_buffer.positionOf(m_buffer.offsetOf(cursor.position) + 1);
+            return Range{cursor.position, next};
+        }, QString());
+        return;
+    }
+
     if (m_cursor.hasSelection()) {
         applyEdit(m_cursor.selection(), QString());
         return;
@@ -181,18 +370,36 @@ bool TextDocument::undo()
         return false;
     }
 
-    // Reverse it: put back what was removed, over what was inserted.
-    const Position start = edit->range.start;
-    const Position insertedEnd =
-        m_buffer.positionOf(m_buffer.offsetOf(start) + edit->insertedText.size());
+    Position restoreTo;
 
-    m_applyingHistory = true;
-    applyEdit(Range{start, insertedEnd}, edit->removedText);
-    m_applyingHistory = false;
+    // A grouped action - one keystroke applied at several carets, or a
+    // replace-all - is several edits that the user made as one thing, so undo
+    // keeps going until the group is exhausted.
+    for (;;) {
+        // Reverse it: put back what was removed, over what was inserted.
+        const Position start = edit->range.start;
+        const Position insertedEnd =
+            m_buffer.positionOf(m_buffer.offsetOf(start) + edit->insertedText.size());
+
+        m_applyingHistory = true;
+        applyEdit(Range{start, insertedEnd}, edit->removedText);
+        m_applyingHistory = false;
+
+        restoreTo = edit->cursorBefore;
+
+        if (!m_undo.undoContinues()) {
+            break;
+        }
+        edit = m_undo.undo();
+        if (!edit) {
+            break;
+        }
+    }
 
     // Restore the caret to where it was before the edit, so undo returns the
     // user to their place rather than to wherever the text happens to end.
-    m_cursor.position = m_buffer.clamp(edit->cursorBefore);
+    m_extraCursors.clear();
+    m_cursor.position = m_buffer.clamp(restoreTo);
     m_cursor.anchor = m_cursor.position;
 
     setModified(!m_undo.isAtSavePoint());
