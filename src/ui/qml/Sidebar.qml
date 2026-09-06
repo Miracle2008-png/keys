@@ -68,24 +68,40 @@ Item {
                 width: parent.width
                 height: parent.height - Metrics.spacingLarge - Metrics.spacingSmall
 
-                ExplorerPanel {
+                FadeLayer {
                     anchors.fill: parent
-                    visible: App.activeView === "explorer" && App.hasProject
+                    shown: App.activeView === "explorer" && App.hasProject
+
+                    ExplorerPanel {
+                        anchors.fill: parent
+                    }
                 }
 
-                SourceControlPanel {
+                FadeLayer {
                     anchors.fill: parent
-                    visible: App.activeView === "sourceControl" && App.hasProject
+                    shown: App.activeView === "sourceControl" && App.hasProject
+
+                    SourceControlPanel {
+                        anchors.fill: parent
+                    }
                 }
 
-                RunPanel {
+                FadeLayer {
                     anchors.fill: parent
-                    visible: App.activeView === "debug" && App.hasProject
+                    shown: App.activeView === "debug" && App.hasProject
+
+                    RunPanel {
+                        anchors.fill: parent
+                    }
                 }
 
-                ExtensionsPanel {
+                FadeLayer {
                     anchors.fill: parent
-                    visible: App.activeView === "extensions" && App.hasProject
+                    shown: App.activeView === "extensions" && App.hasProject
+
+                    ExtensionsPanel {
+                        anchors.fill: parent
+                    }
                 }
 
                 Text {

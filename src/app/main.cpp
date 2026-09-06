@@ -23,6 +23,7 @@
 #include "vcs/Repository.h"
 #include "workspace/Workspace.h"
 
+#include <QFontDatabase>
 #include <QGuiApplication>
 #include <QDir>
 #include <QIcon>
@@ -113,6 +114,27 @@ int main(int argc, char* argv[])
     // executable also carries the icon as a resource, which is what Explorer and
     // pinned shortcuts use; both come from the same rendered mark.
     QGuiApplication::setWindowIcon(QIcon(QStringLiteral(":/branding/generated/keys-256.png")));
+
+    // Fonts are registered before the QML engine starts, so the first frame is
+    // already correct. Loading them later would show one frame in the fallback
+    // face and then reflow, which reads as the application booting twice.
+    //
+    // A face that fails to register is reported and skipped rather than being
+    // fatal: Keys still runs in the platform's own fonts, and a missing italic
+    // should not stop someone editing a file.
+    for (const QString& face : {
+             QStringLiteral(":/fonts/Inter-Regular.otf"),
+             QStringLiteral(":/fonts/Inter-SemiBold.otf"),
+             QStringLiteral(":/fonts/Inter-Italic.otf"),
+             QStringLiteral(":/fonts/JetBrainsMono-Regular.ttf"),
+             QStringLiteral(":/fonts/JetBrainsMono-Medium.ttf"),
+             QStringLiteral(":/fonts/JetBrainsMono-Bold.ttf"),
+             QStringLiteral(":/fonts/JetBrainsMono-Italic.ttf"),
+         }) {
+        if (QFontDatabase::addApplicationFont(face) < 0) {
+            qCWarning(lcUi) << "could not load bundled font" << face;
+        }
+    }
 
     // Keys draws its own chrome from the design's tokens; a platform style would
     // fight it. Basic is the neutral, non-styling baseline.

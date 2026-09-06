@@ -6,22 +6,13 @@ import Keys.Ui
 ///
 /// Carries the version and the Qt build, because those are the two things
 /// somebody reporting a problem is asked for.
-Dialog {
+KeysDialog {
     id: root
 
-    parent: Overlay.overlay
-    anchors.centerIn: parent
-    width: 380
-    modal: true
-    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     padding: Metrics.spacingLarge
 
-    background: Rectangle {
-        color: Theme.bgElevated
-        border.width: 1
-        border.color: Theme.borderStrong
-        radius: Metrics.radiusLarge
-    }
+    width: 380
+
 
     contentItem: Column {
         spacing: Metrics.spacingSmall

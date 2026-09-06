@@ -24,6 +24,37 @@ Menu {
         radius: Metrics.radiusMedium
     }
 
+    // Quick, and from near rather than from nothing: a menu is on the way to
+    // something else, so the motion confirms it opened without delaying the
+    // choice. The exit is faster still - waiting to dismiss is worse than
+    // waiting to see.
+    enter: Transition {
+        NumberAnimation {
+            property: "opacity"
+            from: 0.0
+            to: 1.0
+            duration: App.fastAnimationDuration
+            easing.type: Easing.OutCubic
+        }
+        NumberAnimation {
+            property: "scale"
+            from: 0.97
+            to: 1.0
+            duration: App.fastAnimationDuration
+            easing.type: Easing.OutCubic
+        }
+    }
+
+    exit: Transition {
+        NumberAnimation {
+            property: "opacity"
+            from: 1.0
+            to: 0.0
+            duration: App.fastAnimationDuration
+            easing.type: Easing.InCubic
+        }
+    }
+
     delegate: MenuItem {
         id: item
 

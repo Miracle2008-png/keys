@@ -16,7 +16,20 @@ Rectangle {
     property real caretY: 0
     property real lineHeight: 18
 
-    visible: Language.completionVisible && Language.count > 0
+    // Driven by opacity rather than by `visible` alone, so the popup can fade
+    // rather than blink. It appears while the user is typing - the one place in
+    // the editor where a hard snap is most noticeable and least wanted.
+    readonly property bool shown: Language.completionVisible && Language.count > 0
+
+    visible: opacity > 0
+    opacity: shown ? 1 : 0
+
+    Behavior on opacity {
+        NumberAnimation {
+            duration: App.fastAnimationDuration
+            easing.type: Easing.OutCubic
+        }
+    }
 
     width: 340
     height: Math.min(240, list.contentHeight + 8)

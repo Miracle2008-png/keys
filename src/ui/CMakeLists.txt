@@ -57,10 +57,12 @@ qt_add_qml_module(keys_ui
         qml/ErrorToast.qml
         qml/ExplorerContextMenu.qml
         qml/ExplorerPanel.qml
+        qml/FadeLayer.qml
         qml/FolderPicker.qml
         qml/Icon.qml
         qml/IconButton.qml
         qml/Keycap.qml
+        qml/KeysDialog.qml
         qml/NameDialog.qml
         qml/PrimaryButton.qml
         qml/SectionLabel.qml
@@ -105,6 +107,22 @@ qt_add_resources(keys_ui "keys_branding"
     FILES
         "${CMAKE_SOURCE_DIR}/resources/icons/keys-mark.svg"
         "${CMAKE_SOURCE_DIR}/resources/icons/generated/keys-256.png"
+)
+
+# Fonts travel inside the binary rather than beside it. A font that fails to
+# install is a product that looks different on one machine than another, and the
+# first frame is drawn before any on-disk font could be registered anyway.
+qt_add_resources(keys_ui "keys_fonts"
+    PREFIX "/fonts"
+    BASE "${CMAKE_SOURCE_DIR}/resources/fonts"
+    FILES
+        "${CMAKE_SOURCE_DIR}/resources/fonts/Inter-Regular.otf"
+        "${CMAKE_SOURCE_DIR}/resources/fonts/Inter-SemiBold.otf"
+        "${CMAKE_SOURCE_DIR}/resources/fonts/Inter-Italic.otf"
+        "${CMAKE_SOURCE_DIR}/resources/fonts/JetBrainsMono-Regular.ttf"
+        "${CMAKE_SOURCE_DIR}/resources/fonts/JetBrainsMono-Medium.ttf"
+        "${CMAKE_SOURCE_DIR}/resources/fonts/JetBrainsMono-Bold.ttf"
+        "${CMAKE_SOURCE_DIR}/resources/fonts/JetBrainsMono-Italic.ttf"
 )
 
 # The About box reports the version, so the UI needs it too - not only the

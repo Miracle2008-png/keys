@@ -8,7 +8,7 @@ import Keys.Ui
 /// not know that, and a folder full of work vanishing on a stray click is
 /// alarming regardless of recoverability. The message names the destination, so
 /// the confirmation informs rather than trains a reflex click.
-Dialog {
+KeysDialog {
     id: root
 
     property string targetPath: ""
@@ -16,21 +16,10 @@ Dialog {
     readonly property string targetName:
         targetPath.substring(targetPath.lastIndexOf("/") + 1)
 
-    parent: Overlay.overlay
-    anchors.centerIn: parent
     width: 400
-    modal: true
-    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-    padding: Metrics.spacingMedium
 
     title: qsTr("Delete")
 
-    background: Rectangle {
-        color: Theme.bgElevated
-        border.width: 1
-        border.color: Theme.borderStrong
-        radius: Metrics.radiusLarge
-    }
 
     header: Text {
         text: root.title

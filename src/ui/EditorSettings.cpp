@@ -64,17 +64,12 @@ QString EditorSettings::fontFamily() const
         return m_fontFamily;
     }
 
-    // Empty means "the platform's monospace face". Resolved here rather than in
-    // QML so the fallback is one decision instead of one per view, and so a
-    // machine without the named font still gets a monospaced editor. These match
-    // Fonts.qml, which serves the chrome.
-#if defined(Q_OS_WIN)
-    return QStringLiteral("Cascadia Mono");
-#elif defined(Q_OS_MACOS)
-    return QStringLiteral("SF Mono");
-#else
+    // Empty means "the face Keys ships". JetBrains Mono is bundled and
+    // registered at startup, so it resolves on every platform - the editor no
+    // longer inherits whatever monospaced font a machine happens to have, and
+    // code looks the same everywhere. Resolved here rather than in QML so the
+    // default is one decision instead of one per view.
     return QStringLiteral("JetBrains Mono");
-#endif
 }
 
 QString EditorSettings::indentString() const

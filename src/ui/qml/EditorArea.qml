@@ -17,15 +17,23 @@ Rectangle {
     readonly property int dividerWidth: 1
     readonly property real minimumPaneWidth: 240
 
-    WelcomeView {
-        id: welcome
-
+    // The three things this area can show cross-fade rather than replacing each
+    // other in one frame. Opening a project changes the whole window, and doing
+    // that instantly reads as the application restarting.
+    FadeLayer {
         anchors.fill: parent
-        visible: !App.hasProject && !App.settingsOpen
+        shown: !App.hasProject && !App.settingsOpen
 
-        // Forwarded rather than answered here: the dialogs live on the window,
-        // so one set serves the menu, the palette and this screen alike.
-        onNewProjectRequested: root.newProjectRequested()
+        WelcomeView {
+            id: welcome
+
+            anchors.fill: parent
+
+            // Forwarded rather than answered here: the dialogs live on the
+            // window, so one set serves the menu, the palette and this screen
+            // alike.
+            onNewProjectRequested: root.newProjectRequested()
+        }
     }
 
     /// Raised by the welcome screen when the user wants a new folder to work in.
@@ -40,14 +48,18 @@ Rectangle {
     // Settings take the whole editor area rather than opening as a tab: the page
     // is not a document, and giving it a tab would imply it can be split,
     // reordered and saved alongside files.
-    SettingsPanel {
+    FadeLayer {
         anchors.fill: parent
-        visible: App.settingsOpen
+        shown: App.settingsOpen
+
+        SettingsPanel {
+            anchors.fill: parent
+        }
     }
 
-    Item {
+    FadeLayer {
         anchors.fill: parent
-        visible: App.hasProject && !App.settingsOpen
+        shown: App.hasProject && !App.settingsOpen
 
         EditorPane {
             id: firstPane

@@ -7,7 +7,7 @@ import Keys.Ui
 /// One dialog for create-file, create-folder and rename, because the three ask
 /// the same question and differ only in their title and what they do with the
 /// answer. Three near-identical dialogs would drift apart.
-Dialog {
+KeysDialog {
     id: root
 
     enum Mode { CreateFile, CreateFolder, Rename }
@@ -17,12 +17,7 @@ Dialog {
 
     // Anchored to the window rather than the panel, so a long name is not
     // clipped by a narrow sidebar.
-    parent: Overlay.overlay
-    anchors.centerIn: parent
     width: 380
-    modal: true
-    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-    padding: Metrics.spacingMedium
 
     title: switch (mode) {
         case NameDialog.CreateFile:   return qsTr("New File");
@@ -30,12 +25,6 @@ Dialog {
         default:                      return qsTr("Rename");
     }
 
-    background: Rectangle {
-        color: Theme.bgElevated
-        border.width: 1
-        border.color: Theme.borderStrong
-        radius: Metrics.radiusLarge
-    }
 
     header: Text {
         text: root.title

@@ -8,7 +8,7 @@ import Keys.Ui
 /// system trash and is recoverable, while discarding overwrites the working tree
 /// from the index and is not. The wording has to say so, and a shared dialog
 /// with a swappable message would blur exactly the distinction that matters.
-Dialog {
+KeysDialog {
     id: root
 
     property string targetPath: ""
@@ -18,21 +18,10 @@ Dialog {
 
     signal discardConfirmed(string path)
 
-    parent: Overlay.overlay
-    anchors.centerIn: parent
     width: 400
-    modal: true
-    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-    padding: Metrics.spacingMedium
 
     title: qsTr("Discard changes")
 
-    background: Rectangle {
-        color: Theme.bgElevated
-        border.width: 1
-        border.color: Theme.borderStrong
-        radius: Metrics.radiusLarge
-    }
 
     header: Text {
         text: root.title
