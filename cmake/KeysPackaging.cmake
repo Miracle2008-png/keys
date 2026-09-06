@@ -111,6 +111,37 @@ install(CODE "
 #                          rasteriser could not run the editor acceptably
 #                          anyway, so shipping it trades 20 MB for a path
 #                          nobody would want to be on.
+
+# The Direct3D shader compilers.
+#
+# windeployqt reports "Cannot find any version of the dxcompiler.dll and
+# dxil.dll" and carries on, so the package builds cleanly and then installs an
+# application that creates a window and draws nothing into it: Qt's D3D11
+# backend cannot compile a shader without them, and the failure is silent - no
+# dialog, no log, just an empty window.
+#
+# --no-system-d3d-compiler above skips the legacy D3DCompiler_47.dll and does
+# not cover these two; dropping that flag would pull in the old compiler Keys
+# does not use.
+#
+# A separate install(CODE) using a quoted string rather than a bracket literal,
+# because the build directory has to be substituted now - at install time it is
+# not defined.
+install(CODE "
+    foreach(shader_dll dxcompiler.dll dxil.dll)
+        if(EXISTS \"${CMAKE_BINARY_DIR}/bin/\${shader_dll}\")
+            file(COPY \"${CMAKE_BINARY_DIR}/bin/\${shader_dll}\"
+                 DESTINATION \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}\")
+            message(STATUS \"Packaging: bundled \${shader_dll}\")
+        else()
+            message(WARNING
+                \"Packaging: \${shader_dll} was not found beside the built \"
+                \"executable. The installed application would start and render \"
+                \"nothing.\")
+        endif()
+    endforeach()
+")
+
 install(CODE [[
     set(keys_unwanted_directories
         "plugins/qmltooling"

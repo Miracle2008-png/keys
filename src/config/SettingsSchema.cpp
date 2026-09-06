@@ -184,6 +184,30 @@ void SettingsSchema::defineBuiltins()
             .group = QStringLiteral("Workbench"),
             .title = QStringLiteral("Active view"),
             .userVisible = false});
+
+    // ---- Updates ----------------------------------------------------------
+    // Declared here rather than written straight to the file so the opt-out is
+    // a real setting: undeclared keys are refused by setValue, which meant the
+    // switch appeared to work and persisted nothing.
+    define({.key = QStringLiteral("updates.checkAutomatically"),
+            .defaultValue = true,
+            .scope = SettingScope::Application,
+            .description = QStringLiteral(
+                "Check once a day whether a newer release of Keys exists. "
+                "This is the only outbound request Keys makes; turning it off "
+                "means no request is sent."),
+            .group = QStringLiteral("Updates"),
+            .title = QStringLiteral("Check for updates automatically")});
+
+    // When the last check ran, so a launch does not re-check what was checked
+    // an hour ago. State, not preference - hence not user-visible.
+    define({.key = QStringLiteral("updates.lastCheck"),
+            .defaultValue = QString(),
+            .scope = SettingScope::Application,
+            .description = QStringLiteral("When the last update check ran"),
+            .group = QStringLiteral("Updates"),
+            .title = QStringLiteral("Last update check"),
+            .userVisible = false});
 }
 
 } // namespace keys::config

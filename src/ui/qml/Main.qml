@@ -169,10 +169,15 @@ Window {
     UpdateNotice {
         id: updateNotice
 
+        // Anchored to the window, clear of the status bar by its height.
+        // `statusBar.top` is not reachable from here - the status bar lives
+        // inside the layout Column and this is a direct child of the window,
+        // so they are not siblings. QML reports that as a warning nobody sees
+        // and leaves the item without geometry.
         anchors.right: parent.right
-        anchors.bottom: statusBar.top
+        anchors.bottom: parent.bottom
         anchors.rightMargin: Metrics.spacingLarge
-        anchors.bottomMargin: Metrics.spacingLarge
+        anchors.bottomMargin: Metrics.statusBarHeight + Metrics.spacingLarge
         z: 50
     }
 

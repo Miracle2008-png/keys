@@ -49,11 +49,10 @@ QString UpdateChecker::currentVersion() const
 
 bool UpdateChecker::isEnabled() const
 {
-    // On by default. An editor that never mentions a security fix because the
-    // check defaulted to off is not being respectful, it is being useless -
-    // and it is one request a day that the user can switch off.
-    const QVariant value = m_settings.value(QLatin1String(kEnabledKey));
-    return value.isValid() ? value.toBool() : true;
+    // On by default, per the schema. An editor that never mentions a security
+    // fix because the check defaulted to off is not being respectful, it is
+    // being useless - and it is one request a day the user can switch off.
+    return m_settings.boolValue(QLatin1String(kEnabledKey));
 }
 
 void UpdateChecker::setEnabled(bool enabled)
