@@ -105,7 +105,7 @@ private slots:
 
         QVERIFY2(html.contains(QStringLiteral("&lt;b&gt;")), qPrintable(html));
         // The span is real markup and must survive.
-        QVERIFY2(html.contains(QStringLiteral("<span")), qPrintable(html));
+        QVERIFY2(html.contains(QStringLiteral("<font")), qPrintable(html));
     }
 
     void escapesAnUnhighlightedLineToo()
@@ -118,7 +118,7 @@ private slots:
 
         QVERIFY2(html.contains(QStringLiteral("&lt;")), qPrintable(html));
         QVERIFY2(html.contains(QStringLiteral("&amp;")), qPrintable(html));
-        QVERIFY2(!html.contains(QStringLiteral("<span")), qPrintable(html));
+        QVERIFY2(!html.contains(QStringLiteral("<font")), qPrintable(html));
     }
 
     // ---- Colouring ---------------------------------------------------------
@@ -128,7 +128,7 @@ private slots:
         const QString html =
             render(QStringLiteral("a.cpp"), QStringLiteral("return value;"));
 
-        QVERIFY2(html.contains(QStringLiteral("<span style=\"color:")), qPrintable(html));
+        QVERIFY2(html.contains(QStringLiteral("<font color=\"")), qPrintable(html));
         QVERIFY2(html.contains(QStringLiteral("return")), qPrintable(html));
     }
 
@@ -148,6 +148,28 @@ private slots:
 
         (void)render(QStringLiteral("notes.xyz"), QStringLiteral("int x;"));
         QVERIFY(!m_model->isHighlighted());
+    }
+
+    void detectsTheLanguageWhenThePathArrivesAfterTheDocument()
+    {
+        // The order the workspace actually uses: EditorGroup creates the
+        // document, binds it to the view, and only then sets its path. Detecting
+        // the language once at bind time leaves every file unhighlighted,
+        // because the path is still empty - which is exactly what shipped and
+        // what no test caught, since the others set the path first.
+        m_model->setDocument(nullptr);
+
+        m_document = std::make_unique<TextDocument>();
+        m_document->setText(QStringLiteral("return value;"));
+
+        m_model->setDocument(m_document.get());
+        QVERIFY(!m_model->isHighlighted());   // no path yet
+
+        m_document->setPath(QStringLiteral("a.cpp"));
+        QVERIFY2(m_model->isHighlighted(),
+                 "the language must be re-detected when the path arrives");
+
+        QVERIFY(m_model->highlightedLine(0).contains(QStringLiteral("<font")));
     }
 
     // ---- Content preservation ----------------------------------------------
@@ -171,8 +193,8 @@ private slots:
 
             // Remove spans, then unescape.
             QString plain = html;
-            plain.remove(QRegularExpression(QStringLiteral("<span[^>]*>")));
-            plain.remove(QStringLiteral("</span>"));
+            plain.remove(QRegularExpression(QStringLiteral("<font[^>]*>")));
+            plain.remove(QStringLiteral("</font>"));
             plain.replace(QStringLiteral("&lt;"), QStringLiteral("<"));
             plain.replace(QStringLiteral("&gt;"), QStringLiteral(">"));
             plain.replace(QStringLiteral("&quot;"), QStringLiteral("\""));

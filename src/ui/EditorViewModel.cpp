@@ -42,14 +42,7 @@ void EditorViewModel::setDocument(editor::TextDocument* document)
         });
     }
 
-    // The language is chosen from the path, and the cached line states belong
-    // to the previous document.
-    m_lineStates.clear();
-    m_highlighter.setLanguage(
-        m_document ? editor::SyntaxHighlighter::languageForPath(m_document->path())
-                   : editor::SyntaxHighlighter::Language::None);
-    m_highlighted =
-        m_highlighter.language() != editor::SyntaxHighlighter::Language::None;
+    applyLanguage();
 
     if (m_document) {
         connect(m_document, &editor::TextDocument::contentsChanged, this,
@@ -69,8 +62,16 @@ void EditorViewModel::setDocument(editor::TextDocument* document)
                 this, &EditorViewModel::cursorChanged);
         connect(m_document, &editor::TextDocument::modifiedChanged,
                 this, &EditorViewModel::modifiedChanged);
-        connect(m_document, &editor::TextDocument::pathChanged,
-                this, &EditorViewModel::documentChanged);
+        // The language follows the path, and the path can arrive *after* the
+        // document is bound: EditorGroup creates the document, hands it to the
+        // view, and only then sets its path. Re-detecting here is what makes
+        // highlighting appear at all - computing it once in setDocument left
+        // every file unhighlighted, because the path was still empty.
+        connect(m_document, &editor::TextDocument::pathChanged, this,
+                [this] {
+                    applyLanguage();
+                    emit documentChanged();
+                });
     }
 
     emit documentChanged();
@@ -117,6 +118,18 @@ QString EditorViewModel::fileName() const
 QString EditorViewModel::lineText(int line) const
 {
     return m_document ? m_document->line(line) : QString();
+}
+
+void EditorViewModel::applyLanguage()
+{
+    // The cached line states belong to whatever was highlighted before.
+    m_lineStates.clear();
+
+    m_highlighter.setLanguage(
+        m_document ? editor::SyntaxHighlighter::languageForPath(m_document->path())
+                   : editor::SyntaxHighlighter::Language::None);
+    m_highlighted =
+        m_highlighter.language() != editor::SyntaxHighlighter::Language::None;
 }
 
 QString EditorViewModel::colourFor(editor::TokenKind kind)
@@ -205,7 +218,12 @@ QString EditorViewModel::highlightedLine(int line) const
         if (colour.isEmpty()) {
             html += body;
         } else {
-            html += QStringLiteral("<span style=\"color:%1\">%2</span>").arg(colour, body);
+            // <font color> rather than a CSS span: Text.StyledText supports only
+            // a small HTML subset and ignores style attributes entirely, so a
+            // span renders as plain text with the markup silently dropped. That
+            // is exactly what shipped - the model was producing correct HTML
+            // that the view could not read.
+            html += QStringLiteral("<font color=\"%1\">%2</font>").arg(colour, body);
         }
         position = token.start + token.length;
     }

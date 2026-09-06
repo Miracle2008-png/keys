@@ -130,6 +130,9 @@ private:
     /// Plain, which needs no span at all.
     [[nodiscard]] static QString colourFor(editor::TokenKind kind);
 
+    /// Picks the highlighter's language from the document's current path.
+    void applyLanguage();
+
     editor::SyntaxHighlighter m_highlighter;
     bool m_highlighted = false;
 
