@@ -21,6 +21,28 @@ enum class TokenKind {
     Comment,
     Function,
     Punctuation,
+
+    /// `#include`, `#define`, and the rest of the C preprocessor. Its own kind
+    /// because it is not the language proper - it reads as scaffolding around
+    /// the code, and colouring it as a keyword makes a header block look like
+    /// a wall of control flow.
+    Preprocessor,
+
+    /// `true`, `nullptr`, `None`, and screaming-case names. A literal that is
+    /// not a number or a string still reads as a value rather than an action,
+    /// and separating it is most of what makes a condition scannable.
+    Constant,
+
+    /// Operators, as distinct from brackets and separators. Kept apart from
+    /// Punctuation so structure stays quiet while the arithmetic and logic in
+    /// a line stand out.
+    Operator,
+
+    /// A markup element name, and the attribute names inside it. HTML and XML
+    /// have no keywords; the tag *is* the structure, so it is what has to be
+    /// visible.
+    Tag,
+    Attribute,
 };
 
 /// One run of characters sharing a kind, as [start, start + length) in UTF-16
@@ -39,6 +61,15 @@ struct Token {
 enum class LineState {
     Normal,
     InBlockComment,
+
+    /// Inside a `<!-- -->`. Markup comments do not nest and do not share the
+    /// block-comment terminator, so they need their own state rather than
+    /// borrowing one that closes on `*/`.
+    InMarkupComment,
+
+    /// Inside a tag whose `>` has not arrived yet - an element with enough
+    /// attributes to wrap is ordinary in HTML.
+    InTag,
 };
 
 /// Colours one line at a time.
@@ -64,12 +95,21 @@ public:
         None,
         C,          ///< also C++, which shares the lexical shape
         Python,
-        JavaScript, ///< also TypeScript and JSON, close enough lexically
+        JavaScript, ///< also JSON, close enough lexically
+        TypeScript, ///< JavaScript plus the type-level keywords
         Rust,
         Go,
         Qml,
         Markdown,
         Shell,
+        Java,
+        Ruby,
+        Html,       ///< also XML: the same tag-and-attribute shape
+        Css,
+        Yaml,
+        Toml,       ///< also INI, which is a subset of its shape
+        Sql,
+        CMake,
     };
 
     /// The language for a path, or None when Keys has no rules for it.
@@ -95,6 +135,25 @@ private:
     /// no comment of that shape.
     [[nodiscard]] QString lineCommentPrefix() const;
     [[nodiscard]] bool hasBlockComments() const;
+
+    /// Whether identifiers are matched without regard to case. SQL keywords are
+    /// written both ways in real code and colouring only one is worse than
+    /// colouring neither.
+    [[nodiscard]] bool isCaseInsensitive() const;
+
+    /// Languages whose structure is markup rather than statements. These take
+    /// their own path through tokenize; running them through the identifier
+    /// loop would colour attribute values as if they were code.
+    [[nodiscard]] bool isMarkup() const;
+
+    /// Tokenises markup: `<tag attribute="value">`, with entities and comments.
+    void tokenizeMarkup(const QString& line, LineState incoming, LineState& outgoing,
+                        std::vector<Token>& tokens) const;
+
+    /// Tokenises CSS, where a name before a colon is a property and the text
+    /// before a brace is a selector - neither of which is a keyword.
+    void tokenizeCss(const QString& line, LineState incoming, LineState& outgoing,
+                     std::vector<Token>& tokens) const;
 
     Language m_language = Language::None;
 };

@@ -163,6 +163,16 @@ QString EditorViewModel::colourFor(editor::TokenKind kind)
         return theme->synFunction().name();
     case editor::TokenKind::Punctuation:
         return theme->synPunct().name();
+    case editor::TokenKind::Preprocessor:
+        return theme->synPreproc().name();
+    case editor::TokenKind::Constant:
+        return theme->synConstant().name();
+    case editor::TokenKind::Operator:
+        return theme->synOperator().name();
+    case editor::TokenKind::Tag:
+        return theme->synTag().name();
+    case editor::TokenKind::Attribute:
+        return theme->synAttribute().name();
     case editor::TokenKind::Plain:
         break;
     }

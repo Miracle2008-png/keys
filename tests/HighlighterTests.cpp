@@ -2,6 +2,8 @@
 
 #include <QTest>
 
+#include <tuple>
+
 using namespace keys::editor;
 
 /// Lexical highlighting.
@@ -274,6 +276,302 @@ private slots:
                 previousEnd = token.start + token.length;
             }
         }
+    }
+
+
+    // ---- The wider token set -----------------------------------------------
+
+    void coloursPreprocessorDirectivesApartFromKeywords()
+    {
+        // A header block is scaffolding around the code, not control flow, and
+        // colouring it as a keyword makes the top of every file read as a wall.
+        QCOMPARE(kindOf(QStringLiteral("#include <vector>"), QStringLiteral("#include"),
+                        SyntaxHighlighter::Language::C),
+                 TokenKind::Preprocessor);
+        QCOMPARE(kindOf(QStringLiteral("#define MAX 10"), QStringLiteral("#define"),
+                        SyntaxHighlighter::Language::C),
+                 TokenKind::Preprocessor);
+    }
+
+    void aHashOutsideTheLeadingPositionIsNotADirective()
+    {
+        // `#` is only a directive at the start of a line. Anywhere else it is
+        // an operator, and treating it otherwise would recolour the remainder.
+        QVERIFY(kindOf(QStringLiteral("int a = b # c;"), QStringLiteral("#"), SyntaxHighlighter::Language::C)
+                != TokenKind::Preprocessor);
+    }
+
+    void coloursLiteralValuesAsConstants()
+    {
+        // `true` and `nullptr` are reserved words, but they read as values
+        // rather than actions - a condition is easier to scan when its
+        // operands and its operators do not share a colour.
+        QCOMPARE(kindOf(QStringLiteral("if (ready == true) {"), QStringLiteral("true"),
+                        SyntaxHighlighter::Language::C),
+                 TokenKind::Constant);
+        QCOMPARE(kindOf(QStringLiteral("p = nullptr;"), QStringLiteral("nullptr"),
+                        SyntaxHighlighter::Language::C),
+                 TokenKind::Constant);
+        QCOMPARE(kindOf(QStringLiteral("if x is None:"), QStringLiteral("None"),
+                        SyntaxHighlighter::Language::Python),
+                 TokenKind::Constant);
+    }
+
+    void coloursScreamingCaseAsAConstant()
+    {
+        QCOMPARE(kindOf(QStringLiteral("int n = MAX_SIZE;"), QStringLiteral("MAX_SIZE"),
+                        SyntaxHighlighter::Language::C),
+                 TokenKind::Constant);
+    }
+
+    void aSingleCapitalIsNotAConstant()
+    {
+        // One character is a type parameter or a loop variable far more often
+        // than it is a constant.
+        QVERIFY(kindOf(QStringLiteral("template <typename T> void f(T x);"), QStringLiteral("T"),
+                       SyntaxHighlighter::Language::C)
+                != TokenKind::Constant);
+    }
+
+    void separatesOperatorsFromBrackets()
+    {
+        QCOMPARE(kindOf(QStringLiteral("a += b;"), QStringLiteral("+="), SyntaxHighlighter::Language::C),
+                 TokenKind::Operator);
+        QCOMPARE(kindOf(QStringLiteral("f(a);"), QStringLiteral("("), SyntaxHighlighter::Language::C),
+                 TokenKind::Punctuation);
+    }
+
+    void amultiCharacterOperatorIsOneToken()
+    {
+        // `!=` coloured character by character would flicker as it is typed.
+        const SyntaxHighlighter highlighter(SyntaxHighlighter::Language::C);
+        LineState outgoing = LineState::Normal;
+        const std::vector<Token> tokens =
+            highlighter.tokenize(QStringLiteral("if (a != b) {"), LineState::Normal, outgoing);
+
+        const int at = static_cast<int>(QStringLiteral("if (a != b) {").indexOf(QStringLiteral("!=")));
+        bool found = false;
+        for (const Token& token : tokens) {
+            if (token.start == at) {
+                QCOMPARE(token.kind, TokenKind::Operator);
+                QCOMPARE(token.length, 2);
+                found = true;
+            }
+        }
+        QVERIFY2(found, "the operator was not a token of its own");
+    }
+
+    // ---- The added languages -----------------------------------------------
+
+    void detectsTheAddedFileTypes()
+    {
+        QCOMPARE(SyntaxHighlighter::languageForPath(QStringLiteral("a.java")),
+                 SyntaxHighlighter::Language::Java);
+        QCOMPARE(SyntaxHighlighter::languageForPath(QStringLiteral("a.rb")),
+                 SyntaxHighlighter::Language::Ruby);
+        QCOMPARE(SyntaxHighlighter::languageForPath(QStringLiteral("a.html")),
+                 SyntaxHighlighter::Language::Html);
+        QCOMPARE(SyntaxHighlighter::languageForPath(QStringLiteral("a.css")),
+                 SyntaxHighlighter::Language::Css);
+        QCOMPARE(SyntaxHighlighter::languageForPath(QStringLiteral("a.yml")),
+                 SyntaxHighlighter::Language::Yaml);
+        QCOMPARE(SyntaxHighlighter::languageForPath(QStringLiteral("a.toml")),
+                 SyntaxHighlighter::Language::Toml);
+        QCOMPARE(SyntaxHighlighter::languageForPath(QStringLiteral("a.sql")),
+                 SyntaxHighlighter::Language::Sql);
+    }
+
+    void typeScriptGetsItsOwnKeywords()
+    {
+        // `.ts` used to be lexed as JavaScript, which left the type-level words
+        // plain - the half of the language a TypeScript file is written for.
+        QCOMPARE(SyntaxHighlighter::languageForPath(QStringLiteral("a.ts")),
+                 SyntaxHighlighter::Language::TypeScript);
+        QCOMPARE(kindOf(QStringLiteral("declare const x: string;"), QStringLiteral("declare"),
+                        SyntaxHighlighter::Language::TypeScript),
+                 TokenKind::Keyword);
+
+        // And it still knows everything JavaScript does.
+        QCOMPARE(kindOf(QStringLiteral("const x = 1;"), QStringLiteral("const"),
+                        SyntaxHighlighter::Language::TypeScript),
+                 TokenKind::Keyword);
+    }
+
+    void detectsFilesNamedRatherThanSuffixed()
+    {
+        // CMakeLists.txt has no usable extension, and it is the file a user of
+        // this project opens most often after the sources themselves.
+        QCOMPARE(SyntaxHighlighter::languageForPath(QStringLiteral("CMakeLists.txt")),
+                 SyntaxHighlighter::Language::CMake);
+        QCOMPARE(SyntaxHighlighter::languageForPath(
+                     QStringLiteral("C:/project/CMakeLists.txt")),
+                 SyntaxHighlighter::Language::CMake);
+        QCOMPARE(SyntaxHighlighter::languageForPath(QStringLiteral("Dockerfile")),
+                 SyntaxHighlighter::Language::Shell);
+    }
+
+    void aPlainTextFileIsStillLeftAlone()
+    {
+        // The name map must not turn every .txt into CMake.
+        QCOMPARE(SyntaxHighlighter::languageForPath(QStringLiteral("notes.txt")),
+                 SyntaxHighlighter::Language::None);
+    }
+
+    void coloursJavaAndRuby()
+    {
+        QCOMPARE(kindOf(QStringLiteral("public class Main {"), QStringLiteral("class"),
+                        SyntaxHighlighter::Language::Java),
+                 TokenKind::Keyword);
+        QCOMPARE(kindOf(QStringLiteral("int count = 0;"), QStringLiteral("int"),
+                        SyntaxHighlighter::Language::Java),
+                 TokenKind::Type);
+        QCOMPARE(kindOf(QStringLiteral("def greet(name)"), QStringLiteral("def"),
+                        SyntaxHighlighter::Language::Ruby),
+                 TokenKind::Keyword);
+    }
+
+    void coloursCMakeCommands()
+    {
+        QCOMPARE(kindOf(QStringLiteral("target_link_libraries(keys PRIVATE Qt6::Core)"),
+                        QStringLiteral("target_link_libraries"), SyntaxHighlighter::Language::CMake),
+                 TokenKind::Keyword);
+    }
+
+    void sqlKeywordsMatchInEitherCase()
+    {
+        // Real SQL is written both ways, and colouring only one is worse than
+        // colouring neither.
+        QCOMPARE(kindOf(QStringLiteral("SELECT * FROM users;"), QStringLiteral("SELECT"),
+                        SyntaxHighlighter::Language::Sql),
+                 TokenKind::Keyword);
+        QCOMPARE(kindOf(QStringLiteral("select * from users;"), QStringLiteral("select"),
+                        SyntaxHighlighter::Language::Sql),
+                 TokenKind::Keyword);
+    }
+
+    void caseInsensitivityDoesNotLeakIntoOtherLanguages()
+    {
+        // `Return` is an identifier in C++, not a keyword.
+        QVERIFY(kindOf(QStringLiteral("int Return = 1;"), QStringLiteral("Return"), SyntaxHighlighter::Language::C)
+                != TokenKind::Keyword);
+    }
+
+    void sqlUsesItsOwnLineComment()
+    {
+        QCOMPARE(kindOf(QStringLiteral("select 1; -- a note"), QStringLiteral("-- a note"),
+                        SyntaxHighlighter::Language::Sql),
+                 TokenKind::Comment);
+    }
+
+    // ---- Markup ------------------------------------------------------------
+
+    void coloursTagsAttributesAndValues()
+    {
+        const QString line = QStringLiteral("<div class=\"box\">text</div>");
+        QCOMPARE(kindOf(line, QStringLiteral("<div"), SyntaxHighlighter::Language::Html), TokenKind::Tag);
+        QCOMPARE(kindOf(line, QStringLiteral("class"), SyntaxHighlighter::Language::Html),
+                 TokenKind::Attribute);
+        QCOMPARE(kindOf(line, QStringLiteral("\"box\""), SyntaxHighlighter::Language::Html),
+                 TokenKind::String);
+    }
+
+    void markupTextContentStaysPlain()
+    {
+        // Prose between tags is not code; running it through keyword rules
+        // would colour ordinary English at random.
+        QCOMPARE(kindOf(QStringLiteral("<p>return of the king</p>"), QStringLiteral("return"),
+                        SyntaxHighlighter::Language::Html),
+                 TokenKind::Plain);
+    }
+
+    void aMarkupCommentCarriesToTheNextLine()
+    {
+        const SyntaxHighlighter highlighter(SyntaxHighlighter::Language::Html);
+        LineState outgoing = LineState::Normal;
+        std::ignore = highlighter.tokenize(QStringLiteral("<!-- opening"), LineState::Normal, outgoing);
+        QCOMPARE(outgoing, LineState::InMarkupComment);
+
+        // And the continuation line is all comment.
+        QCOMPARE(kindOf(QStringLiteral("still inside"), QStringLiteral("still"), SyntaxHighlighter::Language::Html,
+                        LineState::InMarkupComment),
+                 TokenKind::Comment);
+    }
+
+    void aMarkupCommentDoesNotCloseOnABlockCommentTerminator()
+    {
+        // `*/` must not end an HTML comment: the two states are separate for a
+        // reason, and sharing one would end the comment early.
+        const SyntaxHighlighter highlighter(SyntaxHighlighter::Language::Html);
+        LineState outgoing = LineState::Normal;
+        std::ignore = highlighter.tokenize(QStringLiteral("nothing here */"), LineState::InMarkupComment,
+                             outgoing);
+        QCOMPARE(outgoing, LineState::InMarkupComment);
+    }
+
+    void anUnclosedTagCarriesToTheNextLine()
+    {
+        // An element with enough attributes to wrap is ordinary in HTML.
+        const SyntaxHighlighter highlighter(SyntaxHighlighter::Language::Html);
+        LineState outgoing = LineState::Normal;
+        std::ignore = highlighter.tokenize(QStringLiteral("<div class=\"a\""), LineState::Normal, outgoing);
+        QCOMPARE(outgoing, LineState::InTag);
+
+        // The wrapped attribute is still an attribute, not prose.
+        QCOMPARE(kindOf(QStringLiteral("      id=\"main\">"), QStringLiteral("id"), SyntaxHighlighter::Language::Html,
+                        LineState::InTag),
+                 TokenKind::Attribute);
+    }
+
+    // ---- CSS ---------------------------------------------------------------
+
+    void coloursCssPropertiesAndValues()
+    {
+        const QString line = QStringLiteral("  color: #ff0000;");
+        QCOMPARE(kindOf(line, QStringLiteral("color"), SyntaxHighlighter::Language::Css),
+                 TokenKind::Attribute);
+        QCOMPARE(kindOf(line, QStringLiteral("#ff0000"), SyntaxHighlighter::Language::Css),
+                 TokenKind::Number);
+    }
+
+    void aClassSelectorIsOneToken()
+    {
+        // `.card` was emitting the dot alone and leaving the name plain, so a
+        // class selector sat uncoloured beside a coloured `#id` on the same
+        // line - visibly inconsistent in any real stylesheet.
+        QCOMPARE(kindOf(QStringLiteral(".card, #main {"), QStringLiteral(".card"),
+                        SyntaxHighlighter::Language::Css),
+                 TokenKind::Tag);
+        QCOMPARE(kindOf(QStringLiteral(".card, #main {"), QStringLiteral("card"),
+                        SyntaxHighlighter::Language::Css),
+                 TokenKind::Tag);
+    }
+
+    void coloursCssAtRules()
+    {
+        QCOMPARE(kindOf(QStringLiteral("@media (min-width: 600px) {"), QStringLiteral("@media"),
+                        SyntaxHighlighter::Language::Css),
+                 TokenKind::Keyword);
+    }
+
+    void cssUnitsStayWithTheirNumber()
+    {
+        // `600px` is one value; splitting it would give two colours to one
+        // thing the reader sees as a single quantity.
+        const SyntaxHighlighter highlighter(SyntaxHighlighter::Language::Css);
+        LineState outgoing = LineState::Normal;
+        const QString line = QStringLiteral("  width: 600px;");
+        const std::vector<Token> tokens =
+            highlighter.tokenize(line, LineState::Normal, outgoing);
+
+        const int at = static_cast<int>(line.indexOf(QStringLiteral("600px")));
+        bool found = false;
+        for (const Token& token : tokens) {
+            if (token.start == at) {
+                QCOMPARE(token.length, 5);
+                found = true;
+            }
+        }
+        QVERIFY2(found, "the value and its unit were not one token");
     }
 
     void anEmptyLineProducesNoTokens()

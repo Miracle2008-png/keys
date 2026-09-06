@@ -67,6 +67,10 @@ class Theme : public QObject {
     Q_PROPERTY(QColor synComment READ synComment NOTIFY changed)
     Q_PROPERTY(QColor synPlain READ synPlain NOTIFY changed)
     Q_PROPERTY(QColor synPunct READ synPunct NOTIFY changed)
+    Q_PROPERTY(QColor synPreproc READ synPreproc NOTIFY changed)
+    Q_PROPERTY(QColor synConstant READ synConstant NOTIFY changed)
+    Q_PROPERTY(QColor synOperator READ synOperator NOTIFY changed)
+    Q_PROPERTY(QColor synAttribute READ synAttribute NOTIFY changed)
 
 public:
     enum class Mode { Dark, Light };
@@ -129,6 +133,10 @@ public:
     [[nodiscard]] QColor synComment() const;
     [[nodiscard]] QColor synPlain() const;
     [[nodiscard]] QColor synPunct() const;
+    [[nodiscard]] QColor synPreproc() const;
+    [[nodiscard]] QColor synConstant() const;
+    [[nodiscard]] QColor synOperator() const;
+    [[nodiscard]] QColor synAttribute() const;
 
 signals:
     void changed();

@@ -17,6 +17,7 @@ struct Palette {
     QColor green, greenSoft, red, redSoft, yellow;
     QColor synKeyword, synString, synNumber, synFunction, synType;
     QColor synTag, synComment, synPlain, synPunct;
+    QColor synPreproc, synConstant, synOperator, synAttribute;
 };
 
 const Palette& darkPalette()
@@ -58,6 +59,10 @@ const Palette& darkPalette()
         p.synComment       = oklch(0.45, 0.01, 255);
         p.synPlain         = oklch(0.94, 0.004, 255);
         p.synPunct         = oklch(0.63, 0.01, 255);
+        p.synPreproc       = oklch(0.7,  0.11, 330);
+        p.synConstant      = oklch(0.74, 0.1,  285);
+        p.synOperator      = oklch(0.78, 0.04, 220);
+        p.synAttribute     = oklch(0.76, 0.08, 90);
         return p;
     }();
     return palette;
@@ -101,6 +106,10 @@ const Palette& lightPalette()
         p.synComment       = oklch(0.62, 0.01, 255);
         p.synPlain         = oklch(0.24, 0.006, 255);
         p.synPunct         = oklch(0.48, 0.01, 255);
+        p.synPreproc       = oklch(0.5,  0.13, 330);
+        p.synConstant      = oklch(0.5,  0.12, 285);
+        p.synOperator      = oklch(0.42, 0.05, 220);
+        p.synAttribute     = oklch(0.5,  0.1,  90);
         return p;
     }();
     return palette;
@@ -218,6 +227,10 @@ KEYS_THEME_COLOR(synTag)
 KEYS_THEME_COLOR(synComment)
 KEYS_THEME_COLOR(synPlain)
 KEYS_THEME_COLOR(synPunct)
+KEYS_THEME_COLOR(synPreproc)
+KEYS_THEME_COLOR(synConstant)
+KEYS_THEME_COLOR(synOperator)
+KEYS_THEME_COLOR(synAttribute)
 
 #undef KEYS_THEME_COLOR
 
