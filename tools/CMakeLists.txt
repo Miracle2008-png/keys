@@ -61,3 +61,12 @@ add_executable(keys_language_check language-check.cpp)
 target_link_libraries(keys_language_check PRIVATE Qt6::Core Keys::editor)
 set_target_properties(keys_language_check PROPERTIES FOLDER "Tools")
 keys_apply_compile_options(keys_language_check)
+
+# Runs the subsystems that shell out - git, build/run - against whatever is
+# actually installed. Their unit tests use fixtures; this is how a parser keyed
+# to an output format the installed tool no longer produces gets found.
+add_executable(keys_subsystem_check subsystem-check.cpp)
+target_link_libraries(keys_subsystem_check PRIVATE
+    Qt6::Core Keys::buildrun Keys::vcs Keys::core)
+set_target_properties(keys_subsystem_check PROPERTIES FOLDER "Tools")
+keys_apply_compile_options(keys_subsystem_check)

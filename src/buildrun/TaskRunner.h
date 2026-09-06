@@ -36,10 +36,15 @@ public:
     explicit TaskRunner(QObject* parent = nullptr);
     ~TaskRunner() override;
 
-    /// Starts `task` in `projectRoot`. Fails if a task is already running, if
-    /// the task is malformed, or if the program cannot be started — the last of
-    /// which is the common case (a toolchain that is not installed) and is
-    /// reported with the program's name so the message is actionable.
+    /// Starts `task` in `projectRoot`. Fails immediately if a task is already
+    /// running or the task is malformed.
+    ///
+    /// A program that cannot be started - the common case, a toolchain that is
+    /// not installed - is **not** reported here. Starting a process is
+    /// asynchronous, so that failure arrives later through `failedToStart`,
+    /// carrying the program's name so the message is actionable. A caller that
+    /// only checks this return value will believe a task is running when
+    /// nothing started.
     core::Status start(const Task& task, const QString& projectRoot);
 
     /// Asks the running task to stop, escalating to a kill if it ignores that.
