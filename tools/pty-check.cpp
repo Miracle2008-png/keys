@@ -1,23 +1,46 @@
 // A standalone check that ConPTY really starts a shell and its output reaches
 // the parser.
 //
-// Run before building any terminal UI: if this fails, nothing above it can work,
-// and a UI would only obscure where the problem is. The ConPTY lifecycle has
-// several ways to fail silently — the child starting but staying attached to the
-// parent's console being the worst, because the shell looks like it worked.
-
+// **Run it detached, not from a shell.** ConPTY behaves differently depending
+// on whether the parent process owns a console. From a console parent - and
+// from an MSYS/Git-Bash pty in particular - the child joins the parent's
+// console instead of the pseudo-console, and only the ~16 bytes ConPTY writes
+// itself ever reach the pipe. That looks exactly like a broken PTY layer and is
+// not one: keys.exe is a WIN32 GUI process with no console, where the same code
+// delivers the shell's full output. Measured both ways with a minimal program
+// independent of Keys: 16 bytes from a console parent, 222 from a GUI parent,
+// same code, same machine.
+//
+//     cmake --build build --target keys_pty_check
+//     powershell -Command "Start-Process build/bin/keys_pty_check.exe"
+//
+// It writes its report beside the executable rather than to stdout, because a
+// detached process has nowhere to print.
+//
+// Run before building any terminal UI: if this fails *when run detached*,
+// nothing above it can work.
 #include "process/Pty.h"
 #include "terminal/TerminalScreen.h"
 #include "terminal/VtParser.h"
 
 #include <QCoreApplication>
+#include <QCoreApplication>
+#include <QDir>
+#include <QFile>
 #include <QTextStream>
 #include <QTimer>
 
 int main(int argc, char* argv[])
 {
     QCoreApplication app(argc, argv);
-    QTextStream out(stdout);
+
+    // Detached, so stdout goes nowhere. The report is a file beside the binary.
+    QFile report(QCoreApplication::applicationDirPath()
+                 + QStringLiteral("/pty-check-report.txt"));
+    if (!report.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        return 2;
+    }
+    QTextStream out(&report);
 
     keys::terminal::TerminalScreen screen;
     screen.resize(80, 24);
@@ -58,14 +81,14 @@ int main(int argc, char* argv[])
 
     // Give the shell a moment to print its banner and prompt, then run a command
     // whose output is unmistakable.
-    QTimer::singleShot(1500, [&] {
+    QTimer::singleShot(2500, [&] {
         out << "[still running: " << (pty->isRunning() ? "yes" : "no") << "]\n";
         const auto wrote = pty->write(QByteArray("echo KEYS_PTY_OK\r\n"));
         out << "[write " << (wrote ? "ok" : "FAILED") << "]\n";
         out.flush();
     });
 
-    QTimer::singleShot(4000, [&] {
+    QTimer::singleShot(6000, [&] {
         out << "--- total bytes read: " << totalBytes << " ---\n";
         out << "--- screen ---\n";
         for (int i = 0; i < screen.totalLines(); ++i) {

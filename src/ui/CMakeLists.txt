@@ -29,6 +29,8 @@ qt_add_qml_module(keys_ui
         LanguageModel.h
         RunPanelModel.cpp
         RunPanelModel.h
+        SearchModel.cpp
+        SearchModel.h
         SourceControlModel.cpp
         SourceControlModel.h
         UpdateModel.cpp
@@ -73,6 +75,8 @@ qt_add_qml_module(keys_ui
         qml/PrimaryButton.qml
         qml/ProjectRow.qml
         qml/SearchField.qml
+        qml/SearchPanel.qml
+        qml/SearchResultRow.qml
         qml/SectionLabel.qml
         qml/SettingsPanel.qml
         qml/SourceControlPanel.qml

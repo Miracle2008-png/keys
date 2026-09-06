@@ -93,6 +93,13 @@ Item {
                     visible: App.activeView === "sourceControl" && App.hasProject
                 }
 
+                SearchPanel {
+                    id: searchPanel
+
+                    anchors.fill: parent
+                    visible: App.activeView === "search" && App.hasProject
+                }
+
                 RunPanel {
                     anchors.fill: parent
                     visible: App.activeView === "debug" && App.hasProject
@@ -127,6 +134,7 @@ Item {
                     anchors.topMargin: Metrics.spacingSmall
                     visible: App.hasProject
                              && App.activeView !== "explorer"
+                             && App.activeView !== "search"
                              && App.activeView !== "sourceControl"
                              && App.activeView !== "debug"
                              && App.activeView !== "extensions"

@@ -13,6 +13,7 @@
 #include "ui/ExtensionsModel.h"
 #include "ui/LanguageModel.h"
 #include "ui/RunPanelModel.h"
+#include "ui/SearchModel.h"
 #include "ui/SettingsModel.h"
 #include "ui/SourceControlModel.h"
 #include "ui/UpdateModel.h"
@@ -22,6 +23,7 @@
 #include "debugger/DebugSession.h"
 #include "extensions/ExtensionRegistry.h"
 #include "langsvc/LanguageServiceManager.h"
+#include "search/TextSearch.h"
 #include "vcs/Repository.h"
 #include "workspace/Workspace.h"
 
@@ -192,6 +194,11 @@ int main(int argc, char* argv[])
     QObject::connect(&workspace.watcher(), &fs::FileWatcher::directoriesChanged,
                      &repository, [&repository] { repository.refresh(); });
 
+    // Project-wide search. Reads the file index the workspace already
+    // maintains rather than walking the tree again, so opening the panel costs
+    // nothing until a query is typed.
+    search::TextSearch textSearch(workspace.project(), workspace.fileIndex(), scheduler);
+
     // Build and run. The runner owns no project state; the panel model reads
     // the project for its task defaults and its root.
     buildrun::TaskRunner taskRunner;
@@ -245,6 +252,9 @@ int main(int argc, char* argv[])
 
     ui::SettingsModel settingsModel(settings);
     ui::SettingsModel::setInstance(&settingsModel);
+
+    ui::SearchModel searchModel(textSearch);
+    ui::SearchModel::setInstance(&searchModel);
 
     ui::SourceControlModel sourceControl(repository);
     ui::SourceControlModel::setInstance(&sourceControl);
@@ -303,6 +313,24 @@ int main(int argc, char* argv[])
                      &app, [&controller](const QString& absolutePath) {
                          controller.openFile(absolutePath);
                      });
+
+    // A search result opens the file at the match, the same path the explorer,
+    // the palette and the debugger all use.
+    QObject::connect(&searchModel, &ui::SearchModel::matchActivated, &app,
+                     [&workspace, &controller](const QString& relativePath,
+                                               int line, int column) {
+                         const QString absolute =
+                             QDir(workspace.project().root()).filePath(relativePath);
+                         controller.openFileAt(absolute, line, column);
+                     });
+
+    // Results name files that may no longer exist by the time they are clicked,
+    // and a stale result list is worse than none: clear it when the project
+    // changes rather than leaving it pointing into the previous one.
+    QObject::connect(&workspace, &workspace::Workspace::projectOpened,
+                     &searchModel, [&searchModel] { searchModel.clear(); });
+    QObject::connect(&workspace, &workspace::Workspace::projectClosed,
+                     &searchModel, [&searchModel] { searchModel.clear(); });
 
     // A problem opens the file at the line the compiler named, the same path
     // the explorer and palette use.
