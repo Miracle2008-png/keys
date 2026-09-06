@@ -15,7 +15,7 @@ before the feel is right has to be re-tuned afterwards.
 The three things that make Keys read as unfinished next to CLion, none of which
 are about features.
 
-### 1.1 Fonts
+### 1.1 Fonts — **done**
 
 `resources/fonts/` exists and is empty, so Keys falls back to Segoe UI and
 Cascadia Mono. CLion ships Inter for its interface and JetBrains Mono for code,
@@ -33,7 +33,7 @@ and that pairing is most of what "feels like CLion" means.
 **Why first:** it is the largest change to how the product reads, and the
 smallest to make.
 
-### 1.2 Motion
+### 1.2 Motion — **mostly done**
 
 18 of 42 QML files animate. The policy layer (`AnimationPolicy`, with Full /
 Reduced / Off) already exists and is respected where it is used — the gap is
@@ -91,7 +91,7 @@ Needs new editor commands, all local to `TextDocument`:
 - Toggle Case, Transpose
 - Indent / Unindent Selection
 - Column Selection Mode *(depends on multi-cursor, Phase 3)*
-- **Find and Replace in file** — see 3.1; the single largest daily gap
+- Find and Replace in file *(done, see 3.1)*
 
 ### 2.3 Navigate *(new menu)*
 
@@ -141,11 +141,11 @@ Everything here is built and only reachable through the Build menu or a panel:
 Verified absent. These are what separate a text editor from an IDE editor, and
 each is a real piece of work rather than a menu entry.
 
-### 3.1 Find and Replace in a file *(highest value)*
+### 3.1 Find and Replace in a file — **done**
 
-Project-wide search exists (`TextSearch`, the Search panel). Ctrl+F **inside a
-document does not exist at all**. Needs: an inline find bar, match highlighting,
-next/previous, replace and replace-all, and case/word/regex toggles.
+Ctrl+F and Ctrl+H, with match highlighting, a count, wrapping navigation,
+replace and replace-all as one undo step, and case/word/regex toggles.
+`DocumentSearch` in the editor module; 17 tests.
 
 ### 3.2 Multiple cursors
 
