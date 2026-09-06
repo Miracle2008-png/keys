@@ -13,6 +13,11 @@ struct RecentProject {
     QString path;           ///< absolute, normalised
     QString name;           ///< the folder's own name, shown in the list
     QDateTime lastOpened;
+
+    /// Kept at the top of the list and never trimmed. The projects someone
+    /// returns to for months would otherwise be pushed out by a week of
+    /// one-off folders, which is exactly when the list stops being useful.
+    bool pinned = false;
 };
 
 /// The most recently opened projects, newest first.
@@ -37,6 +42,10 @@ public:
     /// that has been found to be missing.
     void remove(const QString& path);
 
+    /// Pins or unpins a project. Pinned entries sort above the rest and survive
+    /// trimming; unpinning returns one to its place in recency order.
+    void setPinned(const QString& path, bool pinned);
+
     void clear();
 
     [[nodiscard]] const QList<RecentProject>& entries() const { return m_entries; }
@@ -60,6 +69,10 @@ signals:
     void changed();
 
 private:
+    /// Pinned first, then by recency. Called after any change that could
+    /// disturb the order.
+    void sortEntries();
+
     QList<RecentProject> m_entries;
 };
 

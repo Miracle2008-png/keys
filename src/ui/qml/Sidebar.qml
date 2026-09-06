@@ -10,7 +10,11 @@ import Keys.Ui
 Item {
     id: root
 
-    readonly property bool expanded: App.sidebarVisible
+    /// Collapsed with no project open. Every panel the sidebar can show needs a
+    /// project, so without one it is an empty frame taking a third of the window
+    /// away from the welcome screen - which is the one thing the user can act on
+    /// at that moment.
+    readonly property bool expanded: App.sidebarVisible && App.hasProject
 
     /// True while the user is dragging the resize handle. Animation is suppressed
     /// during a drag: easing toward a target that moves every frame lags behind

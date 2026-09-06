@@ -95,6 +95,17 @@ public:
     [[nodiscard]] bool hasProject() const;
     [[nodiscard]] QVariantList recentProjects() const;
 
+    /// Pins or unpins a recent project, and forgets one entirely. Both write
+    /// the history immediately: this is the user editing a list they can see,
+    /// and a change that survived only until a clean exit would look like the
+    /// click did nothing.
+    Q_INVOKABLE void setProjectPinned(const QString& path, bool pinned);
+    Q_INVOKABLE void forgetProject(const QString& path);
+
+    /// Whether a path is still there. The welcome screen dims what it cannot
+    /// open rather than offering a row that fails on click.
+    [[nodiscard]] Q_INVOKABLE bool pathExists(const QString& path) const;
+
     [[nodiscard]] int groupCount() const;
     [[nodiscard]] int activeGroup() const;
     [[nodiscard]] bool isSplit() const;

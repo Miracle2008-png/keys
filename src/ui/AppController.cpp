@@ -201,9 +201,38 @@ QVariantList AppController::recentProjects() const
         item.insert(QStringLiteral("name"), entry.name);
         item.insert(QStringLiteral("path"), entry.path);
         item.insert(QStringLiteral("when"), relativeTime(entry.lastOpened));
+        item.insert(QStringLiteral("pinned"), entry.pinned);
         result.append(item);
     }
     return result;
+}
+
+void AppController::setProjectPinned(const QString& path, bool pinned)
+{
+    m_workspace.recentProjects().setPinned(path, pinned);
+
+    // Written now rather than at exit. The user can see this list, and a pin
+    // that vanished because the application did not close cleanly would read
+    // as the feature being broken.
+    if (const core::Status status = m_workspace.saveHistory(); !status) {
+        qCWarning(lcUi) << "could not save recent projects:"
+                        << status.error().toString();
+    }
+}
+
+void AppController::forgetProject(const QString& path)
+{
+    m_workspace.recentProjects().remove(path);
+
+    if (const core::Status status = m_workspace.saveHistory(); !status) {
+        qCWarning(lcUi) << "could not save recent projects:"
+                        << status.error().toString();
+    }
+}
+
+bool AppController::pathExists(const QString& path) const
+{
+    return !path.isEmpty() && QFileInfo::exists(path);
 }
 
 bool AppController::openProject(const QString& path)

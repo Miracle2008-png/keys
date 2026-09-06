@@ -9,6 +9,8 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+
+#include <algorithm>
 #include <QSaveFile>
 #include <QStandardPaths>
 
@@ -35,6 +37,16 @@ void RecentProjects::record(const QString& path)
         return;
     }
 
+    // A project that was pinned stays pinned when it is opened again: the pin
+    // is the user's decision about the project, not about this visit.
+    bool wasPinned = false;
+    for (const RecentProject& existing : m_entries) {
+        if (existing.path == normalized) {
+            wasPinned = existing.pinned;
+            break;
+        }
+    }
+
     // Remove any existing entry first so re-opening moves a project to the front
     // rather than creating a duplicate.
     m_entries.removeIf([&normalized](const RecentProject& entry) {
@@ -42,6 +54,7 @@ void RecentProjects::record(const QString& path)
     });
 
     RecentProject entry;
+    entry.pinned = wasPinned;
     entry.path = normalized;
     entry.name = QFileInfo(normalized).fileName();
     if (entry.name.isEmpty()) {
@@ -50,12 +63,56 @@ void RecentProjects::record(const QString& path)
     entry.lastOpened = QDateTime::currentDateTime();
 
     m_entries.prepend(std::move(entry));
+    sortEntries();
 
+    // Trim from the unpinned tail only. A pinned project is one the user asked
+    // to keep, so dropping it to honour a size limit would break the promise
+    // the pin makes.
     while (m_entries.size() > kMaxEntries) {
-        m_entries.removeLast();
+        int last = -1;
+        for (int i = static_cast<int>(m_entries.size()) - 1; i >= 0; --i) {
+            if (!m_entries.at(i).pinned) {
+                last = i;
+                break;
+            }
+        }
+        if (last < 0) {
+            break;   // every entry is pinned; the user's list, the user's call
+        }
+        m_entries.removeAt(last);
     }
 
     emit changed();
+}
+
+void RecentProjects::setPinned(const QString& path, bool pinned)
+{
+    const QString normalized = FileSystem::normalize(path);
+
+    for (RecentProject& entry : m_entries) {
+        if (entry.path == normalized) {
+            if (entry.pinned == pinned) {
+                return;
+            }
+            entry.pinned = pinned;
+            sortEntries();
+            emit changed();
+            return;
+        }
+    }
+}
+
+void RecentProjects::sortEntries()
+{
+    // Pinned above unpinned, and within each group the most recent first.
+    // std::stable_sort so entries that compare equal keep the order they had.
+    std::stable_sort(m_entries.begin(), m_entries.end(),
+                     [](const RecentProject& a, const RecentProject& b) {
+                         if (a.pinned != b.pinned) {
+                             return a.pinned;
+                         }
+                         return a.lastOpened > b.lastOpened;
+                     });
 }
 
 void RecentProjects::remove(const QString& path)
@@ -127,6 +184,7 @@ Status RecentProjects::load(const QString& path)
         }
         entry.lastOpened = QDateTime::fromString(
             object.value(QStringLiteral("lastOpened")).toString(), Qt::ISODate);
+        entry.pinned = object.value(QStringLiteral("pinned")).toBool();
 
         m_entries.append(std::move(entry));
 
@@ -153,6 +211,10 @@ Status RecentProjects::save(const QString& path) const
         object.insert(QStringLiteral("path"), entry.path);
         object.insert(QStringLiteral("name"), entry.name);
         object.insert(QStringLiteral("lastOpened"), entry.lastOpened.toString(Qt::ISODate));
+        if (entry.pinned) {
+            // Written only when set, so the file stays readable by hand.
+            object.insert(QStringLiteral("pinned"), true);
+        }
         array.append(object);
     }
 

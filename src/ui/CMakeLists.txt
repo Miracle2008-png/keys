@@ -78,6 +78,7 @@ qt_add_qml_module(keys_ui
         qml/Sidebar.qml
         qml/StatusBar.qml
         qml/TopBar.qml
+        qml/WelcomeButton.qml
         qml/WelcomeView.qml
 )
 

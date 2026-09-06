@@ -18,8 +18,23 @@ Rectangle {
     readonly property real minimumPaneWidth: 240
 
     WelcomeView {
+        id: welcome
+
         anchors.fill: parent
         visible: !App.hasProject && !App.settingsOpen
+
+        // Forwarded rather than answered here: the dialogs live on the window,
+        // so one set serves the menu, the palette and this screen alike.
+        onNewProjectRequested: root.newProjectRequested()
+    }
+
+    /// Raised by the welcome screen when the user wants a new folder to work in.
+    signal newProjectRequested()
+
+    /// Opens the project picker. Bound to Ctrl+O and to the File menu, so all
+    /// three routes raise the same dialog.
+    function browseForProject() {
+        welcome.browseForProject();
     }
 
     // Settings take the whole editor area rather than opening as a tab: the page

@@ -53,6 +53,14 @@ Status Workspace::openProject(const QString& path)
 
     m_recentProjects.record(m_project.root());
 
+    // Persisted here rather than only at exit. History written solely on a
+    // clean shutdown is lost to a crash or a kill, which is when a user most
+    // wants the list of what they were working on.
+    if (const Status status = saveHistory(); !status) {
+        qCWarning(lcCore) << "could not save recent projects:"
+                          << status.error().toString();
+    }
+
     emit projectOpened(m_project.root());
     return Ok();
 }

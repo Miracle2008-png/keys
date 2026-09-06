@@ -69,6 +69,11 @@ Window {
                     id: editorArea
                     width: parent.width - activityRail.width - sidebar.width
                     height: parent.height
+
+                    // The welcome screen asks for a folder; the window owns the
+                    // dialog that makes one.
+                    onNewProjectRequested: nameDialog.open(
+                        NameDialog.CreateFolder, App.newFileDirectory(), "")
                 }
             }
         }
@@ -82,9 +87,13 @@ Window {
     // Only commands that exist are bound. Shortcuts for the palette, quick open
     // and the rest arrive with the milestones that implement them, so no key in
     // Keys is ever bound to something that does nothing.
+    // Opens the same picker the menu and the welcome screen use. This called
+    // editorArea.browseForProject() until the dialogs moved up here - a
+    // function EditorArea does not have, so Ctrl+O silently did nothing while
+    // the welcome screen advertised it.
     Shortcut {
         sequences: [StandardKey.Open]
-        onActivated: editorArea.browseForProject()
+        onActivated: menuFolderPicker.open()
     }
 
     Shortcut {
