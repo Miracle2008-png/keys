@@ -43,6 +43,7 @@ Window {
             onFindRequested: (withReplace) => editorArea.openFind(withReplace)
             onGoToLineRequested: goToLineDialog.open()
             onReloadRequested: App.reloadActiveFile()
+            onRenameRequested: renameDialog.open(Language.symbolAtCursor())
         }
 
         TopBar {
@@ -156,6 +157,11 @@ Window {
     GoToLineDialog {
         id: goToLineDialog
         onLineAccepted: (line) => App.goToLine(line)
+    }
+
+    RenameDialog {
+        id: renameDialog
+        onNameAccepted: (name) => Language.renameSymbol(name)
     }
 
     // Failures the user caused are shown, never swallowed.

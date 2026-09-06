@@ -421,6 +421,129 @@ bool LanguageModel::acceptCompletion()
 
 // ---- Navigation ------------------------------------------------------------
 
+QString LanguageModel::symbolAtCursor() const
+{
+    editor::TextDocument* document = activeDocument();
+    if (!document) {
+        return QString();
+    }
+
+    // Reuses the range a completion would replace, so "the word the caret is
+    // in" means the same thing in both places.
+    const editor::Range range = wordRangeAtCursor(document);
+    if (range.isEmpty()) {
+        return QString();
+    }
+    return document->line(range.start.line)
+        .mid(range.start.column, range.end.column - range.start.column);
+}
+
+bool LanguageModel::canRename() const
+{
+    const editor::TextDocument* document = activeDocument();
+    if (!document || document->path().isEmpty()) {
+        return false;
+    }
+    const LanguageClient* client = m_manager.existingClientFor(document->path());
+    return client && client->supportsRename();
+}
+
+void LanguageModel::renameSymbol(const QString& newName)
+{
+    editor::TextDocument* document = activeDocument();
+    if (!document || document->path().isEmpty() || newName.isEmpty()) {
+        return;
+    }
+
+    LanguageClient* client = m_manager.existingClientFor(document->path());
+    if (!client || !client->supportsRename()) {
+        emit notice(tr("No language server is providing renames for this file."));
+        return;
+    }
+
+    const editor::Position caret = document->cursor().position;
+
+    client->requestRename(
+        document->path(), {caret.line, caret.column}, newName,
+        [this](langsvc::WorkspaceEdit edit) {
+            if (edit.isEmpty()) {
+                emit notice(tr("Nothing to rename here."));
+                return;
+            }
+
+            const int files = edit.fileCount();
+            const int edits = edit.editCount();
+            m_renameSkipped = 0;
+
+            for (auto it = edit.changes.constBegin();
+                 it != edit.changes.constEnd(); ++it) {
+                applyEditsToFile(it.key(), it.value());
+            }
+
+            // Said out loud. A rename that silently touches nine files is
+            // alarming rather than reassuring, and the user needs to know how
+            // far it reached before they decide whether to keep it.
+            emit renameApplied(files - m_renameSkipped, edits);
+
+            if (m_renameSkipped > 0) {
+                emit notice(tr("%1 file(s) were not open and were left "
+                               "unchanged.").arg(m_renameSkipped));
+            }
+        });
+}
+
+void LanguageModel::applyEditsToFile(const QString& path,
+                                     const std::vector<langsvc::TextEdit>& edits)
+{
+    if (edits.empty()) {
+        return;
+    }
+
+    // Bottom-up within the file, so each edit lands at a position the ones
+    // before it have not shifted - the same reason multi-cursor edits run
+    // backwards. A server may send them in any order.
+    std::vector<langsvc::TextEdit> ordered = edits;
+    std::sort(ordered.begin(), ordered.end(),
+              [](const langsvc::TextEdit& a, const langsvc::TextEdit& b) {
+                  if (a.range.start.line != b.range.start.line) {
+                      return b.range.start.line < a.range.start.line;
+                  }
+                  return b.range.start.character < a.range.start.character;
+              });
+
+    // Only files that are already open.
+    //
+    // LanguageModel sees the editor layout, not the workspace, so it cannot
+    // open a file - and editing a closed file on disk behind the user's back
+    // would be worse anyway: no undo, no dirty marker, nothing to review. The
+    // caller is told what was left untouched rather than the rename quietly
+    // being partial.
+    editor::TextDocument* document = nullptr;
+    for (int group = 0; group < m_editors.groupCount() && !document; ++group) {
+        workspace::EditorGroup* editors = m_editors.groupAt(group);
+        if (!editors) {
+            continue;
+        }
+        const int index = editors->indexOfPath(path);
+        if (index >= 0) {
+            document = editors->documentAt(index);
+        }
+    }
+
+    if (!document) {
+        ++m_renameSkipped;
+        return;
+    }
+
+    for (const langsvc::TextEdit& edit : ordered) {
+        document->replaceRange(
+            editor::Range{
+                editor::Position{edit.range.start.line, edit.range.start.character},
+                editor::Position{edit.range.end.line, edit.range.end.character}},
+            edit.newText);
+    }
+}
+
 void LanguageModel::goToDefinition()
 {
     editor::TextDocument* document = activeDocument();

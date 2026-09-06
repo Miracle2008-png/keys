@@ -111,6 +111,23 @@ public:
     /// opens the file when the answer arrives.
     Q_INVOKABLE void goToDefinition();
 
+    /// Renames the symbol at the caret across the whole project.
+    ///
+    /// Asked of the language server rather than done by search and replace:
+    /// only the server knows which occurrences of a name are the same symbol,
+    /// and a textual rename would also hit comments, strings, and unrelated
+    /// identifiers that happen to match.
+    Q_INVOKABLE void renameSymbol(const QString& newName);
+
+    /// Whether a rename is possible here, so the menu can dim rather than
+    /// offering something that will fail.
+    [[nodiscard]] Q_INVOKABLE bool canRename() const;
+
+    /// The identifier under the caret, for seeding the rename dialog. A rename
+    /// is usually a small change to a name already on screen, so the field
+    /// starts with it rather than empty.
+    [[nodiscard]] Q_INVOKABLE QString symbolAtCursor() const;
+
     Q_INVOKABLE void requestHover(int line, int column);
     Q_INVOKABLE void clearHover();
 
@@ -129,7 +146,18 @@ signals:
     /// message from one that did.
     void notice(const QString& message);
 
+    /// A rename finished. Carries what changed so the view can say so - a
+    /// silent rename across nine files is alarming rather than reassuring.
+    void renameApplied(int fileCount, int editCount);
+
 private:
+    /// Applies one file's worth of edits, bottom-up.
+    void applyEditsToFile(const QString& path,
+                          const std::vector<langsvc::TextEdit>& edits);
+
+    /// Files a rename touched that were not open, and so were skipped.
+    int m_renameSkipped = 0;
+
     /// The document the caret is in, or null.
     [[nodiscard]] editor::TextDocument* activeDocument() const;
 

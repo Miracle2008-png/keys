@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QJsonObject>
+#include <QHash>
 #include <QString>
 
 #include <vector>
@@ -82,6 +83,42 @@ struct CompletionItem {
 };
 
 /// Where something is defined.
+/// One replacement inside one file.
+struct TextEdit {
+    LspRange range;
+    QString newText;
+
+    [[nodiscard]] static TextEdit fromJson(const QJsonObject& object)
+    {
+        TextEdit edit;
+        edit.range = LspRange::fromJson(object.value(QStringLiteral("range")).toObject());
+        edit.newText = object.value(QStringLiteral("newText")).toString();
+        return edit;
+    }
+};
+
+/// Edits across any number of files, which is what a rename returns.
+///
+/// Renaming a symbol touches every file that uses it, so this is a map from
+/// path to the edits in that file rather than a single list - the caller has to
+/// open and edit each one.
+struct WorkspaceEdit {
+    QHash<QString, std::vector<TextEdit>> changes;   ///< keyed by absolute path
+
+    [[nodiscard]] bool isEmpty() const { return changes.isEmpty(); }
+
+    [[nodiscard]] int fileCount() const { return static_cast<int>(changes.size()); }
+
+    [[nodiscard]] int editCount() const
+    {
+        int total = 0;
+        for (const auto& edits : changes) {
+            total += static_cast<int>(edits.size());
+        }
+        return total;
+    }
+};
+
 struct Location {
     QString uri;
     LspRange range;

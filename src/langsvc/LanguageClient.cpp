@@ -329,6 +329,7 @@ void LanguageClient::onInitialized(const QJsonValue& result)
     };
     m_supportsDefinition = supports("definitionProvider");
     m_supportsHover = supports("hoverProvider");
+    m_supportsRename = supports("renameProvider");
 
     // Sync kind is a number or an options object holding one.
     const QJsonValue sync = capabilities.value(QStringLiteral("textDocumentSync"));
@@ -346,6 +347,7 @@ void LanguageClient::onInitialized(const QJsonValue& result)
                    << "completion" << m_supportsCompletion
                    << "definition" << m_supportsDefinition
                    << "hover" << m_supportsHover
+                   << "rename" << m_supportsRename
                    << "incremental" << m_incrementalSync;
 }
 
@@ -509,6 +511,66 @@ void LanguageClient::requestDefinition(const QString& path, const LspPosition& p
                         append(result.toObject());
                     }
                     handler(std::move(locations));
+                });
+}
+
+void LanguageClient::requestRename(const QString& path, const LspPosition& position,
+                                   const QString& newName, RenameHandler handler)
+{
+    if (!isRunning() || !m_supportsRename || newName.isEmpty()) {
+        handler({});
+        return;
+    }
+
+    sendRequest(QStringLiteral("textDocument/rename"),
+                {{QStringLiteral("textDocument"),
+                  QJsonObject{{QStringLiteral("uri"), pathToUri(path)}}},
+                 {QStringLiteral("position"), position.toJson()},
+                 {QStringLiteral("newName"), newName}},
+                [handler = std::move(handler)](const QJsonValue& result) {
+                    WorkspaceEdit edit;
+
+                    const QJsonObject object = result.toObject();
+
+                    // `changes` is the simple form: a map of uri to edits.
+                    // `documentChanges` is the versioned form, which servers
+                    // prefer when they can. Both are legal and clangd sends
+                    // the second, so both are read.
+                    const QJsonObject changes =
+                        object.value(QStringLiteral("changes")).toObject();
+                    for (auto it = changes.begin(); it != changes.end(); ++it) {
+                        std::vector<TextEdit> edits;
+                        const QJsonArray array = it.value().toArray();
+                        edits.reserve(static_cast<size_t>(array.size()));
+                        for (const QJsonValue& value : array) {
+                            edits.push_back(TextEdit::fromJson(value.toObject()));
+                        }
+                        edit.changes.insert(uriToPath(it.key()), std::move(edits));
+                    }
+
+                    const QJsonArray documentChanges =
+                        object.value(QStringLiteral("documentChanges")).toArray();
+                    for (const QJsonValue& value : documentChanges) {
+                        const QJsonObject change = value.toObject();
+                        const QString uri = change.value(QStringLiteral("textDocument"))
+                                                .toObject()
+                                                .value(QStringLiteral("uri"))
+                                                .toString();
+                        if (uri.isEmpty()) {
+                            continue;   // a create/rename/delete operation, not an edit
+                        }
+
+                        std::vector<TextEdit> edits;
+                        const QJsonArray array =
+                            change.value(QStringLiteral("edits")).toArray();
+                        edits.reserve(static_cast<size_t>(array.size()));
+                        for (const QJsonValue& item : array) {
+                            edits.push_back(TextEdit::fromJson(item.toObject()));
+                        }
+                        edit.changes.insert(uriToPath(uri), std::move(edits));
+                    }
+
+                    handler(std::move(edit));
                 });
 }
 

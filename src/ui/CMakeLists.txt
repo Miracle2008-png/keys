@@ -72,6 +72,7 @@ qt_add_qml_module(keys_ui
         qml/SectionLabel.qml
         qml/SettingsPanel.qml
         qml/SourceControlPanel.qml
+        qml/RenameDialog.qml
         qml/RunPanel.qml
         qml/CompletionPopup.qml
         qml/ExtensionsPanel.qml

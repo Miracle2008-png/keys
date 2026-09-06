@@ -52,6 +52,7 @@ Item {
                 { title: qsTr("View"),     menu: viewMenu },
                 { title: qsTr("Navigate"), menu: navigateMenu },
                 { title: qsTr("Code"),     menu: codeMenu },
+                { title: qsTr("Refactor"), menu: refactorMenu },
                 { title: qsTr("Build"),    menu: buildMenu },
                 { title: qsTr("Run"),      menu: runMenu },
                 { title: qsTr("VCS"),      menu: vcsMenu },
@@ -102,7 +103,8 @@ Item {
                     // feel right.
                     onEntered: {
                         for (const other of [fileMenu, editMenu, viewMenu,
-                                             navigateMenu, codeMenu, buildMenu,
+                                             navigateMenu, codeMenu,
+                                             refactorMenu, buildMenu,
                                              runMenu, vcsMenu, windowMenu,
                                              helpMenu]) {
                             if (other.opened && other !== titleButton.modelData.menu) {
@@ -453,6 +455,26 @@ Item {
         }
     }
 
+    // ---- Refactor ----------------------------------------------------------
+    //
+    // One item, because one refactoring works. Extract function, extract
+    // variable and change signature belong here too and are not implemented -
+    // listing them greyed would advertise an unfinished product rather than a
+    // focused one.
+
+    ContextMenu {
+        id: refactorMenu
+
+        MenuAction {
+            text: qsTr("Rename Symbol…")
+            shortcut: "Shift+F6"
+            // Dims where no server offers renames, rather than failing after
+            // the user has typed a new name.
+            enabled: Language.canRename()
+            onTriggered: root.renameRequested()
+        }
+    }
+
     // ---- Run ---------------------------------------------------------------
     //
     // The debugger's stepping commands were implemented from the start and
@@ -656,4 +678,5 @@ Item {
     signal findRequested(bool withReplace)
     signal goToLineRequested()
     signal reloadRequested()
+    signal renameRequested()
 }

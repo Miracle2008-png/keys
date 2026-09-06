@@ -95,6 +95,7 @@ public:
 
     using CompletionHandler = std::function<void(std::vector<CompletionItem>)>;
     using DefinitionHandler = std::function<void(std::vector<Location>)>;
+    using RenameHandler = std::function<void(WorkspaceEdit)>;
     using HoverHandler = std::function<void(QString)>;
 
     void requestCompletion(const QString& path, const LspPosition& position,
@@ -104,9 +105,19 @@ public:
     void requestHover(const QString& path, const LspPosition& position,
                       HoverHandler handler);
 
+    /// Asks the server to rename the symbol at `position` everywhere.
+    ///
+    /// The reply is edits across however many files use it, which is exactly
+    /// why this belongs to the language server: finding them by text search
+    /// would rename comments, strings and unrelated identifiers that happen to
+    /// share a name.
+    void requestRename(const QString& path, const LspPosition& position,
+                       const QString& newName, RenameHandler handler);
+
     /// What the server said it supports. Consulted before offering a feature.
     [[nodiscard]] bool supportsCompletion() const { return m_supportsCompletion; }
     [[nodiscard]] bool supportsDefinition() const { return m_supportsDefinition; }
+    [[nodiscard]] bool supportsRename() const { return m_supportsRename; }
     [[nodiscard]] bool supportsHover() const { return m_supportsHover; }
     [[nodiscard]] bool supportsIncrementalSync() const { return m_incrementalSync; }
 
@@ -175,6 +186,7 @@ private:
     bool m_supportsCompletion = false;
     bool m_supportsDefinition = false;
     bool m_supportsHover = false;
+    bool m_supportsRename = false;
     bool m_incrementalSync = false;
 
     /// How long to wait for a polite shutdown before killing the process.
