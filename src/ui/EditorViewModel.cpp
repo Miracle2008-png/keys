@@ -62,8 +62,10 @@ void EditorViewModel::setDocument(editor::TextDocument* document)
 
         connect(m_document, &editor::TextDocument::contentsChanged,
                 this, &EditorViewModel::contentsChanged);
-        connect(m_document, &editor::TextDocument::cursorChanged,
-                this, &EditorViewModel::cursorChanged);
+        connect(m_document, &editor::TextDocument::cursorChanged, this, [this] {
+            updateBracketMatch();
+            emit cursorChanged();
+        });
         connect(m_document, &editor::TextDocument::modifiedChanged,
                 this, &EditorViewModel::modifiedChanged);
         // The language follows the path, and the path can arrive *after* the
@@ -452,6 +454,117 @@ void EditorViewModel::toggleLineComment()
     }
 }
 
+// ---- Bracket matching ------------------------------------------------------
+
+namespace {
+
+/// The partner of a bracket, and which way to look for it. Zero means the
+/// character is not a bracket.
+QChar partnerOf(QChar character, int& direction)
+{
+    switch (character.unicode()) {
+    case '(': direction = 1;  return QLatin1Char(')');
+    case '[': direction = 1;  return QLatin1Char(']');
+    case '{': direction = 1;  return QLatin1Char('}');
+    case ')': direction = -1; return QLatin1Char('(');
+    case ']': direction = -1; return QLatin1Char('[');
+    case '}': direction = -1; return QLatin1Char('{');
+    default:  direction = 0;  return QChar();
+    }
+}
+
+/// How far to search before giving up.
+///
+/// A missing closing brace would otherwise scan to the end of the document on
+/// every keystroke. Highlighting is a convenience; spending a frame on it in a
+/// file with an unbalanced brace is not a trade worth making.
+constexpr int kMaxBracketScanLines = 2000;
+
+} // namespace
+
+void EditorViewModel::updateBracketMatch()
+{
+    const editor::Position previous = m_bracketMatch;
+    const bool wasMatched = m_bracketMatched;
+
+    m_bracket = editor::Position{-1, -1};
+    m_bracketMatch = editor::Position{-1, -1};
+    m_bracketMatched = false;
+
+    if (!m_document) {
+        return;
+    }
+
+    const editor::Position caret = m_document->cursor().position;
+    const QString line = m_document->line(caret.line);
+
+    // The character at the caret, or the one before it. Both count, which is
+    // what makes the highlight appear when you type a closing brace as well as
+    // when you arrow onto an opening one.
+    int column = -1;
+    QChar bracket;
+    int direction = 0;
+
+    if (caret.column < line.size()) {
+        const QChar at = line.at(caret.column);
+        if (!partnerOf(at, direction).isNull()) {
+            column = caret.column;
+            bracket = at;
+        }
+    }
+    if (column < 0 && caret.column > 0) {
+        const QChar before = line.at(caret.column - 1);
+        if (!partnerOf(before, direction).isNull()) {
+            column = caret.column - 1;
+            bracket = before;
+        }
+    }
+
+    if (column < 0) {
+        if (previous.line >= 0 || wasMatched) {
+            emit cursorChanged();   // the highlight has to be taken down
+        }
+        return;
+    }
+
+    m_bracket = editor::Position{caret.line, column};
+
+    const QChar partner = partnerOf(bracket, direction);
+    int depth = 0;
+    int scanned = 0;
+
+    // Nesting is counted, not just the next occurrence: the partner of the
+    // outer brace in `{ { } }` is the last one, not the first one found.
+    for (int lineIndex = caret.line;
+         lineIndex >= 0 && lineIndex < m_document->lineCount()
+         && scanned < kMaxBracketScanLines;
+         lineIndex += direction, ++scanned) {
+
+        const QString text = m_document->line(lineIndex);
+        int from = (lineIndex == caret.line) ? column
+                                             : (direction > 0 ? 0 : text.size() - 1);
+
+        for (int i = from; i >= 0 && i < text.size(); i += direction) {
+            const QChar character = text.at(i);
+            if (character == bracket) {
+                ++depth;
+            } else if (character == partner) {
+                --depth;
+                if (depth == 0) {
+                    m_bracketMatch = editor::Position{lineIndex, i};
+                    m_bracketMatched = true;
+                    emit cursorChanged();
+                    return;
+                }
+            }
+        }
+    }
+
+    // Found a bracket but no partner. Reported as unmatched rather than as
+    // nothing, so the view can say so.
+    emit cursorChanged();
+}
+
 QString EditorViewModel::languageName() const
 {
     // Named for the reader, not for the enumerator: "C++" rather than "C", and
@@ -591,6 +704,31 @@ void EditorViewModel::insertText(const QString& text)
     if (!m_document || text.isEmpty()) {
         return;
     }
+
+    // A closing brace typed as the first thing on a line pulls that line back
+    // one level, so `}` lands under the `{` it closes rather than one level in
+    // from it. Only when nothing but whitespace precedes it: a brace at the end
+    // of an expression is not closing a block.
+    if (text.size() == 1
+        && (text == QLatin1String("}") || text == QLatin1String(")")
+            || text == QLatin1String("]"))) {
+        const editor::Position caret = m_document->cursor().position;
+        const QString line = m_document->line(caret.line);
+        const QString before = line.left(caret.column);
+
+        if (!before.isEmpty() && before.trimmed().isEmpty()) {
+            const QString unit = m_settings.indentString();
+            if (before.endsWith(unit)) {
+                m_document->replaceRange(
+                    editor::Range{
+                        editor::Position{caret.line,
+                                         caret.column - static_cast<int>(unit.size())},
+                        editor::Position{caret.line, caret.column}},
+                    QString());
+            }
+        }
+    }
+
     m_document->insertText(text);
     emit scrollToCursorRequested();
 }
@@ -615,8 +753,18 @@ void EditorViewModel::insertNewline()
     // Only carry indentation that is actually behind the caret: splitting a line
     // mid-indent should not duplicate what is already there.
     const int carry = std::min(indent, m_document->cursor().position.column);
+    QString lead = current.left(carry);
 
-    m_document->insertText(QLatin1String("\n") + current.left(carry));
+    // One level deeper after a line that opens a block. Every editor does this,
+    // and without it the first thing anyone does after each brace is press Tab.
+    const int caretColumn = m_document->cursor().position.column;
+    const QString before = current.left(caretColumn).trimmed();
+    if (before.endsWith(QLatin1Char('{')) || before.endsWith(QLatin1Char('('))
+        || before.endsWith(QLatin1Char('[')) || before.endsWith(QLatin1Char(':'))) {
+        lead += m_settings.indentString();
+    }
+
+    m_document->insertText(QLatin1String("\n") + lead);
     emit scrollToCursorRequested();
 }
 

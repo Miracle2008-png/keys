@@ -73,6 +73,20 @@ class EditorViewModel : public QObject {
     /// rather than appearing to match nothing.
     Q_PROPERTY(bool findQueryValid READ isFindQueryValid NOTIFY findChanged)
 
+    // ---- Bracket matching --------------------------------------------------
+
+    /// Where the bracket under or before the caret is, and where its partner
+    /// is, or -1 when the caret is not on one. Two positions rather than a
+    /// range: they can be thousands of lines apart.
+    Q_PROPERTY(int bracketLine READ bracketLine NOTIFY cursorChanged)
+    Q_PROPERTY(int bracketColumn READ bracketColumn NOTIFY cursorChanged)
+    Q_PROPERTY(int matchLine READ matchLine NOTIFY cursorChanged)
+    Q_PROPERTY(int matchColumn READ matchColumn NOTIFY cursorChanged)
+
+    /// False when the caret is on a bracket whose partner is missing, so the
+    /// view can mark it as unbalanced rather than simply not highlighting.
+    Q_PROPERTY(bool bracketMatched READ isBracketMatched NOTIFY cursorChanged)
+
 public:
     /// Takes the editor's resolved settings so indentation follows the user's
     /// preference. Passed in rather than looked up so the view model stays
@@ -153,6 +167,12 @@ public:
 
     [[nodiscard]] QString languageName() const;
 
+    [[nodiscard]] int bracketLine() const { return m_bracket.line; }
+    [[nodiscard]] int bracketColumn() const { return m_bracket.column; }
+    [[nodiscard]] int matchLine() const { return m_bracketMatch.line; }
+    [[nodiscard]] int matchColumn() const { return m_bracketMatch.column; }
+    [[nodiscard]] bool isBracketMatched() const { return m_bracketMatched; }
+
     // ---- Find and replace --------------------------------------------------
 
     [[nodiscard]] bool isFindOpen() const { return m_findOpen; }
@@ -210,12 +230,21 @@ private:
     /// Counts content changes; only its identity matters, never its value.
     int m_revision = 0;
 
+    /// Recomputes the bracket under the caret and its partner. Called on every
+    /// caret move, so it stops at a bound rather than scanning a whole file:
+    /// an unmatched brace in a large document must not cost a frame.
+    void updateBracketMatch();
+
     /// Re-runs the search and moves the caret to the current match.
     void refreshFind(bool keepPosition = false);
 
     /// Puts the caret on the current match and selects it, so Enter in the
     /// find field leaves the editor ready to type over the hit.
     void revealCurrentMatch();
+
+    editor::Position m_bracket{-1, -1};
+    editor::Position m_bracketMatch{-1, -1};
+    bool m_bracketMatched = false;
 
     editor::DocumentSearch m_find;
     editor::FindOptions m_findOptions;

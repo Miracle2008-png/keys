@@ -19,6 +19,7 @@ keys_add_test(budget     SOURCES BudgetTests.cpp     DEPENDS workspace search ed
 keys_add_test(highlighter SOURCES HighlighterTests.cpp DEPENDS editor)
 keys_add_test(docsearch SOURCES DocumentSearchTests.cpp DEPENDS editor)
 keys_add_test(highlightrender SOURCES HighlightRenderTests.cpp DEPENDS ui QT Gui Quick)
+keys_add_test(brackets SOURCES BracketTests.cpp DEPENDS ui)
 keys_add_test(theme      SOURCES ThemeTests.cpp      DEPENDS ui QT Gui Quick)
 keys_add_test(palette    SOURCES PaletteTests.cpp    DEPENDS ui QT Gui Quick)
 keys_add_test(settingsui  SOURCES SettingsUiTests.cpp DEPENDS ui QT Gui Quick)

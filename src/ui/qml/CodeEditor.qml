@@ -237,6 +237,39 @@ Item {
                         }
                     }
 
+                    // The bracket under the caret and its partner, outlined
+                    // rather than filled: a solid block over a brace hides the
+                    // character you are trying to read. Red when unmatched,
+                    // which is the fastest way to find a missing brace.
+                    //
+                    // Two plain Rectangles rather than a Repeater over a JS
+                    // array: the array is rebuilt on every caret move, which
+                    // tears down and recreates both delegates each time.
+                    Rectangle {
+                        visible: root.editor.bracketLine === row.index
+                                 && root.editor.bracketColumn >= 0
+                        x: root.editor.bracketColumn * root.charWidth
+                        width: root.charWidth
+                        height: parent.height
+                        color: "transparent"
+                        border.width: 1
+                        border.color: root.editor.bracketMatched ? Theme.accent
+                                                                 : Theme.red
+                        radius: 2
+                    }
+
+                    Rectangle {
+                        visible: root.editor.matchLine === row.index
+                                 && root.editor.matchColumn >= 0
+                        x: root.editor.matchColumn * root.charWidth
+                        width: root.charWidth
+                        height: parent.height
+                        color: "transparent"
+                        border.width: 1
+                        border.color: Theme.accent
+                        radius: 2
+                    }
+
                     Text {
                         id: contentText
                         height: parent.height
