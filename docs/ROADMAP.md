@@ -4,6 +4,9 @@ Measured against VS Code, CLion and RustRover, from an audit of the source on
 2026-09-06. Everything marked *missing* was verified absent by inspection, not
 assumed. Everything marked *built* was verified present.
 
+**Status:** Phase 1 and Phase 2 are complete. Phase 3 has find/replace and
+bracket matching done; multiple cursors, folding and rename remain.
+
 The order below is the order of work. It runs feel first, then reach: an editor
 that feels wrong is not rescued by having more features, and every item added
 before the feel is right has to be re-tuned afterwards.
@@ -55,7 +58,7 @@ Missing transitions, in the order they are noticed:
 Every one respects `App.animationDuration` / `fastAnimationDuration`, so Off
 stays genuinely off.
 
-### 1.3 Density and rhythm
+### 1.3 Density and rhythm — **done**
 
 Once the font lands, the spacing scale needs a pass against it. CLion's menus are
 tighter than Keys' current 30px rows; its tool windows carry more per vertical
@@ -63,7 +66,7 @@ inch without feeling cramped.
 
 ---
 
-## Phase 2 — The menus
+## Phase 2 — The menus — **done**
 
 Keys has File, Edit, View, Build, Help. CLion has File, Edit, View, Navigate,
 Code, Refactor, Build, Run, Tools, VCS, Window, Help.
@@ -159,10 +162,11 @@ No folding model. Needs fold regions (from the language server where it offers
 them, from indentation where it does not), gutter markers, and a line index that
 understands hidden ranges.
 
-### 3.4 Bracket matching and auto-indent
+### 3.4 Bracket matching and auto-indent — **done**
 
-Neither exists. Both are small next to the two above, and both are noticed
-constantly while typing.
+Matching highlights the caret's bracket and its partner, red when unmatched.
+Indentation follows the braces: deeper after an opening bracket, and a closing
+brace typed on its own line pulls back. 13 tests.
 
 ### 3.5 Rename symbol
 
