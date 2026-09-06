@@ -58,7 +58,7 @@ Menu {
     delegate: MenuItem {
         id: item
 
-        implicitHeight: 30
+        implicitHeight: Metrics.rowHeight
         leftPadding: 12
         rightPadding: 12
 

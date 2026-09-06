@@ -42,6 +42,7 @@ class Metrics : public QObject {
     Q_PROPERTY(int radiusLarge MEMBER radiusLarge CONSTANT)
 
     // ---- Spacing ---------------------------------------------------------
+    Q_PROPERTY(int rowHeight MEMBER rowHeight CONSTANT)
     Q_PROPERTY(int spacingTight MEMBER spacingTight CONSTANT)
     Q_PROPERTY(int spacingSmall MEMBER spacingSmall CONSTANT)
     Q_PROPERTY(int spacingMedium MEMBER spacingMedium CONSTANT)
@@ -72,17 +73,21 @@ public:
 
     explicit Metrics(QObject* parent = nullptr) : QObject(parent) {}
 
-    int topBarHeight = 46;
+    // Denser than before, against CLion's own proportions. A 46px top bar and
+    // a 52px rail spent a strip of every screen on chrome; the point of an IDE
+    // window is how much of the project it can show at once, and every row
+    // saved here is a line of code gained.
+    int topBarHeight = 36;
     int statusBarHeight = 24;
-    int activityRailWidth = 52;
-    int sidebarDefaultWidth = 268;
+    int activityRailWidth = 44;
+    int sidebarDefaultWidth = 248;
     int sidebarMinWidth = 180;
     int sidebarMaxWidth = 600;
-    int terminalHeaderHeight = 38;
-    int breadcrumbHeight = 30;
+    int terminalHeaderHeight = 32;
+    int breadcrumbHeight = 26;
 
-    int railButtonSize = 34;
-    int iconButtonSize = 30;
+    int railButtonSize = 30;
+    int iconButtonSize = 26;
     int searchFieldWidth = 340;
     int paletteWidth = 560;
     int paletteMaxHeight = 420;
@@ -94,6 +99,11 @@ public:
     int radiusSmall = 3;
     int radiusMedium = 4;
     int radiusLarge = 6;
+
+    /// The height of a row in a tree, a list or a menu. One number, so the
+    /// explorer, the menus and the palette share a rhythm rather than each
+    /// choosing its own.
+    int rowHeight = 24;
 
     int spacingTight = 4;
     int spacingSmall = 8;

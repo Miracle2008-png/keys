@@ -12,7 +12,9 @@ Item {
 
     /// Rows are 26px with a 6px radius and 16px of indent per depth, matching
     /// the design's explorer.
-    readonly property int rowHeight: 26
+    // Shared with the menus and the palette, so the whole window keeps one
+    // vertical rhythm rather than each panel choosing its own.
+    readonly property int rowHeight: Metrics.rowHeight
     readonly property int indentPerDepth: 16
 
     ListView {

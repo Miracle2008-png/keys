@@ -19,7 +19,7 @@ MenuItem {
     /// being chosen.
     property string shortcut: ""
 
-    implicitHeight: 30
+    implicitHeight: Metrics.rowHeight
     implicitWidth: 240
     leftPadding: 12
     rightPadding: 12
