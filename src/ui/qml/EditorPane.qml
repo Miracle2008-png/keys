@@ -42,9 +42,27 @@ Item {
         onEditorFocusRequested: code.forceActiveFocus()
     }
 
+    // Between the find bar and the code: it describes the document, so it
+    // belongs with the document rather than up in the tab bar.
+    Breadcrumb {
+        id: breadcrumb
+
+        anchors.top: findBar.bottom
+        width: parent.width
+        editor: root.editorModel
+
+        // Selects the folder in the explorer. Revealing it - expanding every
+        // ancestor and scrolling to it - would be better and needs a model
+        // method that does not exist yet; selecting is honest and useful now.
+        onFolderActivated: (path) => {
+            App.selectView("explorer");
+            FileTree.setSelectedPath(path);
+        }
+    }
+
     CodeEditor {
         id: code
-        anchors.top: findBar.bottom
+        anchors.top: breadcrumb.bottom
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom

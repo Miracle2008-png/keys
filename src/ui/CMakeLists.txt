@@ -42,6 +42,7 @@ qt_add_qml_module(keys_ui
     QML_FILES
         qml/Main.qml
         qml/ActivityRail.qml
+        qml/Breadcrumb.qml
         qml/CodeEditor.qml
         qml/CommandPalette.qml
         qml/EditorPane.qml
