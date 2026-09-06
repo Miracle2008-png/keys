@@ -69,6 +69,7 @@ qt_add_qml_module(keys_ui
         qml/KeysDialog.qml
         qml/NameDialog.qml
         qml/PrimaryButton.qml
+        qml/ProjectRow.qml
         qml/SearchField.qml
         qml/SectionLabel.qml
         qml/SettingsPanel.qml

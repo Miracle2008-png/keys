@@ -37,6 +37,8 @@ Rectangle {
             // rail is a large amount of accent for a small amount of meaning,
             // and the brief asks for the accent to be spent selectively.
             Item {
+                id: railItem
+
                 required property var modelData
 
                 width: Metrics.railButtonSize
@@ -50,7 +52,7 @@ Rectangle {
                     anchors.leftMargin: -8
                     anchors.verticalCenter: parent.verticalCenter
                     width: 2
-                    height: parent.current ? parent.height - 8 : 0
+                    height: railItem.current ? railItem.height - 8 : 0
                     radius: 1
                     color: Theme.accent
 
@@ -65,7 +67,7 @@ Rectangle {
                 Rectangle {
                     anchors.fill: parent
                     radius: Metrics.radiusSmall
-                    color: railMouse.containsMouse && !parent.current
+                    color: railMouse.containsMouse && !railItem.current
                            ? Theme.bgHover : "transparent"
 
                     Behavior on color {
@@ -75,9 +77,9 @@ Rectangle {
 
                 Icon {
                     anchors.centerIn: parent
-                    source: parent.modelData.icon
+                    source: railItem.modelData.icon
                     size: Metrics.railIconSize
-                    color: parent.current ? Theme.textPrimary
+                    color: railItem.current ? Theme.textPrimary
                          : railMouse.containsMouse ? Theme.textSecondary
                          : Theme.textTertiary
 
@@ -92,11 +94,11 @@ Rectangle {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: App.selectView(parent.modelData.id)
+                    onClicked: App.selectView(railItem.modelData.id)
                 }
 
                 ToolTip.visible: railMouse.containsMouse
-                ToolTip.text: parent.modelData.label
+                ToolTip.text: railItem.modelData.label
                 ToolTip.delay: 500
             }
         }
