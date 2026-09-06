@@ -221,13 +221,32 @@ private slots:
 
     void metricsMatchTheDesign()
     {
+        // The chrome was retuned against CLion's proportions: a 46px top bar
+        // and a 52px rail spent a strip of every screen on furniture, and an
+        // IDE is judged by how much of the project it shows at once.
         const Metrics metrics;
-        QCOMPARE(metrics.topBarHeight, 46);
+        QCOMPARE(metrics.topBarHeight, 36);
         QCOMPARE(metrics.statusBarHeight, 24);
-        QCOMPARE(metrics.activityRailWidth, 52);
-        QCOMPARE(metrics.sidebarDefaultWidth, 268);
-        QCOMPARE(metrics.terminalHeaderHeight, 38);
+        QCOMPARE(metrics.activityRailWidth, 44);
+        QCOMPARE(metrics.sidebarDefaultWidth, 248);
+        QCOMPARE(metrics.terminalHeaderHeight, 32);
         QCOMPARE(metrics.paletteWidth, 560);
+    }
+
+    void chromeLeavesMostOfTheWindowToTheProject()
+    {
+        // The rule behind the numbers above, which survives the next retune:
+        // the fixed chrome must not eat a meaningful share of a normal window.
+        // Written separately so a deliberate adjustment updates one test while
+        // the constraint itself stays asserted.
+        const Metrics metrics;
+
+        const int verticalChrome = metrics.topBarHeight + metrics.statusBarHeight;
+        QVERIFY2(verticalChrome < 80,
+                 "the top and status bars together take too much height");
+
+        QVERIFY2(metrics.activityRailWidth < 56, "the activity rail is too wide");
+        QVERIFY2(metrics.rowHeight <= 28, "list rows are too tall to scan");
     }
 
     void metricsHaveNoUnreadablyTinyType()
