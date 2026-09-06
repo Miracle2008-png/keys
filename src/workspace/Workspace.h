@@ -72,6 +72,17 @@ public:
     /// Writes the active document back to its path.
     core::Status saveFile();
 
+    /// Writes the open document to a new path and follows it there, so the
+    /// editor is now editing the new file rather than leaving the user looking
+    /// at a tab whose title no longer matches what they are typing into.
+    core::Status saveFileAs(const QString& path);
+
+    /// Creates an empty file and opens it. Creating without opening would leave
+    /// the user to hunt for what they just made.
+    core::Status createFile(const QString& path);
+
+    core::Status createFolder(const QString& path);
+
     /// Closes a tab in the active group, discarding unsaved changes. The UI
     /// asks about those first.
     void closeTab(int index);

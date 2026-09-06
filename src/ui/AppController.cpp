@@ -1,5 +1,8 @@
 #include "ui/AppController.h"
 
+#include <QDir>
+#include <QFileInfo>
+
 #include "core/Log.h"
 
 #include <QCoreApplication>
@@ -314,6 +317,74 @@ void AppController::reportNotice(const QString& message)
     emit errorOccurred(message);
 }
 
+bool AppController::saveFileAs(const QString& path)
+{
+    const core::Status status = m_workspace.saveFileAs(path);
+    if (!status) {
+        m_lastError = status.error().toString();
+        emit errorOccurred(m_lastError);
+        return false;
+    }
+    m_lastError.clear();
+    return true;
+}
+
+QString AppController::newFileDirectory() const
+{
+    // Beside the open file, so a bare name lands where the user is working.
+    if (const editor::TextDocument* document = m_workspace.activeDocument();
+        document && !document->path().isEmpty()) {
+        return QFileInfo(document->path()).absolutePath();
+    }
+    return m_workspace.project().root();
+}
+
+QString AppController::resolveAgainstProject(const QString& path) const
+{
+    // A bare name means "here", which is beside the open file. An absolute path
+    // is taken as given, so a dialog's result passes through untouched.
+    if (path.isEmpty() || QFileInfo(path).isAbsolute()) {
+        return path;
+    }
+    return QDir(newFileDirectory()).filePath(path);
+}
+
+bool AppController::createFile(const QString& path)
+{
+    const core::Status status = m_workspace.createFile(resolveAgainstProject(path));
+    if (!status) {
+        m_lastError = status.error().toString();
+        emit errorOccurred(m_lastError);
+        return false;
+    }
+    m_lastError.clear();
+    return true;
+}
+
+bool AppController::createFolder(const QString& path)
+{
+    const core::Status status = m_workspace.createFolder(resolveAgainstProject(path));
+    if (!status) {
+        m_lastError = status.error().toString();
+        emit errorOccurred(m_lastError);
+        return false;
+    }
+    m_lastError.clear();
+    return true;
+}
+
+QString AppController::version()
+{
+    return QStringLiteral(KEYS_VERSION);
+}
+
+QString AppController::qtVersion()
+{
+    // The runtime version, not the compile-time one: a mismatch between them is
+    // exactly the kind of thing a bug report needs to show.
+    return QString::fromLatin1(qVersion());
+}
+
 QString AppController::takeLastError()
 {
     return std::exchange(m_lastError, QString());
@@ -360,6 +431,29 @@ void AppController::registerWorkbenchCommands()
         [this] {
             m_settings.setValue(QLatin1String(kSidebarVisibleKey), !sidebarVisible());
         });
+
+    add(QStringLiteral("workspace.newFile"),
+        QStringLiteral("New File"),
+        QStringLiteral("File"),
+        [this] { emit newFileRequested(); },
+        [this] { return hasProject(); });
+
+    add(QStringLiteral("workspace.newFolder"),
+        QStringLiteral("New Folder"),
+        QStringLiteral("File"),
+        [this] { emit newFolderRequested(); },
+        [this] { return hasProject(); });
+
+    add(QStringLiteral("workspace.saveFileAs"),
+        QStringLiteral("Save As"),
+        QStringLiteral("File"),
+        [this] { emit saveAsRequested(); },
+        [this] { return m_workspace.hasOpenFile(); });
+
+    add(QStringLiteral("workspace.openProject"),
+        QStringLiteral("Open Project"),
+        QStringLiteral("File"),
+        [this] { emit openProjectRequested(); });
 
     add(QStringLiteral("workbench.openSettings"),
         QStringLiteral("Open Settings"),

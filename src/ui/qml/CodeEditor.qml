@@ -75,7 +75,12 @@ Item {
             width: lines.width
             height: root.lineHeight
 
-            readonly property string text: root.editor.lineText(index)
+            // `revision` is named, not used: it is what tells the engine this
+            // binding depends on the document's contents. Without it the line
+            // is fetched once and then never again, so typing moves the buffer
+            // while the screen keeps showing what was there before.
+            readonly property string text: (root.editor.revision,
+                                            root.editor.lineText(index))
             readonly property bool isCursorLine: index === root.editor.cursorLine
 
             // The line the caret is on gets a faint wash, so the eye can find
@@ -219,7 +224,8 @@ Item {
                         // StyledText costs parsing per line, and a file with no
                         // highlighting should not pay it.
                         text: root.editor.highlighted
-                              ? root.editor.highlightedLine(row.index)
+                              ? (root.editor.revision,
+                                 root.editor.highlightedLine(row.index))
                               : row.text
                         color: Theme.synPlain
                         font.family: EditorConfig.fontFamily

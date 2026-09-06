@@ -28,6 +28,15 @@ class EditorViewModel : public QObject {
     QML_UNCREATABLE("EditorViewModel is provided by the application")
 
     Q_PROPERTY(int lineCount READ lineCount NOTIFY contentsChanged)
+
+    /// Bumped on every content change.
+    ///
+    /// `lineText` and `highlightedLine` are functions, and QML cannot know that
+    /// a function's result has changed - a binding that calls one is evaluated
+    /// once and never again. Naming this property inside such a binding gives
+    /// the engine a dependency it *can* track, so an edit repaints the line
+    /// instead of leaving a stale one on screen while the buffer moves on.
+    Q_PROPERTY(int revision READ revision NOTIFY contentsChanged)
     Q_PROPERTY(int cursorLine READ cursorLine NOTIFY cursorChanged)
     Q_PROPERTY(int cursorColumn READ cursorColumn NOTIFY cursorChanged)
     Q_PROPERTY(bool hasSelection READ hasSelection NOTIFY cursorChanged)
@@ -105,6 +114,8 @@ public:
     Q_INVOKABLE void selectAll();
     Q_INVOKABLE QString selectedText() const;
 
+    [[nodiscard]] int revision() const { return m_revision; }
+
     Q_INVOKABLE void undo();
     Q_INVOKABLE void redo();
 
@@ -122,6 +133,9 @@ signals:
     void scrollToCursorRequested();
 
 private:
+    /// Counts content changes; only its identity matters, never its value.
+    int m_revision = 0;
+
     EditorSettings& m_settings;
     editor::TextDocument* m_document = nullptr;
 

@@ -1,5 +1,7 @@
 #include "workspace/Workspace.h"
 
+#include <QDir>
+
 #include "config/SettingsStore.h"
 #include "core/Log.h"
 #include "core/Trace.h"
@@ -135,6 +137,77 @@ Status Workspace::openFile(const QString& path)
 
     emit fileOpened(normalized);
     return Ok();
+}
+
+Status Workspace::saveFileAs(const QString& path)
+{
+    editor::TextDocument* document = m_editors.activeDocument();
+    if (!document) {
+        return core::Err(core::ErrorCode::InvalidArgument,
+                         QStringLiteral("There is nothing to save"));
+    }
+    if (path.isEmpty()) {
+        return core::Err(core::ErrorCode::InvalidArgument,
+                         QStringLiteral("No destination was given"));
+    }
+
+    const QString normalized = QDir::cleanPath(QDir(path).absolutePath());
+
+    m_watcher.suppress(normalized);
+    const Status status = fs::FileSystem::writeTextFile(normalized, document->text());
+    m_watcher.unsuppress(normalized);
+
+    if (!status) {
+        return status;
+    }
+
+    // The document follows the file. Leaving it on the old path would mean the
+    // next plain Save wrote somewhere the user no longer means.
+    document->setPath(normalized);
+    document->markSaved();
+
+    emit fileOpened(normalized);
+    return Ok();
+}
+
+Status Workspace::createFile(const QString& path)
+{
+    if (path.isEmpty()) {
+        return core::Err(core::ErrorCode::InvalidArgument,
+                         QStringLiteral("No file name was given"));
+    }
+
+    const QString normalized = QDir::cleanPath(QDir(path).absolutePath());
+
+    if (fs::FileSystem::exists(normalized)) {
+        return core::Err(core::ErrorCode::AlreadyExists,
+                         QStringLiteral("That file already exists"), normalized);
+    }
+
+    if (const Status status = fs::FileSystem::writeTextFile(normalized, QString());
+        !status) {
+        return status;
+    }
+
+    // Opened as well as created: a new file the user has to go and find is a
+    // worse outcome than one that is simply there, ready to type into.
+    return openFile(normalized);
+}
+
+Status Workspace::createFolder(const QString& path)
+{
+    if (path.isEmpty()) {
+        return core::Err(core::ErrorCode::InvalidArgument,
+                         QStringLiteral("No folder name was given"));
+    }
+
+    const QString normalized = QDir::cleanPath(QDir(path).absolutePath());
+
+    if (fs::FileSystem::exists(normalized)) {
+        return core::Err(core::ErrorCode::AlreadyExists,
+                         QStringLiteral("That folder already exists"), normalized);
+    }
+    return fs::FileSystem::createDirectory(normalized);
 }
 
 Status Workspace::saveFile()

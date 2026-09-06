@@ -5,9 +5,11 @@
 #include "ui/Theme.h"
 
 #include <QRegularExpression>
+#include <QSignalSpy>
 #include <QTest>
 
 #include <memory>
+#include <tuple>
 
 using keys::config::Settings;
 using keys::editor::TextDocument;
@@ -208,6 +210,62 @@ private slots:
     void anEmptyLineRendersAsNothing()
     {
         QCOMPARE(render(QStringLiteral("a.cpp"), QString()), QString());
+    }
+
+    // ---- Change notification ----------------------------------------------
+
+    /// An edit must move `revision`.
+    ///
+    /// `lineText` and `highlightedLine` are functions, so a QML binding that
+    /// calls one has nothing to depend on and is evaluated exactly once. The
+    /// view bindings name `revision` to get a dependency the engine tracks.
+    /// If it stops changing, typing silently stops repainting - the buffer
+    /// moves on while the screen keeps showing the old line, which is what
+    /// happened before this existed and what no tokeniser test could catch.
+    void editingMovesTheRevision()
+    {
+        std::ignore = render(QStringLiteral("a.cpp"), QStringLiteral("int a;"));
+
+        const int before = m_model->revision();
+        QSignalSpy spy(m_model.get(), &EditorViewModel::contentsChanged);
+
+        m_document->insertText(QStringLiteral("x"));
+
+        QVERIFY2(m_model->revision() != before,
+                 "an edit left the revision unchanged, so bindings will not "
+                 "re-evaluate and the view will show stale text");
+        QCOMPARE(spy.count(), 1);
+    }
+
+    /// The revision must be new *before* the signal is delivered, or a binding
+    /// re-evaluating in response reads the previous value and the whole
+    /// mechanism buys nothing.
+    void theRevisionIsCurrentWhenTheSignalArrives()
+    {
+        std::ignore = render(QStringLiteral("a.cpp"), QStringLiteral("int a;"));
+
+        const int before = m_model->revision();
+        int observed = before;
+        connect(m_model.get(), &EditorViewModel::contentsChanged, this,
+                [this, &observed] { observed = m_model->revision(); });
+
+        m_document->insertText(QStringLiteral("x"));
+
+        QVERIFY2(observed != before,
+                 "contentsChanged was emitted while revision still held its "
+                 "old value");
+    }
+
+    /// Binding a different document is a content change too: the line the view
+    /// is showing belongs to a file that is no longer open.
+    void bindingADocumentMovesTheRevision()
+    {
+        std::ignore = render(QStringLiteral("a.cpp"), QStringLiteral("int a;"));
+        const int before = m_model->revision();
+
+        std::ignore = render(QStringLiteral("b.cpp"), QStringLiteral("int b;"));
+
+        QVERIFY(m_model->revision() != before);
     }
 };
 

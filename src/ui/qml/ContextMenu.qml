@@ -11,7 +11,9 @@ import Keys.Ui
 Menu {
     id: root
 
-    implicitWidth: 190
+    // Wide enough for a label and its shortcut without the two colliding. A
+    // menu that resizes per item would jitter as it opens.
+    implicitWidth: 240
     topPadding: 6
     bottomPadding: 6
 
@@ -29,14 +31,38 @@ Menu {
         leftPadding: 12
         rightPadding: 12
 
-        contentItem: Text {
-            text: item.text
-            color: item.enabled ? (item.highlighted ? Theme.textPrimary
-                                                    : Theme.textSecondary)
-                                : Theme.textTertiary
-            font.family: Fonts.ui
-            font.pointSize: Metrics.fontSizeBody
-            verticalAlignment: Text.AlignVCenter
+        contentItem: Item {
+            implicitHeight: label.implicitHeight
+
+            Text {
+                id: label
+
+                anchors.left: parent.left
+                anchors.right: shortcut.left
+                anchors.rightMargin: Metrics.spacingMedium
+                anchors.verticalCenter: parent.verticalCenter
+                text: item.text
+                color: item.enabled ? (item.highlighted ? Theme.textPrimary
+                                                        : Theme.textSecondary)
+                                    : Theme.textTertiary
+                font.family: Fonts.ui
+                font.pointSize: Metrics.fontSizeBody
+                elide: Text.ElideRight
+            }
+
+            // The shortcut, right-aligned and quieter than the label - it is a
+            // reminder, not the thing being chosen. Blank for items that have
+            // none, which is most of them.
+            Text {
+                id: shortcut
+
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                text: ""
+                color: Theme.textTertiary
+                font.family: Fonts.mono
+                font.pointSize: Metrics.fontSizeLabel
+            }
         }
 
         background: Rectangle {

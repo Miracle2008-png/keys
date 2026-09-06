@@ -54,6 +54,10 @@ void EditorViewModel::setDocument(editor::TextDocument* document)
                     if (m_lineStates.size() > static_cast<size_t>(replaced.start.line)) {
                         m_lineStates.resize(static_cast<size_t>(replaced.start.line));
                     }
+
+                    // Before contentsChanged reaches QML, so a binding that
+                    // reads `revision` sees the new value when it re-evaluates.
+                    ++m_revision;
                 });
 
         connect(m_document, &editor::TextDocument::contentsChanged,
@@ -73,6 +77,8 @@ void EditorViewModel::setDocument(editor::TextDocument* document)
                     emit documentChanged();
                 });
     }
+
+    ++m_revision;
 
     emit documentChanged();
     emit contentsChanged();

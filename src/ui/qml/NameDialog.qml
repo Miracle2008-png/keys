@@ -113,7 +113,14 @@ Dialog {
             return;
         }
         switch (mode) {
-        case NameDialog.CreateFile:   FileTree.createFile(targetPath, name); break;
+        case NameDialog.CreateFile:
+            // Opened as well as created: a new file the user then has to go and
+            // find in the tree is a worse outcome than one that is simply there,
+            // ready to type into.
+            if (FileTree.createFile(targetPath, name)) {
+                App.openFile(targetPath + "/" + name);
+            }
+            break;
         case NameDialog.CreateFolder: FileTree.createFolder(targetPath, name); break;
         case NameDialog.Rename:       FileTree.rename(targetPath, name); break;
         }

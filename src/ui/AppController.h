@@ -36,6 +36,11 @@ class AppController : public QObject {
     Q_PROPERTY(QString activeView READ activeView NOTIFY workbenchChanged)
     Q_PROPERTY(int sidebarWidth READ sidebarWidth NOTIFY workbenchChanged)
 
+    /// Shown in the About box, which is what somebody reporting a problem is
+    /// asked for.
+    Q_PROPERTY(QString version READ version CONSTANT)
+    Q_PROPERTY(QString qtVersion READ qtVersion CONSTANT)
+
     /// Whether the settings page is showing in place of the editor. Session
     /// state rather than a setting: a user who closes Keys on the settings page
     /// wants their code back on the next launch, not the settings page.
@@ -78,6 +83,9 @@ public:
 
     [[nodiscard]] bool sidebarVisible() const;
 
+    [[nodiscard]] static QString version();
+    [[nodiscard]] static QString qtVersion();
+
     [[nodiscard]] bool settingsOpen() const { return m_settingsOpen; }
     Q_INVOKABLE void setSettingsOpen(bool open);
     [[nodiscard]] QString activeView() const;
@@ -114,6 +122,19 @@ public:
     /// than losing the user's work silently.
     Q_INVOKABLE bool saveFile();
 
+    /// Writes the open document somewhere new and follows it there.
+    Q_INVOKABLE bool saveFileAs(const QString& path);
+
+    /// Creates a file or folder, relative to the project root when given a
+    /// relative name - which is what a user types into a "New File" prompt.
+    Q_INVOKABLE bool createFile(const QString& path);
+    Q_INVOKABLE bool createFolder(const QString& path);
+
+    /// Where a new file should default to: the directory of whatever is open,
+    /// or the project root. Typing a bare name next to the file you are looking
+    /// at is what people mean by "new file".
+    [[nodiscard]] Q_INVOKABLE QString newFileDirectory() const;
+
     /// Closes a tab in the active group.
     Q_INVOKABLE void closeTab(int index);
 
@@ -149,10 +170,21 @@ signals:
     /// nothing fails silently.
     void errorOccurred(const QString& message);
 
+    /// Asked for by a command; the view raises the prompt or dialog. The
+    /// controller does not own UI, so it reports the intent rather than
+    /// constructing a window.
+    void newFileRequested();
+    void newFolderRequested();
+    void saveAsRequested();
+    void openProjectRequested();
+
 private:
     /// Registers the commands the workbench itself owns. Other modules register
     /// their own; nothing here knows about them.
     void registerWorkbenchCommands();
+
+    /// Turns a name typed into a prompt into a full path.
+    [[nodiscard]] QString resolveAgainstProject(const QString& path) const;
 
     core::CommandRegistry& m_commands;
     config::Settings& m_settings;

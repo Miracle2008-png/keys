@@ -47,6 +47,10 @@ qt_add_qml_module(keys_ui
         qml/EditorPane.qml
         qml/EditorTabBar.qml
         qml/ContextMenu.qml
+        qml/AboutDialog.qml
+        qml/MenuAction.qml
+        qml/MenuBar.qml
+        qml/SaveAsDialog.qml
         qml/DeleteConfirmDialog.qml
         qml/DialogButton.qml
         qml/EditorArea.qml
@@ -101,6 +105,10 @@ qt_add_resources(keys_ui "keys_branding"
         "${CMAKE_SOURCE_DIR}/resources/icons/keys-mark.svg"
         "${CMAKE_SOURCE_DIR}/resources/icons/generated/keys-256.png"
 )
+
+# The About box reports the version, so the UI needs it too - not only the
+# executable that carries it as a resource.
+target_compile_definitions(keys_ui PRIVATE KEYS_VERSION="${PROJECT_VERSION}")
 
 target_include_directories(keys_ui PUBLIC "${CMAKE_SOURCE_DIR}/src")
 

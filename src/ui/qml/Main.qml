@@ -23,6 +23,22 @@ Window {
         anchors.fill: parent
         spacing: 0
 
+        MenuBar {
+            id: menuBar
+
+            width: parent.width
+
+            onNewFileRequested: nameDialog.open(NameDialog.CreateFile,
+                                                App.newFileDirectory(), "")
+            onNewFolderRequested: nameDialog.open(NameDialog.CreateFolder,
+                                                  App.newFileDirectory(), "")
+            onOpenProjectRequested: menuFolderPicker.open()
+            onSaveAsRequested: saveAsDialog.open()
+            onAboutRequested: aboutDialog.open()
+            onPaletteRequested: palette.open(">")
+            onQuickOpenRequested: palette.open("")
+        }
+
         TopBar {
             id: topBar
             width: parent.width
@@ -31,7 +47,7 @@ Window {
 
         Item {
             width: parent.width
-            height: parent.height - topBar.height - statusBar.height
+            height: parent.height - menuBar.height - topBar.height - statusBar.height
 
             Row {
                 anchors.fill: parent
@@ -94,6 +110,32 @@ Window {
     Shortcut {
         sequence: "Ctrl+P"
         onActivated: palette.open("")
+    }
+
+    // ---- Dialogs the menu raises ----
+    //
+    // Owned by the window rather than by the menu, so a command invoked from the
+    // palette raises the same dialog the menu does.
+
+    // Creates through FileTree, against whatever directory it is opened with -
+    // the same dialog the explorer's context menu uses, so a file made from the
+    // menu and one made from a right-click behave identically.
+    NameDialog {
+        id: nameDialog
+    }
+
+    FolderPicker {
+        id: menuFolderPicker
+        onFolderAccepted: (path) => App.openProject(path)
+    }
+
+    SaveAsDialog {
+        id: saveAsDialog
+        onPathAccepted: (path) => App.saveFileAs(path)
+    }
+
+    AboutDialog {
+        id: aboutDialog
     }
 
     // Failures the user caused are shown, never swallowed.
