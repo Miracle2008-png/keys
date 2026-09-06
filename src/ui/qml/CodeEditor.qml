@@ -193,7 +193,8 @@ Item {
                 verticalAlignment: Text.AlignVCenter
                 visible: (root.editor.revision, root.editor.isFoldable(row.line))
                 opacity: root.editor.isFolded(row.line) ? 1
-                       : foldHover.containsMouse || rowHover.containsMouse ? 0.7
+                       : foldHover.containsMouse ? 1
+                       : rowHover.containsMouse ? 0.85
                        : 0
                 text: root.editor.isFolded(row.line) ? "›" : "⌄"
                 color: foldHover.containsMouse ? Theme.textPrimary : Theme.textTertiary
@@ -203,10 +204,16 @@ Item {
                     NumberAnimation { duration: App.fastAnimationDuration }
                 }
 
+                // Reaches past the glyph on both sides. A 14px target is hard
+                // to hit even when visible, and this one is invisible until the
+                // pointer is already near it - so the area is widened rather
+                // than the arrow, which would crowd the line numbers.
                 MouseArea {
                     id: foldHover
 
                     anchors.fill: parent
+                    anchors.leftMargin: -6
+                    anchors.rightMargin: -4
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: root.editor.toggleFold(row.line)
@@ -404,8 +411,16 @@ Item {
     //
     // Click to place the caret, drag to select. Column comes from the x offset
     // divided by the advance width, which is exact for a monospaced face.
+    // Positions the caret. Starts where the code does rather than filling the
+    // editor: with `preventStealing` it took every press in the gutter too, so
+    // the breakpoint dots and the fold arrows could be seen and hovered but
+    // never clicked.
     MouseArea {
-        anchors.fill: parent
+        anchors.left: parent.left
+        anchors.leftMargin: root.gutterWidth
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
         acceptedButtons: Qt.LeftButton
         cursorShape: Qt.IBeamCursor
         preventStealing: true
@@ -413,8 +428,9 @@ Item {
         function positionAt(mouseX, mouseY) {
             const line = Math.max(0, Math.min(root.editor.lineCount - 1,
                 Math.floor((mouseY + lines.contentY) / root.lineHeight)));
-            const column = Math.max(0,
-                Math.round((mouseX - root.gutterWidth) / root.charWidth));
+            // `mouseX` is already relative to the code, since this area now
+            // starts at the gutter's right edge rather than the editor's left.
+            const column = Math.max(0, Math.round(mouseX / root.charWidth));
             return { line: line, column: column };
         }
 
