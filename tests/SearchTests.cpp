@@ -627,22 +627,18 @@ private slots:
         // rejects most of them on the first missing character.
         QCOMPARE(matches, 50000);
 
-#ifdef QT_NO_DEBUG
-        QVERIFY2(elapsed < 100,
-                 qPrintable(QStringLiteral("scoring took %1 ms, budget is 100 ms")
-                                .arg(elapsed)));
-#else
-        // Twenty times the release budget. Ten was too tight: an unoptimised
-        // build of this loop runs 11-12x slower on a loaded machine, so the
-        // guard failed on unmodified code and measured the machine rather than
-        // the algorithm. Only a change of complexity moves a number this loose,
-        // which is all this assertion is for - the real budget is the release
-        // one above.
+        // The budget itself lives in BudgetTests, which samples several runs and
+        // takes the median - this measurement sits close enough to 100 ms that a
+        // single sample is dominated by whatever else the machine is doing, and
+        // two tests asserting the same contract means one of them flakes.
+        //
+        // What is worth checking here is that the cost stays *linear*. A change
+        // that made scoring quadratic would blow past this by orders of
+        // magnitude on any machine, loaded or not.
         QVERIFY2(elapsed < 2000,
-                 qPrintable(QStringLiteral("scoring took %1 ms in a debug build, "
-                                           "which suggests an algorithmic regression")
+                 qPrintable(QStringLiteral("scoring 50,000 paths took %1 ms, which "
+                                           "suggests the matcher is no longer linear")
                                 .arg(elapsed)));
-#endif
     }
 
     void indexingALargeTreeIsReasonable()

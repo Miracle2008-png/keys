@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QString>
+#include <QStringView>
 
 #include <vector>
 
@@ -49,6 +50,11 @@ public:
     /// quick open shows the whole list.
     [[nodiscard]] static FuzzyResult match(const QString& query, const QString& candidate);
 
+    /// The same, over a view. Quick open scores every file in the project on
+    /// every keystroke, and taking a substring of each path as a QString would
+    /// allocate once per candidate for text that is only ever read.
+    [[nodiscard]] static FuzzyResult match(const QString& query, QStringView candidate);
+
     /// Matches against a path, scoring the file name far more heavily than the
     /// directories leading to it.
     ///
@@ -60,7 +66,7 @@ public:
 private:
     /// True if `candidate[index]` begins a word: the first character, or one
     /// following a separator, or an uppercase letter after a lowercase one.
-    [[nodiscard]] static bool isWordBoundary(const QString& candidate, int index);
+    [[nodiscard]] static bool isWordBoundary(QStringView candidate, int index);
 };
 
 } // namespace keys::search

@@ -56,7 +56,7 @@ bool isSeparator(QChar character)
 /// the tail at each boundary candidate: the naive form is correct but turns the
 /// matcher quadratic, and this runs against every file in the project on every
 /// keystroke.
-void computeLatestFeasible(const QString& query, const QString& candidate,
+void computeLatestFeasible(const QString& query, QStringView candidate,
                            std::vector<int>& latest)
 {
     const int queryLength = static_cast<int>(query.size());
@@ -85,7 +85,7 @@ void computeLatestFeasible(const QString& query, const QString& candidate,
 
 } // namespace
 
-bool FuzzyMatch::isWordBoundary(const QString& candidate, int index)
+bool FuzzyMatch::isWordBoundary(QStringView candidate, int index)
 {
     if (index <= 0) {
         return true;
@@ -103,6 +103,11 @@ bool FuzzyMatch::isWordBoundary(const QString& candidate, int index)
 }
 
 FuzzyResult FuzzyMatch::match(const QString& query, const QString& candidate)
+{
+    return match(query, QStringView(candidate));
+}
+
+FuzzyResult FuzzyMatch::match(const QString& query, QStringView candidate)
 {
     FuzzyResult result;
 
@@ -217,7 +222,13 @@ FuzzyResult FuzzyMatch::matchPath(const QString& query, const QString& path)
     }
 
     const int lastSeparator = path.lastIndexOf(QLatin1Char('/'));
-    const QString fileName = lastSeparator >= 0 ? path.mid(lastSeparator + 1) : path;
+
+    // A view, not a copy. mid() allocates a QString per candidate, and this runs
+    // against every file in the project on every keystroke - at 50,000 files
+    // that is 50,000 allocations for a substring that is only ever read.
+    const QStringView fileName = lastSeparator >= 0
+                                     ? QStringView(path).mid(lastSeparator + 1)
+                                     : QStringView(path);
 
     // Try the file name first. The user is naming a file, so a match there is
     // what they meant - `main` should find `src/main.cpp` before
@@ -240,7 +251,7 @@ FuzzyResult FuzzyMatch::matchPath(const QString& query, const QString& path)
 
     // Otherwise fall back to the whole path, which is what makes a query like
     // `srcutil` work across a directory boundary.
-    return match(query, path);
+    return match(query, QStringView(path));
 }
 
 } // namespace keys::search

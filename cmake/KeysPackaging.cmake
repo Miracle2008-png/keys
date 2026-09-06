@@ -222,6 +222,35 @@ if(WIN32)
     set(CPACK_NSIS_DEFINES "RequestExecutionLevel user")
     set(CPACK_NSIS_INSTALL_ROOT "$LOCALAPPDATA\\\\Programs")
 
+    # CPack's generated .onInit overrides the install directory whenever the
+    # default path is used, and only restores the configured one for a user in
+    # the Admin or Power Users group:
+    #
+    #     StrCmp "$IS_DEFAULT_INSTALLDIR" "1" 0 +2
+    #       StrCpy $INSTDIR "$DOCUMENTS\Keys"
+    #     ... UserInfo::GetAccountType ...
+    #     StrCmp $SV_ALLUSERS "AllUsers" 0 +3
+    #       StrCmp "$IS_DEFAULT_INSTALLDIR" "1" 0 +2
+    #         StrCpy $INSTDIR "$LOCALAPPDATA\Programs\Keys"
+    #
+    # For an ordinary user that puts the application in Documents - and on a
+    # machine with OneDrive folder redirection, that means the entire install,
+    # every Qt DLL, is uploaded to the cloud. The installer still reports
+    # success, so nothing surfaces until someone goes looking for the files.
+    #
+    # Pinning INSTDIR immediately before the install section is what makes the
+    # configured root actually hold. An explicit /D= still wins, because NSIS
+    # applies that after .onInit; this only replaces the wrong default.
+    # Written without quotes around the operands: this string passes through
+    # CMake's configure_file into the .nsi, and an escaped double quote does not
+    # survive that intact. NSIS compares unquoted tokens the same way.
+    # SetOutPath is re-issued after the correction. The template emits its own
+    # SetOutPath *before* this block, so fixing INSTDIR alone leaves the File
+    # command writing to the old directory - the registry entry and the
+    # shortcuts would point at the right place and the files would not be there.
+    set(CPACK_NSIS_EXTRA_PREINSTALL_COMMANDS
+        "StrCmp $IS_DEFAULT_INSTALLDIR 1 0 keys_dir_ok\n  StrCpy $INSTDIR $LOCALAPPDATA\\\\Programs\\\\Keys\n  SetOutPath $INSTDIR\n  keys_dir_ok:")
+
     # A Desktop shortcut alongside the Start Menu entry. CPack creates the Start
     # Menu one from CPACK_PACKAGE_EXECUTABLES; the desktop link needs these hooks.
     set(CPACK_NSIS_CREATE_ICONS_EXTRA
