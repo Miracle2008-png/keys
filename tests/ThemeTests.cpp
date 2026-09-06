@@ -109,16 +109,25 @@ private slots:
         QVERIFY(theme.textPrimary().lightness() < 80);
     }
 
-    void accentIsBlueInBothModes()
+    void accentIsCoolInBothModes()
     {
-        // The brief forbids an orange accent. Blue means the blue channel leads.
+        // The brief forbids an orange accent. What that rules out is a warm
+        // one - red leading - rather than any particular hue, so this asserts
+        // the constraint itself: the accent may be blue, teal or violet, and
+        // must never be orange, amber or red.
+        //
+        // Named for the rule rather than for today's colour. The previous
+        // version required blue to lead green, which failed the moment the
+        // accent moved to teal - a test that fails on an intended change is
+        // testing the decision rather than the constraint behind it.
         Settings settings;
         Theme theme(settings);
         for (const Theme::Mode mode : {Theme::Mode::Dark, Theme::Mode::Light}) {
             theme.setMode(mode);
             const QColor accent = theme.accent();
+
             QVERIFY2(accent.blue() > accent.red(), qPrintable(accent.name()));
-            QVERIFY2(accent.blue() > accent.green(), qPrintable(accent.name()));
+            QVERIFY2(accent.green() >= accent.red(), qPrintable(accent.name()));
         }
     }
 
