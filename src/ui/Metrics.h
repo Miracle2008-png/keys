@@ -87,9 +87,13 @@ public:
     int paletteWidth = 560;
     int paletteMaxHeight = 420;
 
-    int radiusSmall = 6;
-    int radiusMedium = 8;
-    int radiusLarge = 12;
+    // Tight. CLion, RustRover and Atom all sit at 2-4px; 6-12 is web-app
+    // rounding, and it is most of why Keys read as a site in a window rather
+    // than a tool. A menu row at radius 6 looks like a pill; at 3 it looks
+    // like a row that happens to be highlighted, which is what it is.
+    int radiusSmall = 3;
+    int radiusMedium = 4;
+    int radiusLarge = 6;
 
     int spacingTight = 4;
     int spacingSmall = 8;

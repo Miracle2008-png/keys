@@ -36,11 +36,15 @@ const Palette& darkPalette()
         // nothing on screen had an edge. The editor is the lightest of the
         // three because it is where the work happens - the eye should settle
         // there, and the surrounding chrome should recede.
-        p.bgChrome         = oklch(0.20, 0.012, 264);
-        p.bgSurface        = oklch(0.235, 0.013, 264);
-        p.bgEditor         = oklch(0.265, 0.014, 264);
-        p.bgElevated       = oklch(0.305, 0.015, 264);
-        p.bgHover          = oklch(0.34,  0.016, 264);
+        // Deeper and slightly warmer than before. The editor is the lightest
+        // surface because that is where the work is; the chrome around it
+        // recedes. Hue 255 rather than 264 takes the violet cast off, which
+        // was reading as a theme rather than as a neutral dark interface.
+        p.bgChrome         = oklch(0.185, 0.010, 255);
+        p.bgSurface        = oklch(0.215, 0.011, 255);
+        p.bgEditor         = oklch(0.245, 0.012, 255);
+        p.bgElevated       = oklch(0.285, 0.013, 255);
+        p.bgHover          = oklch(0.315, 0.014, 255);
 
         // Borders are white at low alpha so they read consistently over any
         // surface. Stronger than before: panels in CLion have visible edges,
@@ -54,10 +58,14 @@ const Palette& darkPalette()
         p.textSecondary    = oklch(0.70, 0.012, 264);
         p.textTertiary     = oklch(0.55, 0.012, 264);
 
-        p.accent           = oklch(0.64, 0.1, 252);
-        p.accentHover      = oklch(0.7,  0.1, 252);
-        p.accentSoft       = oklch(0.64, 0.1, 252, 0.16);
-        p.accentSoftBorder = oklch(0.64, 0.1, 252, 0.4);
+        // Teal rather than blue. Hue 252 is the blue every UI framework ships
+        // with, and it made Keys look like a web dashboard; 195 is the hue
+        // JetBrains uses for selection and CLion for its own accents. It reads
+        // as a tool, and it is far from the orange the brief rules out.
+        p.accent           = oklch(0.70, 0.11, 195);
+        p.accentHover      = oklch(0.76, 0.11, 195);
+        p.accentSoft       = oklch(0.70, 0.11, 195, 0.18);
+        p.accentSoftBorder = oklch(0.70, 0.11, 195, 0.42);
 
         p.green            = oklch(0.68, 0.11, 152);
         p.greenSoft        = oklch(0.68, 0.11, 152, 0.15);
@@ -105,10 +113,10 @@ const Palette& lightPalette()
         p.textSecondary    = oklch(0.48, 0.01,  255);
         p.textTertiary     = oklch(0.62, 0.01,  255);
 
-        p.accent           = oklch(0.52, 0.11, 252);
-        p.accentHover      = oklch(0.46, 0.11, 252);
-        p.accentSoft       = oklch(0.52, 0.11, 252, 0.1);
-        p.accentSoftBorder = oklch(0.52, 0.11, 252, 0.32);
+        p.accent           = oklch(0.55, 0.11, 195);
+        p.accentHover      = oklch(0.48, 0.11, 195);
+        p.accentSoft       = oklch(0.55, 0.11, 195, 0.12);
+        p.accentSoftBorder = oklch(0.55, 0.11, 195, 0.34);
 
         p.green            = oklch(0.5,  0.12, 152);
         p.greenSoft        = oklch(0.5,  0.12, 152, 0.12);
