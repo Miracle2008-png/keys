@@ -85,6 +85,12 @@ public:
     /// leaves ownership in C++, so the engine cannot delete an object main() owns.
     static Theme* create(QQmlEngine* engine, QJSEngine* scriptEngine);
 
+    /// The published instance, for C++ callers that need a colour outside QML -
+    /// the syntax highlighter builds rich text and needs the palette. Null
+    /// before main() publishes one, which callers must handle rather than
+    /// assume.
+    [[nodiscard]] static Theme* instance();
+
     [[nodiscard]] Mode mode() const { return m_mode; }
     void setMode(Mode mode);
 

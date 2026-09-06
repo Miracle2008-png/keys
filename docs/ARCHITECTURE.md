@@ -177,6 +177,28 @@ parser and screen buffer in `terminal`. Real shells, real signals, real resizing
 the brief forbids faking this. The PTY abstraction is platform-split so a Unix
 `forkpty` backend drops in later without touching the parser or the UI.
 
+### 5.3a Syntax highlighting: lexical, per line, on demand
+
+**Decision:** a hand-written lexer in `editor`, run one line at a time as the
+view draws it.
+
+*Tradeoff.* A grammar-driven highlighter (tree-sitter) is more accurate and
+handles nesting properly, but it is a dependency per language plus a parse tree
+per file. A lexer knows that `class` is a keyword and `"..."` is a string, and
+that is most of the visual benefit for none of the cost.
+
+Per line, because the editor renders only its viewport: highlighting a whole file
+would be work nobody sees, and on a 200,000-line file it would dominate the cost
+of opening it. Lines carry a small state (in-block-comment or not) so a comment
+or string spanning lines is still correct - the cached states are truncated from
+the edited line down, since an opened block comment recolours everything after
+it.
+
+Lexical only. Whether an identifier names a type or a variable needs a compiler,
+which is what the language server is for; semantic tokens can layer on top later.
+A language with no rules is left plain rather than run through rules that nearly
+fit - mis-colouring reads as a bug, no colour reads as an unsupported file type.
+
 ### 5.4a Build tasks over pipes, not a PTY
 
 **Decision:** run build and run tasks through `QProcess` pipes, streaming output

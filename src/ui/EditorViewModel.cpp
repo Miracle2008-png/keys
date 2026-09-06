@@ -1,5 +1,7 @@
 #include "ui/EditorViewModel.h"
 
+#include "ui/Theme.h"
+
 #include <QClipboard>
 #include <QFileInfo>
 #include <QGuiApplication>
@@ -26,7 +28,27 @@ void EditorViewModel::setDocument(editor::TextDocument* document)
 
     m_document = document;
 
+    // The language is chosen from the path, and the cached line states belong
+    // to the previous document.
+    m_lineStates.clear();
+    m_highlighter.setLanguage(
+        m_document ? editor::SyntaxHighlighter::languageForPath(m_document->path())
+                   : editor::SyntaxHighlighter::Language::None);
+    m_highlighted =
+        m_highlighter.language() != editor::SyntaxHighlighter::Language::None;
+
     if (m_document) {
+        connect(m_document, &editor::TextDocument::contentsChanged, this,
+                [this](const editor::Range& replaced, int) {
+                    // Everything from the edited line onward may now start in a
+                    // different state - opening a block comment recolours the
+                    // rest of the file. Truncating rather than clearing keeps
+                    // the lines above, which are unaffected.
+                    if (m_lineStates.size() > static_cast<size_t>(replaced.start.line)) {
+                        m_lineStates.resize(static_cast<size_t>(replaced.start.line));
+                    }
+                });
+
         connect(m_document, &editor::TextDocument::contentsChanged,
                 this, &EditorViewModel::contentsChanged);
         connect(m_document, &editor::TextDocument::cursorChanged,
@@ -81,6 +103,103 @@ QString EditorViewModel::fileName() const
 QString EditorViewModel::lineText(int line) const
 {
     return m_document ? m_document->line(line) : QString();
+}
+
+QString EditorViewModel::colourFor(editor::TokenKind kind)
+{
+    // Read from the Theme rather than hard-coded, so a light/dark switch
+    // recolours code with everything else. Theme is the application's instance;
+    // see Theme::create.
+    const Theme* theme = Theme::instance();
+    if (!theme) {
+        return QString();
+    }
+
+    switch (kind) {
+    case editor::TokenKind::Keyword:
+        return theme->synKeyword().name();
+    case editor::TokenKind::Type:
+        return theme->synType().name();
+    case editor::TokenKind::String:
+        return theme->synString().name();
+    case editor::TokenKind::Number:
+        return theme->synNumber().name();
+    case editor::TokenKind::Comment:
+        return theme->synComment().name();
+    case editor::TokenKind::Function:
+        return theme->synFunction().name();
+    case editor::TokenKind::Punctuation:
+        return theme->synPunct().name();
+    case editor::TokenKind::Plain:
+        break;
+    }
+    // Plain needs no span: the Text item's own colour already carries it.
+    return QString();
+}
+
+QString EditorViewModel::highlightedLine(int line) const
+{
+    if (!m_document) {
+        return QString();
+    }
+
+    const QString text = m_document->line(line);
+    if (!m_highlighted || text.isEmpty()) {
+        return text.toHtmlEscaped();
+    }
+
+    // The state this line starts in is the state the one before it ended in.
+    // Cached, and filled in as lines are drawn - a viewport draws them in order,
+    // so the entry is almost always already there. When it is not (a jump to the
+    // middle of a file), the lines above are scanned once and then cached.
+    if (m_lineStates.size() <= static_cast<size_t>(line)) {
+        m_lineStates.resize(static_cast<size_t>(line) + 1,
+                            editor::LineState::Normal);
+
+        editor::LineState state = editor::LineState::Normal;
+        for (int i = 0; i <= line; ++i) {
+            m_lineStates[static_cast<size_t>(i)] = state;
+
+            editor::LineState next = state;
+            (void)m_highlighter.tokenize(m_document->line(i), state, next);
+            state = next;
+        }
+    }
+
+    editor::LineState outgoing = editor::LineState::Normal;
+    const std::vector<editor::Token> tokens =
+        m_highlighter.tokenize(text, m_lineStates[static_cast<size_t>(line)], outgoing);
+
+    if (tokens.empty()) {
+        return text.toHtmlEscaped();
+    }
+
+    // Built as one string with spans only where a token needs one. Plain runs
+    // carry no markup, which keeps the common line short.
+    QString html;
+    html.reserve(text.size() * 2);
+
+    int position = 0;
+    for (const editor::Token& token : tokens) {
+        if (token.start > position) {
+            html += text.mid(position, token.start - position).toHtmlEscaped();
+        }
+
+        const QString colour = colourFor(token.kind);
+        const QString body = text.mid(token.start, token.length).toHtmlEscaped();
+
+        if (colour.isEmpty()) {
+            html += body;
+        } else {
+            html += QStringLiteral("<span style=\"color:%1\">%2</span>").arg(colour, body);
+        }
+        position = token.start + token.length;
+    }
+
+    if (position < text.size()) {
+        html += text.mid(position).toHtmlEscaped();
+    }
+    return html;
 }
 
 bool EditorViewModel::lineHasSelection(int line) const

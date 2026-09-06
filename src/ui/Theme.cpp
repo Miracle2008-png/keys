@@ -143,6 +143,11 @@ void Theme::setInstance(Theme* instance)
     g_instance = instance;
 }
 
+Theme* Theme::instance()
+{
+    return g_instance;
+}
+
 Theme* Theme::create(QQmlEngine* engine, QJSEngine* scriptEngine)
 {
     Q_UNUSED(engine)

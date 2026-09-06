@@ -26,6 +26,12 @@ layout, the decisions behind it, and the milestone plan.
 | 14. Extensions | Done |
 | 15. Performance & polish | Done |
 
+Syntax highlighting is in. The terminal (milestone 6) has a complete VT parser
+and screen model, but its ConPTY attachment does not work on the development
+machine - reproduced identically with a bare Microsoft-sample probe and with
+`pywinpty`, so it is the environment rather than Keys. Nothing else depends on
+it: build, run and debug all use plain pipes.
+
 Features that are not implemented yet are visibly absent or explicitly
 disabled — nothing in the interface pretends to work. The same rule governs
 settings: a setting is declared only once something honours it, so the settings

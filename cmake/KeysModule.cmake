@@ -93,8 +93,20 @@ function(keys_add_test name)
     # suites - several of which spawn processes and hammer the disk - measures
     # contention rather than the code, and a budget test that fails for that
     # reason teaches people to ignore it.
+    #
+    # RUN_SERIAL alone is not enough: it stops *other* tests starting while this
+    # one runs, but ctest may already have several in flight when it begins.
+    # PROCESSORS claims the whole pool, so it genuinely runs alone.
     if(name STREQUAL "budget")
-        set_tests_properties(${name} PROPERTIES RUN_SERIAL TRUE TIMEOUT 600)
+        include(ProcessorCount)
+        ProcessorCount(host_cores)
+        if(host_cores EQUAL 0)
+            set(host_cores 1)
+        endif()
+        set_tests_properties(${name} PROPERTIES
+            RUN_SERIAL TRUE
+            PROCESSORS ${host_cores}
+            TIMEOUT 900)
     endif()
 
     # Qt DLLs live outside the build tree on Windows; put them on PATH for the run.

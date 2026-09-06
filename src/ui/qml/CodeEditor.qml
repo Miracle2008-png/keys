@@ -215,11 +215,17 @@ Item {
                         id: contentText
                         height: parent.height
                         verticalAlignment: Text.AlignVCenter
-                        text: row.text
+                        // Rich text only when the document has syntax rules:
+                        // StyledText costs parsing per line, and a file with no
+                        // highlighting should not pay it.
+                        text: root.editor.highlighted
+                              ? root.editor.highlightedLine(row.index)
+                              : row.text
                         color: Theme.synPlain
                         font.family: EditorConfig.fontFamily
                         font.pointSize: EditorConfig.fontSize
-                        textFormat: Text.PlainText
+                        textFormat: root.editor.highlighted ? Text.StyledText
+                                                            : Text.PlainText
                     }
 
                     // Caret. Only the cursor line draws one.
