@@ -1,3 +1,4 @@
+#include "config/Settings.h"
 #include "core/TaskScheduler.h"
 #include "project/Project.h"
 #include "search/FileIndex.h"
@@ -13,6 +14,7 @@
 
 #include <memory>
 
+using keys::config::Settings;
 using keys::core::TaskScheduler;
 using keys::project::Project;
 using keys::search::FileIndex;
@@ -30,6 +32,7 @@ class SearchUiTests : public QObject {
 private:
     std::unique_ptr<QTemporaryDir> m_dir;
     std::unique_ptr<TaskScheduler> m_scheduler;
+    std::unique_ptr<Settings> m_settings;
     std::unique_ptr<Project> m_project;
     std::unique_ptr<FileIndex> m_index;
     std::unique_ptr<TextSearch> m_search;
@@ -78,11 +81,12 @@ private slots:
         QVERIFY(m_dir->isValid());
 
         m_scheduler = std::make_unique<TaskScheduler>();
+        m_settings = std::make_unique<Settings>();
         m_project = std::make_unique<Project>();
         m_index = std::make_unique<FileIndex>(*m_project, *m_scheduler);
 
         m_search = std::make_unique<TextSearch>(*m_project, *m_index, *m_scheduler);
-        m_model = std::make_unique<SearchModel>(*m_search);
+        m_model = std::make_unique<SearchModel>(*m_search, *m_settings);
     }
 
     void cleanup()
@@ -91,6 +95,7 @@ private slots:
         m_search.reset();
         m_index.reset();
         m_project.reset();
+        m_settings.reset();
         m_scheduler.reset();
         m_dir.reset();
     }

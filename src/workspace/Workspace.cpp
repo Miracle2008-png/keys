@@ -11,6 +11,49 @@ using keys::core::Ok;
 using keys::core::Status;
 
 namespace keys::workspace {
+namespace {
+
+/// Applies the on-save transformations the user has asked for.
+///
+/// Both off by default: each rewrites lines the user did not touch, which shows
+/// up in a diff as noise attributed to them. On, they do what every other
+/// editor does - and doing it here, rather than in the view, means a save from
+/// the menu, the shortcut and Save As all get the same treatment.
+QString applySaveTransformations(const QString& text, const config::Settings& settings)
+{
+    QString result = text;
+
+    if (settings.boolValue(QStringLiteral("editor.trimTrailingWhitespaceOnSave"))) {
+        QStringList lines = result.split(QLatin1Char('\n'));
+        for (QString& line : lines) {
+            // A carriage return is content here, not whitespace to strip:
+            // trimming it would silently convert a CRLF file to LF, which is a
+            // change to every line rather than the trailing spaces the user
+            // asked about.
+            const bool hadCarriageReturn = line.endsWith(QLatin1Char('\r'));
+            if (hadCarriageReturn) {
+                line.chop(1);
+            }
+            while (line.endsWith(QLatin1Char(' ')) || line.endsWith(QLatin1Char('\t'))) {
+                line.chop(1);
+            }
+            if (hadCarriageReturn) {
+                line += QLatin1Char('\r');
+            }
+        }
+        result = lines.join(QLatin1Char('\n'));
+    }
+
+    if (settings.boolValue(QStringLiteral("editor.ensureNewlineAtEndOnSave"))
+        && !result.isEmpty() && !result.endsWith(QLatin1Char('\n'))) {
+        result += QLatin1Char('\n');
+    }
+
+    return result;
+}
+
+} // namespace
+
 
 Workspace::Workspace(config::Settings& settings,
                      core::TaskScheduler& scheduler,
@@ -162,7 +205,8 @@ Status Workspace::saveFileAs(const QString& path)
     const QString normalized = QDir::cleanPath(QDir(path).absolutePath());
 
     m_watcher.suppress(normalized);
-    const Status status = fs::FileSystem::writeTextFile(normalized, document->text());
+    const Status status = fs::FileSystem::writeTextFile(
+        normalized, applySaveTransformations(document->text(), m_settings));
     m_watcher.unsuppress(normalized);
 
     if (!status) {
@@ -282,8 +326,8 @@ Status Workspace::saveFile()
     // back as an "external change" notification.
     m_watcher.suppress(document->path());
 
-    const Status status =
-        fs::FileSystem::writeTextFile(document->path(), document->text());
+    const Status status = fs::FileSystem::writeTextFile(
+        document->path(), applySaveTransformations(document->text(), m_settings));
 
     m_watcher.unsuppress(document->path());
 

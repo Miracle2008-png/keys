@@ -12,6 +12,7 @@
 //     cmake --build build --target keys_search_panel_check
 //     powershell -Command "Start-Process build/bin/keys_search_panel_check.exe"
 
+#include "config/Settings.h"
 #include "core/TaskScheduler.h"
 #include "project/Project.h"
 #include "search/FileIndex.h"
@@ -84,7 +85,8 @@ int main(int argc, char* argv[])
 
     search::FileIndex index(projectRoot, scheduler);
     search::TextSearch textSearch(projectRoot, index, scheduler);
-    ui::SearchModel model(textSearch);
+    config::Settings settings;
+    ui::SearchModel model(textSearch, settings);
     ui::SearchModel::setInstance(&model);
 
     index.rebuild();

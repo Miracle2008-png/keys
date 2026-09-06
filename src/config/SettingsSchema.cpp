@@ -152,6 +152,112 @@ void SettingsSchema::defineBuiltins()
             .group = QStringLiteral("Editor"),
             .title = QStringLiteral("Insert spaces")});
 
+    define({.key = QStringLiteral("editor.showLineNumbers"),
+            .defaultValue = true,
+            .scope = SettingScope::Workspace,
+            .description = QStringLiteral("Show line numbers in the gutter"),
+            .group = QStringLiteral("Editor"),
+            .title = QStringLiteral("Line numbers")});
+
+    define({.key = QStringLiteral("editor.highlightCurrentLine"),
+            .defaultValue = true,
+            .scope = SettingScope::Workspace,
+            .description = QStringLiteral(
+                "Wash the line the caret is on, so the eye finds its place after a scroll"),
+            .group = QStringLiteral("Editor"),
+            .title = QStringLiteral("Highlight the caret line")});
+
+    define({.key = QStringLiteral("editor.showIndentGuides"),
+            .defaultValue = true,
+            .scope = SettingScope::Workspace,
+            .description = QStringLiteral(
+                "Draw a faint rule at each indentation level"),
+            .group = QStringLiteral("Editor"),
+            .title = QStringLiteral("Indent guides")});
+
+    define({.key = QStringLiteral("editor.showWhitespace"),
+            .defaultValue = false,
+            .scope = SettingScope::Workspace,
+            .description = QStringLiteral(
+                "Mark spaces and tabs. Off by default: useful when hunting a "
+                "whitespace bug, noise the rest of the time."),
+            .group = QStringLiteral("Editor"),
+            .title = QStringLiteral("Show whitespace")});
+
+    define({.key = QStringLiteral("editor.caretBlink"),
+            .defaultValue = true,
+            .scope = SettingScope::Application,
+            .description = QStringLiteral(
+                "Blink the caret. Off is steadier for anyone who finds motion distracting."),
+            .group = QStringLiteral("Editor"),
+            .title = QStringLiteral("Blink the caret")});
+
+    define({.key = QStringLiteral("editor.scrollPastEnd"),
+            .defaultValue = true,
+            .scope = SettingScope::Application,
+            .description = QStringLiteral(
+                "Allow scrolling past the last line, so the end of a file can sit "
+                "at eye level rather than at the bottom edge"),
+            .group = QStringLiteral("Editor"),
+            .title = QStringLiteral("Scroll past the end")});
+
+    define({.key = QStringLiteral("editor.trimTrailingWhitespaceOnSave"),
+            .defaultValue = false,
+            .scope = SettingScope::Workspace,
+            .description = QStringLiteral(
+                "Remove trailing spaces when a file is saved. Off by default "
+                "because it rewrites lines the user did not touch, which shows "
+                "up as noise in a diff."),
+            .group = QStringLiteral("Editor"),
+            .title = QStringLiteral("Trim trailing whitespace on save")});
+
+    define({.key = QStringLiteral("editor.ensureNewlineAtEndOnSave"),
+            .defaultValue = false,
+            .scope = SettingScope::Workspace,
+            .description = QStringLiteral(
+                "Add a final newline when a file is saved, which POSIX tools expect"),
+            .group = QStringLiteral("Editor"),
+            .title = QStringLiteral("Newline at end of file on save")});
+
+    // ---- Terminal ---------------------------------------------------------
+    define({.key = QStringLiteral("terminal.fontSize"),
+            .defaultValue = 12.5,
+            .scope = SettingScope::Application,
+            .description = QStringLiteral("Terminal font size in points"),
+            .group = QStringLiteral("Terminal"),
+            .title = QStringLiteral("Font size"),
+            .minimum = 8.0,
+            .maximum = 24.0});
+
+    define({.key = QStringLiteral("terminal.scrollbackLines"),
+            .defaultValue = 5000,
+            .scope = SettingScope::Application,
+            .description = QStringLiteral(
+                "How many lines of history each terminal keeps"),
+            .group = QStringLiteral("Terminal"),
+            .title = QStringLiteral("Scrollback"),
+            .minimum = 200.0,
+            .maximum = 100000.0});
+
+    // ---- Search -----------------------------------------------------------
+    define({.key = QStringLiteral("search.excludeGlobs"),
+            .defaultValue = QStringLiteral("**/.git/**, **/node_modules/**, **/build/**"),
+            .scope = SettingScope::Workspace,
+            .description = QStringLiteral(
+                "Comma-separated patterns every project search skips"),
+            .group = QStringLiteral("Search"),
+            .title = QStringLiteral("Always exclude")});
+
+    define({.key = QStringLiteral("search.maxResults"),
+            .defaultValue = 2000,
+            .scope = SettingScope::Application,
+            .description = QStringLiteral(
+                "Stop a project search after this many matches"),
+            .group = QStringLiteral("Search"),
+            .title = QStringLiteral("Result limit"),
+            .minimum = 100.0,
+            .maximum = 50000.0});
+
     // ---- Workbench --------------------------------------------------------
     // Window state rather than preference: the application persists these so a
     // session resumes as it was left, but the user sets them by dragging the

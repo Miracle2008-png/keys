@@ -204,7 +204,7 @@ Item {
         TextMetrics {
             id: metrics
             font.family: Fonts.mono
-            font.pointSize: Metrics.fontSizeBody
+            font.pointSize: Terminal.fontSize
             text: "Xg"
         }
 
@@ -217,7 +217,7 @@ Item {
             textFormat: Text.StyledText
             color: Theme.textPrimary
             font.family: Fonts.mono
-            font.pointSize: Metrics.fontSizeBody
+            font.pointSize: Terminal.fontSize
             renderType: Text.NativeRendering
             verticalAlignment: Text.AlignVCenter
         }

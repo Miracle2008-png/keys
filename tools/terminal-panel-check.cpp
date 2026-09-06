@@ -69,7 +69,7 @@ int main(int argc, char* argv[])
     ui::Theme theme(settings);
     ui::Theme::setInstance(&theme);
 
-    ui::TerminalModel model(theme);
+    ui::TerminalModel model(theme, settings);
     ui::TerminalModel::setInstance(&model);
     model.setWorkingDirectory(QDir::current().absolutePath());
 

@@ -1,5 +1,7 @@
 #include "ui/SearchModel.h"
 
+#include "config/Settings.h"
+
 #include <QDir>
 #include <QFileInfo>
 #include <QQmlEngine>
@@ -28,8 +30,9 @@ QStringList splitGlobs(const QString& text)
 
 } // namespace
 
-SearchModel::SearchModel(search::TextSearch& search, QObject* parent)
-    : QAbstractListModel(parent), m_search(search)
+SearchModel::SearchModel(search::TextSearch& search, config::Settings& settings,
+                         QObject* parent)
+    : QAbstractListModel(parent), m_search(search), m_settings(settings)
 {
     m_debounce.setSingleShot(true);
     m_debounce.setInterval(kDebounceMs);
@@ -217,7 +220,15 @@ void SearchModel::startSearch()
 {
     m_options.query = m_query;
     m_options.includeGlobs = splitGlobs(m_includeText);
-    m_options.excludeGlobs = splitGlobs(m_excludeText);
+
+    // The panel's exclusions on top of the configured ones, rather than instead
+    // of them: a user who types one pattern into the field is adding to what
+    // they already told Keys to skip, not replacing it.
+    m_options.excludeGlobs =
+        splitGlobs(m_settings.stringValue(QStringLiteral("search.excludeGlobs")))
+        + splitGlobs(m_excludeText);
+
+    m_options.maxResults = m_settings.intValue(QStringLiteral("search.maxResults"));
 
     // Checked here rather than left to TextSearch, which treats an uncompilable
     // pattern as the user still typing and stays quiet. That is right for the

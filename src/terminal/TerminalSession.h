@@ -43,6 +43,10 @@ public:
 
     [[nodiscard]] const TerminalScreen& screen() const { return m_screen; }
 
+    /// How many lines of history this terminal keeps. Set from the preference
+    /// when the session is created.
+    void setMaxScrollback(int lines) { m_screen.setMaxScrollback(lines); }
+
     /// The title the shell set, or the shell's own name if it set none.
     [[nodiscard]] QString title() const;
 

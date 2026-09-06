@@ -113,9 +113,19 @@ public:
     /// How many lines of history to keep. Bounded because a build's output is
     /// unbounded, and an editor that grows without limit while a test suite runs
     /// is one that eventually stops responding.
+    ///
+    /// The constant is the default; the limit is settable so the preference can
+    /// change it without rebuilding. Lowering it takes effect on the next line
+    /// that scrolls off, not retroactively - discarding history the user is
+    /// currently reading would be a surprising way to honour a setting.
     static constexpr int kMaxScrollback = 5000;
 
+    void setMaxScrollback(int lines);
+    [[nodiscard]] int maxScrollback() const { return m_maxScrollback; }
+
 private:
+    int m_maxScrollback = kMaxScrollback;
+
     /// The visible grid's first line, as an index into m_lines.
     [[nodiscard]] int viewportTop() const;
 

@@ -10,6 +10,10 @@
 
 #include <vector>
 
+namespace keys::config {
+class Settings;
+}
+
 namespace keys::ui {
 
 /// Project-wide search results, as the panel shows them.
@@ -70,7 +74,8 @@ public:
         MatchLengthRole,
     };
 
-    SearchModel(search::TextSearch& search, QObject* parent = nullptr);
+    SearchModel(search::TextSearch& search, config::Settings& settings,
+                QObject* parent = nullptr);
 
     [[nodiscard]] int rowCount(const QModelIndex& parent = {}) const override;
     [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
@@ -149,6 +154,7 @@ private:
     void startSearch();
 
     search::TextSearch& m_search;
+    config::Settings& m_settings;
 
     QString m_query;
     search::SearchOptions m_options;

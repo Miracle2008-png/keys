@@ -38,7 +38,7 @@ add_executable(keys_search_panel_check search-panel-check.cpp)
 # registered by the plugin object and an import without it resolves to nothing.
 target_link_libraries(keys_search_panel_check PRIVATE
     Qt6::Core Qt6::Gui Qt6::Quick
-    Keys::ui keys_uiplugin Keys::search Keys::project)
+    Keys::ui keys_uiplugin Keys::search Keys::project Keys::config)
 set_target_properties(keys_search_panel_check PROPERTIES FOLDER "Tools")
 keys_apply_compile_options(keys_search_panel_check)
 

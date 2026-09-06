@@ -25,6 +25,61 @@ private slots:
         QVERIFY(!schema.contains(QStringLiteral("nonsense.key")));
     }
 
+    void everySettingTheApplicationReadsIsDeclared()
+    {
+        // The bug this guards: reading or writing an undeclared key is refused,
+        // silently for a write. The update opt-out shipped that way - the
+        // switch reported success and persisted nothing - so every key any
+        // consumer names is listed here.
+        const SettingsSchema schema;
+        for (const QString& key : {
+                 QStringLiteral("editor.showLineNumbers"),
+                 QStringLiteral("editor.highlightCurrentLine"),
+                 QStringLiteral("editor.showIndentGuides"),
+                 QStringLiteral("editor.showWhitespace"),
+                 QStringLiteral("editor.caretBlink"),
+                 QStringLiteral("editor.scrollPastEnd"),
+                 QStringLiteral("editor.trimTrailingWhitespaceOnSave"),
+                 QStringLiteral("editor.ensureNewlineAtEndOnSave"),
+                 QStringLiteral("terminal.fontSize"),
+                 QStringLiteral("terminal.scrollbackLines"),
+                 QStringLiteral("search.excludeGlobs"),
+                 QStringLiteral("search.maxResults"),
+                 QStringLiteral("updates.checkAutomatically"),
+                 QStringLiteral("updates.lastCheck"),
+             }) {
+            QVERIFY2(schema.contains(key), qPrintable(key));
+        }
+    }
+
+    void everyDeclaredSettingCanBeWritten()
+    {
+        // A declared key whose default fails its own validation would be
+        // refused on the first write, which is a setting that looks present and
+        // cannot be changed.
+        Settings settings;
+        const SettingsSchema schema;
+
+        for (const SettingDefinition& definition : schema.all()) {
+            if (definition.scope == SettingScope::Application) {
+                QVERIFY2(settings.setValue(definition.key, definition.defaultValue),
+                         qPrintable(definition.key));
+            }
+        }
+    }
+
+    void boundedSettingsRefuseValuesOutsideTheirRange()
+    {
+        const SettingsSchema schema;
+
+        QVERIFY(schema.isValid(QStringLiteral("terminal.scrollbackLines"), 5000));
+        QVERIFY(!schema.isValid(QStringLiteral("terminal.scrollbackLines"), 10));
+        QVERIFY(!schema.isValid(QStringLiteral("terminal.scrollbackLines"), 500000));
+
+        QVERIFY(schema.isValid(QStringLiteral("terminal.fontSize"), 12.0));
+        QVERIFY(!schema.isValid(QStringLiteral("terminal.fontSize"), 400.0));
+    }
+
     void schemaRejectsValuesOutsideAllowedSet()
     {
         const SettingsSchema schema;

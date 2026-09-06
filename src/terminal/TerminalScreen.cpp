@@ -27,6 +27,13 @@ TerminalScreen::TerminalScreen()
     reset();
 }
 
+void TerminalScreen::setMaxScrollback(int lines)
+{
+    // A terminal with no history is not useful, and one with unbounded history
+    // is a leak. The floor is a screenful.
+    m_maxScrollback = std::max(24, lines);
+}
+
 void TerminalScreen::reset()
 {
     m_lines.clear();
@@ -292,7 +299,7 @@ void TerminalScreen::eraseInDisplay(int mode)
 
 void TerminalScreen::trimScrollback()
 {
-    const int limit = kMaxScrollback + m_rows;
+    const int limit = m_maxScrollback + m_rows;
     if (totalLines() <= limit) {
         return;
     }

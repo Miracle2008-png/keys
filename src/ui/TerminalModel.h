@@ -12,6 +12,10 @@ class TerminalSession;
 struct CellStyle;
 }
 
+namespace keys::config {
+class Settings;
+}
+
 namespace keys::ui {
 
 class Theme;
@@ -51,13 +55,18 @@ class TerminalModel : public QAbstractListModel {
     /// re-evaluate - the same trap the editor hit.
     Q_PROPERTY(int revision READ revision NOTIFY screenChanged)
 
+    /// The terminal's own font size, in points. Separate from the editor's:
+    /// a terminal is usually read at a smaller size than code is written at.
+    Q_PROPERTY(qreal fontSize READ fontSize NOTIFY settingsChanged)
+
 public:
     enum Roles {
         MarkupRole = Qt::UserRole + 1,  ///< the line as styled markup
         PlainTextRole,                  ///< the same line, for copying
     };
 
-    explicit TerminalModel(const Theme& theme, QObject* parent = nullptr);
+    TerminalModel(const Theme& theme, config::Settings& settings,
+                  QObject* parent = nullptr);
     ~TerminalModel() override;
 
     [[nodiscard]] int rowCount(const QModelIndex& parent = {}) const override;
@@ -74,6 +83,7 @@ public:
     [[nodiscard]] int cursorColumn() const;
     [[nodiscard]] bool cursorVisible() const;
     [[nodiscard]] int revision() const { return m_revision; }
+    [[nodiscard]] qreal fontSize() const;
 
     /// The title of one session, for the tab strip.
     Q_INVOKABLE [[nodiscard]] QString titleAt(int index) const;
@@ -114,6 +124,7 @@ public:
 
 signals:
     void sessionsChanged();
+    void settingsChanged();
     void screenChanged();
 
     /// A shell exited. The panel reports it rather than silently closing the
@@ -137,6 +148,7 @@ private:
     struct Session;
 
     const Theme& m_theme;
+    config::Settings& m_settings;
     std::vector<std::unique_ptr<Session>> m_sessions;
     int m_current = -1;
     int m_revision = 0;

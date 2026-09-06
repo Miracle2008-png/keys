@@ -75,9 +75,13 @@ Item {
     /// numbers, which left it a two-pixel sliver nobody could hit.
     readonly property real foldColumnWidth: 14
 
+    // Narrows when the numbers are hidden. A gutter that keeps its full width
+    // with nothing in it makes the setting look broken.
     readonly property real gutterWidth:
-        Math.max(48, String(Math.max(1, root.editor.lineCount)).length * charWidth
-                     + 28 + root.foldColumnWidth)
+        EditorConfig.showLineNumbers
+            ? Math.max(48, String(Math.max(1, root.editor.lineCount)).length * charWidth
+                           + 28 + root.foldColumnWidth)
+            : root.foldColumnWidth + 16
 
     FontMetrics {
         id: fontMetrics
@@ -101,6 +105,17 @@ Item {
         reuseItems: true
         boundsBehavior: Flickable.StopAtBounds
         cacheBuffer: root.lineHeight * 12
+
+        // Room to scroll the last line up off the bottom edge, so the end of a
+        // file can sit at eye level. A footer rather than a bounds behaviour:
+        // DragOverBounds would let the whole document be flung away from the
+        // viewport and spring back, which is a phone gesture, not an editor.
+        footer: Item {
+            width: 1
+            height: EditorConfig.scrollPastEnd
+                    ? Math.max(0, lines.height - root.lineHeight * 3)
+                    : 0
+        }
 
         // Vertical only: horizontal scrolling is the inner Flickable's job, so
         // the gutter stays pinned while code scrolls sideways.
@@ -129,11 +144,25 @@ Item {
                                             root.editor.lineText(row.line))
             readonly property bool isCursorLine: row.line === root.editor.cursorLine
 
+            /// How many columns of leading whitespace this line has, for the
+            /// indent guides. A tab counts as one column here because the text
+            /// is drawn in a monospaced face where it occupies one cell.
+            readonly property int indentColumns: {
+                const text = row.text;
+                let count = 0;
+                while (count < text.length
+                       && (text.charAt(count) === " " || text.charAt(count) === "	")) {
+                    ++count;
+                }
+                return count;
+            }
+
             // The line the caret is on gets a faint wash, so the eye can find
             // its place after a scroll without a heavy highlight.
             Rectangle {
                 anchors.fill: parent
-                visible: row.isCursorLine && !root.editor.hasSelection
+                visible: EditorConfig.highlightCurrentLine
+                         && row.isCursorLine && !root.editor.hasSelection
                 color: Theme.accent
                 opacity: 0.06
             }
@@ -205,6 +234,7 @@ Item {
                 height: parent.height
                 horizontalAlignment: Text.AlignRight
                 verticalAlignment: Text.AlignVCenter
+                visible: EditorConfig.showLineNumbers
                 text: row.line + 1
                 color: row.isCursorLine ? Theme.textSecondary : Theme.textTertiary
                 font.family: EditorConfig.fontFamily
@@ -376,6 +406,25 @@ Item {
                         radius: 2
                     }
 
+                    // Indent guides: a faint rule at each level, behind the
+                    // text. Drawn from the line's own leading whitespace rather
+                    // than from a computed block structure - the rule marks
+                    // where a column is, which is what the eye follows.
+                    Repeater {
+                        model: EditorConfig.showIndentGuides
+                               ? Math.floor(row.indentColumns / EditorConfig.tabSize)
+                               : 0
+
+                        delegate: Rectangle {
+                            required property int index
+
+                            x: index * EditorConfig.tabSize * root.charWidth
+                            width: 1
+                            height: parent.height
+                            color: Theme.borderFaint
+                        }
+                    }
+
                     Text {
                         id: contentText
                         height: parent.height
@@ -424,7 +473,8 @@ Item {
                         // Blinking stops while typing so the caret is never
                         // invisible at the moment the user looks for it.
                         SequentialAnimation on opacity {
-                            running: row.isCursorLine && root.activeFocus
+                            running: EditorConfig.caretBlink
+                                     && row.isCursorLine && root.activeFocus
                                      && App.animationDuration > 0
                             loops: Animation.Infinite
                             NumberAnimation { to: 0; duration: 500; easing.type: Easing.InOutQuad }

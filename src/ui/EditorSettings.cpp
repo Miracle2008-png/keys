@@ -80,15 +80,47 @@ QString EditorSettings::indentString() const
 
 void EditorSettings::applyFromSettings()
 {
+    // Everything is read, then compared as a block. The alternative - a
+    // condition naming every field - grew a term per setting and would
+    // eventually miss one, which shows as a preference that saves and does not
+    // take effect until the next launch.
     const qreal fontSize = m_settings.doubleValue(QLatin1String(kFontSizeKey));
     const QString fontFamily = m_settings.stringValue(QLatin1String(kFontFamilyKey));
     const qreal lineHeight = m_settings.doubleValue(QLatin1String(kLineHeightKey));
     const int tabSize = m_settings.intValue(QLatin1String(kTabSizeKey));
     const bool insertSpaces = m_settings.boolValue(QLatin1String(kInsertSpacesKey));
 
-    if (qFuzzyCompare(fontSize, m_fontSize) && fontFamily == m_fontFamily
+    const bool showLineNumbers =
+        m_settings.boolValue(QStringLiteral("editor.showLineNumbers"));
+    const bool highlightCurrentLine =
+        m_settings.boolValue(QStringLiteral("editor.highlightCurrentLine"));
+    const bool showIndentGuides =
+        m_settings.boolValue(QStringLiteral("editor.showIndentGuides"));
+    const bool showWhitespace =
+        m_settings.boolValue(QStringLiteral("editor.showWhitespace"));
+    const bool caretBlink =
+        m_settings.boolValue(QStringLiteral("editor.caretBlink"));
+    const bool scrollPastEnd =
+        m_settings.boolValue(QStringLiteral("editor.scrollPastEnd"));
+    const bool trimTrailingWhitespace =
+        m_settings.boolValue(QStringLiteral("editor.trimTrailingWhitespaceOnSave"));
+    const bool ensureNewlineAtEnd =
+        m_settings.boolValue(QStringLiteral("editor.ensureNewlineAtEndOnSave"));
+
+    const bool unchanged =
+        qFuzzyCompare(fontSize, m_fontSize) && fontFamily == m_fontFamily
         && qFuzzyCompare(lineHeight, m_lineHeight) && tabSize == m_tabSize
-        && insertSpaces == m_insertSpaces) {
+        && insertSpaces == m_insertSpaces
+        && showLineNumbers == m_showLineNumbers
+        && highlightCurrentLine == m_highlightCurrentLine
+        && showIndentGuides == m_showIndentGuides
+        && showWhitespace == m_showWhitespace
+        && caretBlink == m_caretBlink
+        && scrollPastEnd == m_scrollPastEnd
+        && trimTrailingWhitespace == m_trimTrailingWhitespace
+        && ensureNewlineAtEnd == m_ensureNewlineAtEnd;
+
+    if (unchanged) {
         return;
     }
 
@@ -97,6 +129,15 @@ void EditorSettings::applyFromSettings()
     m_lineHeight = lineHeight;
     m_tabSize = tabSize;
     m_insertSpaces = insertSpaces;
+
+    m_showLineNumbers = showLineNumbers;
+    m_highlightCurrentLine = highlightCurrentLine;
+    m_showIndentGuides = showIndentGuides;
+    m_showWhitespace = showWhitespace;
+    m_caretBlink = caretBlink;
+    m_scrollPastEnd = scrollPastEnd;
+    m_trimTrailingWhitespace = trimTrailingWhitespace;
+    m_ensureNewlineAtEnd = ensureNewlineAtEnd;
 
     emit changed();
 }

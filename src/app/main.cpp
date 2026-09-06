@@ -264,12 +264,18 @@ int main(int argc, char* argv[])
     // the way a developer expects from a terminal.
     const QStringList arguments = QGuiApplication::arguments();
     for (qsizetype i = 1; i < arguments.size(); ++i) {
-        // Skipped so --self-check is not mistaken for a folder to open, which
-        // would fail and leave the check measuring the welcome screen.
-        if (arguments.at(i).startsWith(QLatin1String("--"))) {
+        const QString argument = arguments.at(i);
+
+        // A flag is skipped, and so is the value that belongs to it - otherwise
+        // `--open-file foo.cpp .` treats foo.cpp as the folder to open, fails,
+        // and leaves the window on the welcome screen.
+        if (argument.startsWith(QLatin1String("--"))) {
+            if (argument == QLatin1String("--open-file")) {
+                ++i;
+            }
             continue;
         }
-        controller.openProject(arguments.at(i));
+        controller.openProject(argument);
         break;
     }
 
@@ -289,7 +295,7 @@ int main(int argc, char* argv[])
     ui::SettingsModel settingsModel(settings);
     ui::SettingsModel::setInstance(&settingsModel);
 
-    ui::SearchModel searchModel(textSearch);
+    ui::SearchModel searchModel(textSearch, settings);
     ui::SearchModel::setInstance(&searchModel);
 
     ui::SourceControlModel sourceControl(repository);
@@ -297,7 +303,7 @@ int main(int argc, char* argv[])
 
     // The terminal reads the theme so a palette index resolves to a colour that
     // works against the current background rather than a fixed ANSI table.
-    ui::TerminalModel terminalModel(theme);
+    ui::TerminalModel terminalModel(theme, settings);
     ui::TerminalModel::setInstance(&terminalModel);
 
     // A shell starts where the project is. Set before anything can open one, so
@@ -316,6 +322,10 @@ int main(int argc, char* argv[])
 
     QObject::connect(&terminalModel, &ui::TerminalModel::errorOccurred, &app,
                      [&controller](const QString& message) {
+                         // Also a warning, so --self-check records why a
+                         // terminal did not start rather than only reporting
+                         // that none did.
+                         qCWarning(lcUi) << "terminal:" << message;
                          controller.reportNotice(message);
                      });
 
@@ -476,6 +486,23 @@ int main(int argc, char* argv[])
                               << status.error().toString();
         }
     });
+
+    // Startup flags for looking at a particular screen. The checks prove these
+    // work; these are how a person sees them without having to win a fight with
+    // the window manager for keyboard focus first.
+    for (qsizetype i = 1; i < arguments.size(); ++i) {
+        const QString argument = arguments.at(i);
+        if (argument == QLatin1String("--open-file") && i + 1 < arguments.size()) {
+            const QString file = arguments.at(i + 1);
+            QTimer::singleShot(900, &app, [&controller, file] {
+                controller.openFile(QDir().absoluteFilePath(file));
+            });
+        } else if (argument == QLatin1String("--open-settings")) {
+            QTimer::singleShot(900, &app, [&controller] {
+                controller.setSettingsOpen(true);
+            });
+        }
+    }
 
     // Opens the terminal at startup. The self-check proves it runs; this is how
     // a person sees it without having to win a fight with the window manager

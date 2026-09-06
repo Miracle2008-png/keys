@@ -16,6 +16,14 @@ namespace keys::ui {
 EditorViewModel::EditorViewModel(EditorSettings& settings, QObject* parent)
     : QObject(parent), m_settings(settings)
 {
+    // A setting that changes what a line looks like has to repaint it. The
+    // markup is built on demand and cached by the view against `revision`, so
+    // without this, turning whitespace markers on did nothing visible until the
+    // next keystroke happened to bump the revision for another reason.
+    connect(&m_settings, &EditorSettings::changed, this, [this] {
+        ++m_revision;
+        emit contentsChanged();
+    });
 }
 
 void EditorViewModel::setDocument(editor::TextDocument* document)
@@ -965,7 +973,7 @@ namespace {
 /// begins its line - the helper runs once per token, so it cannot tell from
 /// what it has built so far, and without it every token's first space would be
 /// treated as indentation.
-QString escapeForDisplay(const QString& text, bool atLineStart)
+QString escapeForDisplay(const QString& text, bool atLineStart, bool markWhitespace)
 {
     QString escaped = text.toHtmlEscaped();
 
@@ -993,7 +1001,13 @@ QString escapeForDisplay(const QString& text, bool atLineStart)
             }
 
             const bool leading = atLineStart && result.isEmpty();
-            if (run == 1 && !leading) {
+            if (markWhitespace) {
+                // A middle dot per space. Same width as the space it replaces,
+                // so the columns do not shift when the setting is turned on.
+                for (int i = 0; i < run; ++i) {
+                    result += QStringLiteral("·");
+                }
+            } else if (run == 1 && !leading) {
                 result += QLatin1Char(' ');
             } else {
                 for (int i = 0; i < run; ++i) {
@@ -1020,7 +1034,7 @@ QString EditorViewModel::highlightedLine(int line) const
 
     const QString text = m_document->line(line);
     if (!m_highlighted || text.isEmpty()) {
-        return escapeForDisplay(text, true);
+        return escapeForDisplay(text, true, m_settings.showWhitespace());
     }
 
     // The state this line starts in is the state the one before it ended in.
@@ -1046,11 +1060,13 @@ QString EditorViewModel::highlightedLine(int line) const
         m_highlighter.tokenize(text, m_lineStates[static_cast<size_t>(line)], outgoing);
 
     if (tokens.empty()) {
-        return escapeForDisplay(text, true);
+        return escapeForDisplay(text, true, m_settings.showWhitespace());
     }
 
     // Built as one string with spans only where a token needs one. Plain runs
     // carry no markup, which keeps the common line short.
+    const bool markWhitespace = m_settings.showWhitespace();
+
     QString html;
     html.reserve(text.size() * 2);
 
@@ -1058,12 +1074,13 @@ QString EditorViewModel::highlightedLine(int line) const
     for (const editor::Token& token : tokens) {
         if (token.start > position) {
             html += escapeForDisplay(text.mid(position, token.start - position),
-                                     position == 0);
+                                     position == 0, markWhitespace);
         }
 
         const QString colour = colourFor(token.kind);
         const QString body =
-            escapeForDisplay(text.mid(token.start, token.length), token.start == 0);
+            escapeForDisplay(text.mid(token.start, token.length), token.start == 0,
+                             markWhitespace);
 
         if (colour.isEmpty()) {
             html += body;
@@ -1079,7 +1096,7 @@ QString EditorViewModel::highlightedLine(int line) const
     }
 
     if (position < text.size()) {
-        html += escapeForDisplay(text.mid(position), position == 0);
+        html += escapeForDisplay(text.mid(position), position == 0, markWhitespace);
     }
     return html;
 }

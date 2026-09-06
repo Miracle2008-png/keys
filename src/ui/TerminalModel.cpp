@@ -1,5 +1,6 @@
 #include "ui/TerminalModel.h"
 
+#include "config/Settings.h"
 #include "core/Log.h"
 #include "terminal/TerminalScreen.h"
 #include "terminal/TerminalSession.h"
@@ -47,9 +48,21 @@ struct TerminalModel::Session {
     QString title;
 };
 
-TerminalModel::TerminalModel(const Theme& theme, QObject* parent)
-    : QAbstractListModel(parent), m_theme(theme)
+TerminalModel::TerminalModel(const Theme& theme, config::Settings& settings,
+                             QObject* parent)
+    : QAbstractListModel(parent), m_theme(theme), m_settings(settings)
 {
+    // The font size is read on demand, so a change only has to announce itself.
+    // Filtered by key: Settings emits for every setting in the application, and
+    // relaying all of them would repaint the terminal when the editor's font
+    // changed.
+    connect(&m_settings, &config::Settings::changed, this,
+            [this](const QString& key, const QVariant&) {
+                if (key.startsWith(QLatin1String("terminal."))) {
+                    emit settingsChanged();
+                }
+            });
+
     // A theme change re-resolves every palette index, so the cached markup has
     // to be rebuilt - otherwise the terminal keeps yesterday's colours.
     connect(&m_theme, &Theme::changed, this, &TerminalModel::refresh);
@@ -187,6 +200,11 @@ void TerminalModel::openSession()
                 emit sessionsChanged();
             });
 
+    // Set before the shell starts, so the first burst of output is already
+    // bounded by what the user asked for.
+    session->setMaxScrollback(
+        m_settings.intValue(QStringLiteral("terminal.scrollbackLines")));
+
     if (const core::Status status = session->start(m_workingDirectory); !status) {
         emit errorOccurred(status.error().toString());
         return;
@@ -308,6 +326,11 @@ void TerminalModel::resizeTo(int columns, int rows)
         return;
     }
     m_sessions.at(static_cast<size_t>(m_current))->session->resize(columns, rows);
+}
+
+qreal TerminalModel::fontSize() const
+{
+    return m_settings.doubleValue(QStringLiteral("terminal.fontSize"));
 }
 
 QString TerminalModel::plainText() const

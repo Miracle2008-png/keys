@@ -34,6 +34,16 @@ class EditorSettings : public QObject {
     Q_PROPERTY(int tabSize READ tabSize NOTIFY changed)
     Q_PROPERTY(bool insertSpaces READ insertSpaces NOTIFY changed)
 
+    /// What the editor draws. Each of these is read by CodeEditor; a setting
+    /// with no consumer would appear in the settings page as a control that
+    /// changes nothing, which is worse than the setting not existing.
+    Q_PROPERTY(bool showLineNumbers READ showLineNumbers NOTIFY changed)
+    Q_PROPERTY(bool highlightCurrentLine READ highlightCurrentLine NOTIFY changed)
+    Q_PROPERTY(bool showIndentGuides READ showIndentGuides NOTIFY changed)
+    Q_PROPERTY(bool showWhitespace READ showWhitespace NOTIFY changed)
+    Q_PROPERTY(bool caretBlink READ caretBlink NOTIFY changed)
+    Q_PROPERTY(bool scrollPastEnd READ scrollPastEnd NOTIFY changed)
+
 public:
     explicit EditorSettings(config::Settings& settings, QObject* parent = nullptr);
 
@@ -54,6 +64,22 @@ public:
     [[nodiscard]] int tabSize() const { return m_tabSize; }
     [[nodiscard]] bool insertSpaces() const { return m_insertSpaces; }
 
+    [[nodiscard]] bool showLineNumbers() const { return m_showLineNumbers; }
+    [[nodiscard]] bool highlightCurrentLine() const { return m_highlightCurrentLine; }
+    [[nodiscard]] bool showIndentGuides() const { return m_showIndentGuides; }
+    [[nodiscard]] bool showWhitespace() const { return m_showWhitespace; }
+    [[nodiscard]] bool caretBlink() const { return m_caretBlink; }
+    [[nodiscard]] bool scrollPastEnd() const { return m_scrollPastEnd; }
+
+    /// What a save rewrites, if anything. Read by the workspace when it writes
+    /// a file, not by the view.
+    [[nodiscard]] bool trimTrailingWhitespaceOnSave() const {
+        return m_trimTrailingWhitespace;
+    }
+    [[nodiscard]] bool ensureNewlineAtEndOnSave() const {
+        return m_ensureNewlineAtEnd;
+    }
+
     /// What pressing Tab inserts: `tabSize` spaces, or one tab character.
     /// Lives here rather than in the view model so the two cannot disagree.
     [[nodiscard]] QString indentString() const;
@@ -68,6 +94,15 @@ private:
 
     qreal m_fontSize = 13.0;
     QString m_fontFamily;
+
+    bool m_showLineNumbers = true;
+    bool m_highlightCurrentLine = true;
+    bool m_showIndentGuides = true;
+    bool m_showWhitespace = false;
+    bool m_caretBlink = true;
+    bool m_scrollPastEnd = true;
+    bool m_trimTrailingWhitespace = false;
+    bool m_ensureNewlineAtEnd = false;
     qreal m_lineHeight = 1.6;
     int m_tabSize = 4;
     bool m_insertSpaces = true;

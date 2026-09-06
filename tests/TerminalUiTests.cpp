@@ -33,7 +33,7 @@ private slots:
     {
         m_settings = std::make_unique<Settings>();
         m_theme = std::make_unique<Theme>(*m_settings);
-        m_model = std::make_unique<TerminalModel>(*m_theme);
+        m_model = std::make_unique<TerminalModel>(*m_theme, *m_settings);
     }
 
     void cleanup()
