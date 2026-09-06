@@ -203,6 +203,11 @@ private slots:
             plain.replace(QStringLiteral("&#39;"), QStringLiteral("'"));
             plain.replace(QStringLiteral("&amp;"), QStringLiteral("&"));
 
+            // Indentation is carried as non-breaking spaces: StyledText
+            // collapses ordinary runs of whitespace the way HTML does, which
+            // rendered every indented line flush left.
+            plain.replace(QStringLiteral("&nbsp;"), QStringLiteral(" "));
+
             QCOMPARE(plain, line);
         }
     }

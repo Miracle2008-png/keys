@@ -37,8 +37,14 @@ Item {
     /// than the content's.
     readonly property real scrollOffset: lines.contentY
 
+    /// Wide enough for the widest line number, plus a column for the fold
+    /// arrow. The arrow needs its own space rather than overlapping the
+    /// numbers, which left it a two-pixel sliver nobody could hit.
+    readonly property real foldColumnWidth: 14
+
     readonly property real gutterWidth:
-        Math.max(48, String(Math.max(1, root.editor.lineCount)).length * charWidth + 28)
+        Math.max(48, String(Math.max(1, root.editor.lineCount)).length * charWidth
+                     + 28 + root.foldColumnWidth)
 
     FontMetrics {
         id: fontMetrics
@@ -55,7 +61,9 @@ Item {
         id: lines
 
         anchors.fill: parent
-        model: root.editor.lineCount
+        // Visible rows, not document lines: with a region folded the two
+        // differ, and the view is the only place that works in rows.
+        model: (root.editor.revision, root.editor.visibleLineCount)
         clip: true
         reuseItems: true
         boundsBehavior: Flickable.StopAtBounds
@@ -72,6 +80,11 @@ Item {
 
             required property int index
 
+            /// The document line this row shows. Equal to `index` with nothing
+            /// folded, which is nearly always - but never assumed to be.
+            readonly property int line: (root.editor.revision,
+                                         root.editor.documentLineFor(index))
+
             width: lines.width
             height: root.lineHeight
 
@@ -80,8 +93,8 @@ Item {
             // is fetched once and then never again, so typing moves the buffer
             // while the screen keeps showing what was there before.
             readonly property string text: (root.editor.revision,
-                                            root.editor.lineText(index))
-            readonly property bool isCursorLine: index === root.editor.cursorLine
+                                            root.editor.lineText(row.line))
+            readonly property bool isCursorLine: row.line === root.editor.cursorLine
 
             // The line the caret is on gets a faint wash, so the eye can find
             // its place after a scroll without a heavy highlight.
@@ -108,7 +121,7 @@ Item {
                 height: 8
                 radius: 4
                 color: Theme.red
-                visible: Debugger.currentFileBreakpoints.indexOf(row.index + 1) >= 0
+                visible: Debugger.currentFileBreakpoints.indexOf(row.line + 1) >= 0
             }
 
             // Where execution is stopped. A filled band rather than a dot: it
@@ -120,7 +133,7 @@ Item {
                 height: parent.height
                 color: Theme.yellow
                 opacity: 0.12
-                visible: Debugger.currentLine === row.index + 1
+                visible: Debugger.currentLine === row.line + 1
             }
 
             MouseArea {
@@ -132,7 +145,7 @@ Item {
                 width: root.gutterWidth
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: Debugger.toggleBreakpoint(root.editor.path, row.index + 1)
+                onClicked: Debugger.toggleBreakpoint(root.editor.path, row.line + 1)
 
                 // A faint dot on hover, so the gutter shows it is clickable
                 // without a permanent decoration on every line.
@@ -152,11 +165,11 @@ Item {
             Text {
                 id: lineNumber
 
-                width: root.gutterWidth - 14
+                width: root.gutterWidth - root.foldColumnWidth - 10
                 height: parent.height
                 horizontalAlignment: Text.AlignRight
                 verticalAlignment: Text.AlignVCenter
-                text: row.index + 1
+                text: row.line + 1
                 color: row.isCursorLine ? Theme.textSecondary : Theme.textTertiary
                 font.family: EditorConfig.fontFamily
                 // A step below the code, so the gutter stays secondary at any
@@ -164,6 +177,51 @@ Item {
                 font.pointSize: EditorConfig.fontSize * 0.92
                 // Selecting text must not sweep up the line numbers.
                 renderType: Text.NativeRendering
+            }
+
+            // The fold arrow, between the line number and the code. Shown only
+            // on a line that starts a region, and only on hover unless the
+            // region is folded - a column of arrows down every block would be
+            // noise on a file that is entirely unfolded.
+            Text {
+                id: foldArrow
+
+                x: root.gutterWidth - root.foldColumnWidth
+                width: root.foldColumnWidth
+                height: parent.height
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                visible: (root.editor.revision, root.editor.isFoldable(row.line))
+                opacity: root.editor.isFolded(row.line) ? 1
+                       : foldHover.containsMouse || rowHover.containsMouse ? 0.7
+                       : 0
+                text: root.editor.isFolded(row.line) ? "›" : "⌄"
+                color: foldHover.containsMouse ? Theme.textPrimary : Theme.textTertiary
+                font.pointSize: EditorConfig.fontSize
+
+                Behavior on opacity {
+                    NumberAnimation { duration: App.fastAnimationDuration }
+                }
+
+                MouseArea {
+                    id: foldHover
+
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.editor.toggleFold(row.line)
+                }
+            }
+
+            // Tracks the pointer over the whole row, so the arrow can appear
+            // when the mouse is anywhere near it rather than only on the arrow
+            // itself - a 12px target is hard to find if it is invisible.
+            MouseArea {
+                id: rowHover
+
+                anchors.fill: parent
+                hoverEnabled: true
+                acceptedButtons: Qt.NoButton
             }
 
             // ---- Code ----
@@ -189,7 +247,7 @@ Item {
                         delegate: Rectangle {
                             required property var modelData
 
-                            visible: modelData.line === row.index
+                            visible: modelData.line === row.line
                             x: modelData.startColumn * root.charWidth
                             width: Math.max(root.charWidth,
                                             (modelData.endLine === modelData.line
@@ -206,11 +264,11 @@ Item {
 
                     // Selection highlight, drawn behind the glyphs.
                     Rectangle {
-                        visible: root.editor.lineHasSelection(row.index)
-                        x: root.editor.selectionStartOn(row.index) * root.charWidth
+                        visible: root.editor.lineHasSelection(row.line)
+                        x: root.editor.selectionStartOn(row.line) * root.charWidth
                         width: Math.max(2,
-                            (root.editor.selectionEndOn(row.index)
-                             - root.editor.selectionStartOn(row.index)) * root.charWidth)
+                            (root.editor.selectionEndOn(row.line)
+                             - root.editor.selectionStartOn(row.line)) * root.charWidth)
                         height: parent.height
                         color: Theme.accent
                         opacity: 0.25
@@ -222,7 +280,7 @@ Item {
                     // stepping blindly through a file.
                     Repeater {
                         model: (root.editor.revision,
-                                root.editor.matchesOnLine(row.index))
+                                root.editor.matchesOnLine(row.line))
 
                         delegate: Rectangle {
                             required property var modelData
@@ -246,7 +304,7 @@ Item {
                     // array: the array is rebuilt on every caret move, which
                     // tears down and recreates both delegates each time.
                     Rectangle {
-                        visible: root.editor.bracketLine === row.index
+                        visible: root.editor.bracketLine === row.line
                                  && root.editor.bracketColumn >= 0
                         x: root.editor.bracketColumn * root.charWidth
                         width: root.charWidth
@@ -259,7 +317,7 @@ Item {
                     }
 
                     Rectangle {
-                        visible: root.editor.matchLine === row.index
+                        visible: root.editor.matchLine === row.line
                                  && root.editor.matchColumn >= 0
                         x: root.editor.matchColumn * root.charWidth
                         width: root.charWidth
@@ -279,7 +337,7 @@ Item {
                         // highlighting should not pay it.
                         text: root.editor.highlighted
                               ? (root.editor.revision,
-                                 root.editor.highlightedLine(row.index))
+                                 root.editor.highlightedLine(row.line))
                               : row.text
                         color: Theme.synPlain
                         font.family: EditorConfig.fontFamily
@@ -292,7 +350,7 @@ Item {
                     // ordinary single-caret case pays nothing for the feature.
                     Repeater {
                         model: (root.editor.cursorCount > 1
-                                    ? root.editor.cursorsOnLine(row.index)
+                                    ? root.editor.cursorsOnLine(row.line)
                                     : [])
 
                         delegate: Rectangle {

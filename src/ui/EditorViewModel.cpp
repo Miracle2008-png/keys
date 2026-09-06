@@ -55,6 +55,13 @@ void EditorViewModel::setDocument(editor::TextDocument* document)
                         m_lineStates.resize(static_cast<size_t>(replaced.start.line));
                     }
 
+                    // Fold regions follow the text. Rebuilding is one pass
+                    // over the line lengths, which is cheap enough to do on
+                    // every change and leaves no chance of a stale region.
+                    if (m_document) {
+                        m_folds.rebuild(*m_document);
+                    }
+
                     // Before contentsChanged reaches QML, so a binding that
                     // reads `revision` sees the new value when it re-evaluates.
                     ++m_revision;
@@ -78,6 +85,13 @@ void EditorViewModel::setDocument(editor::TextDocument* document)
                     applyLanguage();
                     emit documentChanged();
                 });
+    }
+
+    if (m_document) {
+        m_folds.clear();
+        m_folds.rebuild(*m_document);
+    } else {
+        m_folds.clear();
     }
 
     ++m_revision;
@@ -615,6 +629,63 @@ void EditorViewModel::addCursorAt(int line, int column)
     }
 }
 
+// ---- Folding ---------------------------------------------------------------
+
+int EditorViewModel::visibleLineCount() const
+{
+    if (!m_document) {
+        return 0;
+    }
+    return m_folds.visibleLineCount(m_document->lineCount());
+}
+
+int EditorViewModel::documentLineFor(int visibleRow) const
+{
+    if (!m_document) {
+        return 0;
+    }
+    return m_folds.documentLineFor(visibleRow, m_document->lineCount());
+}
+
+bool EditorViewModel::isFoldable(int line) const
+{
+    return m_folds.regionAt(line) != nullptr;
+}
+
+bool EditorViewModel::isFolded(int line) const
+{
+    return m_folds.isFolded(line);
+}
+
+int EditorViewModel::foldedLineCount(int line) const
+{
+    const editor::FoldRegion* region = m_folds.regionAt(line);
+    return region ? region->endLine - region->startLine : 0;
+}
+
+void EditorViewModel::toggleFold(int line)
+{
+    m_folds.toggle(line);
+
+    // The row count changed, so the view has to rebuild its delegates.
+    ++m_revision;
+    emit contentsChanged();
+}
+
+void EditorViewModel::foldAll()
+{
+    m_folds.foldAll();
+    ++m_revision;
+    emit contentsChanged();
+}
+
+void EditorViewModel::unfoldAll()
+{
+    m_folds.unfoldAll();
+    ++m_revision;
+    emit contentsChanged();
+}
+
 QString EditorViewModel::languageName() const
 {
     // Named for the reader, not for the enumerator: "C++" rather than "C", and
@@ -642,6 +713,68 @@ QString EditorViewModel::languageName() const
     return QString();
 }
 
+namespace {
+
+/// Escapes a run of source text for Text.StyledText, keeping its spacing.
+///
+/// `toHtmlEscaped` handles the markup characters but not whitespace, and
+/// StyledText collapses runs of spaces the way HTML does - so every indented
+/// line rendered flush left, and the structure of the code disappeared. Each
+/// space becomes a non-breaking space, and a tab becomes four of them.
+///
+/// Only the runs that matter are converted: a single space between words can
+/// stay a plain space, and converting every one would double the size of the
+/// markup for no visible difference. `atLineStart` says whether this fragment
+/// begins its line - the helper runs once per token, so it cannot tell from
+/// what it has built so far, and without it every token's first space would be
+/// treated as indentation.
+QString escapeForDisplay(const QString& text, bool atLineStart)
+{
+    QString escaped = text.toHtmlEscaped();
+
+    // Leading whitespace carries the indentation, which is the part that must
+    // survive. Runs inside a line - alignment in a table of constants, say -
+    // matter too, so any run of two or more is preserved.
+    QString result;
+    result.reserve(escaped.size());
+
+    int index = 0;
+    while (index < escaped.size()) {
+        const QChar character = escaped.at(index);
+
+        if (character == QLatin1Char('\t')) {
+            result += QStringLiteral("&nbsp;&nbsp;&nbsp;&nbsp;");
+            ++index;
+            continue;
+        }
+
+        if (character == QLatin1Char(' ')) {
+            int run = 0;
+            while (index + run < escaped.size()
+                   && escaped.at(index + run) == QLatin1Char(' ')) {
+                ++run;
+            }
+
+            const bool leading = atLineStart && result.isEmpty();
+            if (run == 1 && !leading) {
+                result += QLatin1Char(' ');
+            } else {
+                for (int i = 0; i < run; ++i) {
+                    result += QStringLiteral("&nbsp;");
+                }
+            }
+            index += run;
+            continue;
+        }
+
+        result += character;
+        ++index;
+    }
+    return result;
+}
+
+} // namespace
+
 QString EditorViewModel::highlightedLine(int line) const
 {
     if (!m_document) {
@@ -650,7 +783,7 @@ QString EditorViewModel::highlightedLine(int line) const
 
     const QString text = m_document->line(line);
     if (!m_highlighted || text.isEmpty()) {
-        return text.toHtmlEscaped();
+        return escapeForDisplay(text, true);
     }
 
     // The state this line starts in is the state the one before it ended in.
@@ -676,7 +809,7 @@ QString EditorViewModel::highlightedLine(int line) const
         m_highlighter.tokenize(text, m_lineStates[static_cast<size_t>(line)], outgoing);
 
     if (tokens.empty()) {
-        return text.toHtmlEscaped();
+        return escapeForDisplay(text, true);
     }
 
     // Built as one string with spans only where a token needs one. Plain runs
@@ -687,11 +820,13 @@ QString EditorViewModel::highlightedLine(int line) const
     int position = 0;
     for (const editor::Token& token : tokens) {
         if (token.start > position) {
-            html += text.mid(position, token.start - position).toHtmlEscaped();
+            html += escapeForDisplay(text.mid(position, token.start - position),
+                                     position == 0);
         }
 
         const QString colour = colourFor(token.kind);
-        const QString body = text.mid(token.start, token.length).toHtmlEscaped();
+        const QString body =
+            escapeForDisplay(text.mid(token.start, token.length), token.start == 0);
 
         if (colour.isEmpty()) {
             html += body;
@@ -707,7 +842,7 @@ QString EditorViewModel::highlightedLine(int line) const
     }
 
     if (position < text.size()) {
-        html += text.mid(position).toHtmlEscaped();
+        html += escapeForDisplay(text.mid(position), position == 0);
     }
     return html;
 }

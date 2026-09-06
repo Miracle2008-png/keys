@@ -1,6 +1,7 @@
 #pragma once
 
 #include "editor/DocumentSearch.h"
+#include "editor/FoldModel.h"
 #include "editor/SyntaxHighlighter.h"
 #include "editor/TextDocument.h"
 #include "ui/EditorSettings.h"
@@ -92,6 +93,12 @@ class EditorViewModel : public QObject {
     /// nothing at all when it is not in use.
     Q_PROPERTY(int cursorCount READ cursorCount NOTIFY cursorChanged)
 
+    // ---- Folding -----------------------------------------------------------
+
+    /// How many rows the view draws. Equal to lineCount with nothing folded,
+    /// which is the case the editor is in almost all of the time.
+    Q_PROPERTY(int visibleLineCount READ visibleLineCount NOTIFY contentsChanged)
+
 public:
     /// Takes the editor's resolved settings so indentation follows the user's
     /// preference. Passed in rather than looked up so the view model stays
@@ -180,6 +187,25 @@ public:
 
     [[nodiscard]] int cursorCount() const;
 
+    [[nodiscard]] int visibleLineCount() const;
+
+    /// The document line a visible row shows. The view counts rows; everything
+    /// else in the editor counts lines, and this is the only bridge.
+    Q_INVOKABLE int documentLineFor(int visibleRow) const;
+
+    /// Whether a line starts a foldable region, and whether it is folded - what
+    /// the gutter needs to decide between a marker, an arrow, and nothing.
+    Q_INVOKABLE bool isFoldable(int line) const;
+    Q_INVOKABLE bool isFolded(int line) const;
+
+    /// How many lines a folded region hides, so the row can say so rather than
+    /// silently swallowing them.
+    Q_INVOKABLE int foldedLineCount(int line) const;
+
+    Q_INVOKABLE void toggleFold(int line);
+    Q_INVOKABLE void foldAll();
+    Q_INVOKABLE void unfoldAll();
+
     /// The columns of every caret on one line, for the view to draw. Empty on
     /// a line with none, which is most of them.
     Q_INVOKABLE QVariantList cursorsOnLine(int line) const;
@@ -261,6 +287,8 @@ private:
     /// Puts the caret on the current match and selects it, so Enter in the
     /// find field leaves the editor ready to type over the hit.
     void revealCurrentMatch();
+
+    editor::FoldModel m_folds;
 
     editor::Position m_bracket{-1, -1};
     editor::Position m_bracketMatch{-1, -1};
