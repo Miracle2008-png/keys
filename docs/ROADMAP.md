@@ -4,8 +4,9 @@ Measured against VS Code, CLion and RustRover, from an audit of the source on
 2026-09-06. Everything marked *missing* was verified absent by inspection, not
 assumed. Everything marked *built* was verified present.
 
-**Status:** Phase 1 and Phase 2 are complete. Phase 3 has find/replace and
-bracket matching done; multiple cursors, folding and rename remain.
+**Status:** Phases 1, 2 and 3 are complete, apart from the smaller items in 3.6
+(minimap, bookmarks, word wrap, column selection). Phase 4 is next: the terminal
+panel, the problems panel, and keybinding customisation.
 
 The order below is the order of work. It runs feel first, then reach: an editor
 that feels wrong is not rescued by having more features, and every item added
@@ -150,17 +151,16 @@ Ctrl+F and Ctrl+H, with match highlighting, a count, wrapping navigation,
 replace and replace-all as one undo step, and case/word/regex toggles.
 `DocumentSearch` in the editor module; 17 tests.
 
-### 3.2 Multiple cursors
+### 3.2 Multiple cursors — **done**
 
-No `std::vector<Cursor>` anywhere — `TextDocument` holds exactly one caret.
-Adding this touches the buffer, the undo stack and every movement command, so it
-is a structural change and should land as one deliberate piece.
+Ctrl+Alt+Up/Down, Alt+Click, Escape to clear. Edits run bottom-up and the undo
+stack gained explicit grouping, so one keystroke at four carets is one Ctrl+Z.
+20 tests.
 
-### 3.3 Code folding
+### 3.3 Code folding — **done**
 
-No folding model. Needs fold regions (from the language server where it offers
-them, from indentation where it does not), gutter markers, and a line index that
-understands hidden ranges.
+From indentation, rebuilt on every change. The view counts visible rows and maps
+them to document lines. 16 tests.
 
 ### 3.4 Bracket matching and auto-indent — **done**
 
@@ -168,9 +168,10 @@ Matching highlights the caret's bracket and its partner, red when unmatched.
 Indentation follows the braces: deeper after an opening bracket, and a closing
 brace typed on its own line pulls back. 13 tests.
 
-### 3.5 Rename symbol
+### 3.5 Rename symbol — **done**
 
-`textDocument/rename` is not implemented in the LSP client.
+`textDocument/rename`, both reply shapes, edits applied bottom-up. Limited to
+files that are already open; anything skipped is reported.
 
 ### 3.6 Smaller, still missing
 
