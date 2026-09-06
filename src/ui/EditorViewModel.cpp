@@ -28,6 +28,20 @@ void EditorViewModel::setDocument(editor::TextDocument* document)
 
     m_document = document;
 
+    // A document destroyed while the view still points at it would leave a
+    // dangling pointer that the next setDocument dereferences. The workspace
+    // rebinds panes before closing a document, so this should not happen - but
+    // "should not" is not a guarantee, and the failure is a crash rather than
+    // anything a user could report usefully.
+    if (m_document) {
+        connect(m_document, &QObject::destroyed, this, [this] {
+            m_document = nullptr;
+            m_lineStates.clear();
+            m_highlighted = false;
+            emit documentChanged();
+        });
+    }
+
     // The language is chosen from the path, and the cached line states belong
     // to the previous document.
     m_lineStates.clear();

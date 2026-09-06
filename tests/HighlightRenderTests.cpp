@@ -1,0 +1,193 @@
+#include "config/Settings.h"
+#include "editor/TextDocument.h"
+#include "ui/EditorSettings.h"
+#include "ui/EditorViewModel.h"
+#include "ui/Theme.h"
+
+#include <QRegularExpression>
+#include <QTest>
+
+#include <memory>
+
+using keys::config::Settings;
+using keys::editor::TextDocument;
+using keys::ui::EditorSettings;
+using keys::ui::EditorViewModel;
+using keys::ui::Theme;
+
+/// The rich text the editor actually renders.
+///
+/// The tokeniser has its own tests; this covers the layer above it, where a
+/// different class of bug lives. Source code is full of characters that are
+/// markup in HTML - `<`, `&`, `"` - and one that escapes through turns the rest
+/// of the line into garbage or swallows it entirely. That cannot be caught by
+/// testing tokens.
+class HighlightRenderTests : public QObject {
+    Q_OBJECT
+
+private:
+    std::unique_ptr<Settings> m_settings;
+    std::unique_ptr<Theme> m_theme;
+    std::unique_ptr<EditorSettings> m_editorSettings;
+    std::unique_ptr<EditorViewModel> m_model;
+    std::unique_ptr<TextDocument> m_document;
+
+    /// Renders one line of a document with the given path, so the language is
+    /// chosen the way it is in the application.
+    [[nodiscard]] QString render(const QString& path, const QString& text)
+    {
+        // Unbound before the old document is destroyed. The application rebinds
+        // panes before closing a document; a test that skipped this would be
+        // exercising a sequence the workspace never produces.
+        m_model->setDocument(nullptr);
+
+        m_document = std::make_unique<TextDocument>();
+        m_document->setText(text);
+        m_document->setPath(path);
+
+        m_model->setDocument(m_document.get());
+        return m_model->highlightedLine(0);
+    }
+
+private slots:
+    void init()
+    {
+        m_settings = std::make_unique<Settings>();
+
+        // The colours come from the Theme, so one has to be published or every
+        // token renders without a span.
+        m_theme = std::make_unique<Theme>(*m_settings);
+        Theme::setInstance(m_theme.get());
+
+        m_editorSettings = std::make_unique<EditorSettings>(*m_settings);
+        m_model = std::make_unique<EditorViewModel>(*m_editorSettings);
+    }
+
+    void cleanup()
+    {
+        Theme::setInstance(nullptr);
+        m_model.reset();
+        m_document.reset();
+        m_editorSettings.reset();
+        m_theme.reset();
+        m_settings.reset();
+    }
+
+    // ---- Escaping ----------------------------------------------------------
+
+    void escapesAngleBracketsInCode()
+    {
+        // `std::vector<int>` must not become a `<int>` element. This is the bug
+        // that eats the rest of the line and shows nothing at all.
+        const QString html =
+            render(QStringLiteral("a.cpp"), QStringLiteral("std::vector<int> values;"));
+
+        QVERIFY2(html.contains(QStringLiteral("&lt;")), qPrintable(html));
+        QVERIFY2(html.contains(QStringLiteral("&gt;")), qPrintable(html));
+
+        // The text is still all there.
+        QVERIFY2(html.contains(QStringLiteral("values")), qPrintable(html));
+    }
+
+    void escapesAmpersands()
+    {
+        const QString html =
+            render(QStringLiteral("a.cpp"), QStringLiteral("if (a && b) return;"));
+        QVERIFY2(html.contains(QStringLiteral("&amp;")), qPrintable(html));
+    }
+
+    void escapesInsideAColouredToken()
+    {
+        // A string literal containing markup is escaped *and* coloured. Getting
+        // the order wrong escapes the span's own tags.
+        const QString html = render(QStringLiteral("a.cpp"),
+                                    QStringLiteral("s = \"<b>bold</b>\";"));
+
+        QVERIFY2(html.contains(QStringLiteral("&lt;b&gt;")), qPrintable(html));
+        // The span is real markup and must survive.
+        QVERIFY2(html.contains(QStringLiteral("<span")), qPrintable(html));
+    }
+
+    void escapesAnUnhighlightedLineToo()
+    {
+        // A file type with no rules still goes through Text.StyledText only when
+        // highlighted() is true - but the plain path must escape as well, or a
+        // future change to that flag would silently produce markup injection.
+        const QString html =
+            render(QStringLiteral("notes.xyz"), QStringLiteral("a < b & c > d"));
+
+        QVERIFY2(html.contains(QStringLiteral("&lt;")), qPrintable(html));
+        QVERIFY2(html.contains(QStringLiteral("&amp;")), qPrintable(html));
+        QVERIFY2(!html.contains(QStringLiteral("<span")), qPrintable(html));
+    }
+
+    // ---- Colouring ---------------------------------------------------------
+
+    void coloursAKeyword()
+    {
+        const QString html =
+            render(QStringLiteral("a.cpp"), QStringLiteral("return value;"));
+
+        QVERIFY2(html.contains(QStringLiteral("<span style=\"color:")), qPrintable(html));
+        QVERIFY2(html.contains(QStringLiteral("return")), qPrintable(html));
+    }
+
+    void leavesPlainTextWithoutSpans()
+    {
+        // A plain run carries no markup, which keeps the common line short - a
+        // span per character would be far more text than the code itself.
+        const QString html =
+            render(QStringLiteral("a.cpp"), QStringLiteral("someIdentifier"));
+        QCOMPARE(html, QStringLiteral("someIdentifier"));
+    }
+
+    void reportsWhetherAFileIsHighlighted()
+    {
+        (void)render(QStringLiteral("a.cpp"), QStringLiteral("int x;"));
+        QVERIFY(m_model->isHighlighted());
+
+        (void)render(QStringLiteral("notes.xyz"), QStringLiteral("int x;"));
+        QVERIFY(!m_model->isHighlighted());
+    }
+
+    // ---- Content preservation ----------------------------------------------
+
+    void everyCharacterSurvivesRendering()
+    {
+        // The strongest check: strip the markup back out and the original line
+        // must be exactly what went in. A token with a wrong offset would drop
+        // or duplicate characters, which no single assertion above would catch.
+        const QStringList lines = {
+            QStringLiteral("int x = 1; // a comment"),
+            QStringLiteral("s = \"a\\\"b\" + 'c';"),
+            QStringLiteral("if (a < b && c > d) { return f(x); }"),
+            QStringLiteral("auto v = std::vector<std::pair<int, QString>>{};"),
+            QStringLiteral("    /* block */ value += 0xFF;"),
+            QStringLiteral("&<>\"'"),
+        };
+
+        for (const QString& line : lines) {
+            const QString html = render(QStringLiteral("a.cpp"), line);
+
+            // Remove spans, then unescape.
+            QString plain = html;
+            plain.remove(QRegularExpression(QStringLiteral("<span[^>]*>")));
+            plain.remove(QStringLiteral("</span>"));
+            plain.replace(QStringLiteral("&lt;"), QStringLiteral("<"));
+            plain.replace(QStringLiteral("&gt;"), QStringLiteral(">"));
+            plain.replace(QStringLiteral("&quot;"), QStringLiteral("\""));
+            plain.replace(QStringLiteral("&#39;"), QStringLiteral("'"));
+            plain.replace(QStringLiteral("&amp;"), QStringLiteral("&"));
+
+            QCOMPARE(plain, line);
+        }
+    }
+
+    void anEmptyLineRendersAsNothing()
+    {
+        QCOMPARE(render(QStringLiteral("a.cpp"), QString()), QString());
+    }
+};
+
+QTEST_MAIN(HighlightRenderTests)
+#include "HighlightRenderTests.moc"
