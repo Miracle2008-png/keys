@@ -97,6 +97,21 @@ public:
     /// Asks for completions at the caret. Debounced: typing fast would otherwise
     /// send one request per keystroke and most would be obsolete on arrival.
     Q_INVOKABLE void requestCompletion();
+
+private:
+    /// Completion with no language server: words already in the file, plus the
+    /// language's reserved words and type names. Nothing is inferred, so
+    /// nothing can be confidently wrong - which is the failure that makes a
+    /// bad autocomplete worse than none.
+    void completeFromBuffer(const editor::TextDocument& document);
+
+    /// Decides whether an edit should open or refresh the completion popup.
+    /// Called on every change, before the language client is consulted, so
+    /// completion happens with or without a server.
+    void considerCompletion(const editor::TextDocument& document,
+                            const editor::Range& replaced);
+
+public:
     Q_INVOKABLE void dismissCompletion();
     Q_INVOKABLE void selectNext();
     Q_INVOKABLE void selectPrevious();

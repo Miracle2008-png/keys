@@ -5,6 +5,7 @@ keys_add_module(editor
         DocumentSearch.cpp
         FoldModel.cpp
         SyntaxHighlighter.cpp
+        WordCompleter.cpp
         TextBuffer.cpp
         TextDocument.cpp
         UndoStack.cpp
@@ -12,6 +13,7 @@ keys_add_module(editor
         DocumentSearch.h
         FoldModel.h
         SyntaxHighlighter.h
+        WordCompleter.h
         TextBuffer.h
         TextDocument.h
         UndoStack.h

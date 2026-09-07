@@ -1386,6 +1386,16 @@ void SyntaxHighlighter::setLanguage(Language language)
     m_language = language;
 }
 
+const QStringList& SyntaxHighlighter::keywordsOf(Language language)
+{
+    return keywordsFor(language);
+}
+
+const QStringList& SyntaxHighlighter::typesOf(Language language)
+{
+    return typesFor(language);
+}
+
 const QStringList& SyntaxHighlighter::keywords() const
 {
     return keywordsFor(m_language);

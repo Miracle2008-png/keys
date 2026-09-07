@@ -1,5 +1,7 @@
 #include "ui/LanguageModel.h"
 
+#include "editor/WordCompleter.h"
+
 #include "core/Log.h"
 
 #include <QVariantMap>
@@ -166,6 +168,15 @@ void LanguageModel::watchDocument(editor::TextDocument* document)
     connect(document, &editor::TextDocument::contentsChanged, this,
             [this, document](const editor::Range& replaced, int) {
                 const QString path = document->path();
+
+                // Completion is considered whether or not a server is running.
+                // This used to sit below the `if (!client) return`, so on a
+                // machine with no language server - which is most machines -
+                // typing never offered anything and Ctrl+Space was the only way
+                // in. A feature reachable only by an unadvertised shortcut is
+                // not a feature.
+                considerCompletion(*document, replaced);
+
                 LanguageClient* client = m_manager.existingClientFor(path);
                 if (!client) {
                     return;
@@ -182,11 +193,6 @@ void LanguageModel::watchDocument(editor::TextDocument* document)
                 // full sync. The client picks which to send.
                 client->changeDocument(path, range, document->text(), document->text());
 
-                // Typing invalidates an open popup: its entries were computed
-                // for a prefix that no longer exists.
-                if (m_completionVisible) {
-                    m_completionDebounce.start();
-                }
             });
 
     connect(document, &editor::TextDocument::modifiedChanged, this,
@@ -295,7 +301,12 @@ void LanguageModel::requestCompletion()
 
     LanguageClient* client = m_manager.existingClientFor(document->path());
     if (!client || !client->supportsCompletion()) {
-        return;   // nothing to offer; the popup stays closed rather than empty
+        // No server: complete from the words already in the file and the
+        // language's own vocabulary. Not a substitute for a server that
+        // understands types and scope, but the alternative here was nothing at
+        // all - and most machines have no clangd, pyright or gopls installed.
+        completeFromBuffer(*document);
+        return;
     }
 
     const editor::Position caret = document->cursor().position;
@@ -337,6 +348,94 @@ void LanguageModel::requestCompletion()
             emit selectedIndexChanged();
             setCompletionVisible(!m_completions.empty());
         });
+}
+
+void LanguageModel::considerCompletion(const editor::TextDocument& document,
+                                      const editor::Range& replaced)
+{
+    // An open popup always refreshes: its entries were computed for a prefix
+    // that no longer exists.
+    if (m_completionVisible) {
+        m_completionDebounce.start();
+        return;
+    }
+
+    // Otherwise, only while typing a word - and only forwards. A deletion that
+    // happens to leave a long enough prefix should not pop a list open under
+    // someone who is removing text.
+    if (replaced.start.line != replaced.end.line
+        || replaced.end.column <= replaced.start.column) {
+        return;
+    }
+
+    const QStringList lines = document.text().split(QLatin1Char('\n'));
+    const editor::Position caret = document.cursor().position;
+    if (caret.line < 0 || caret.line >= lines.size()) {
+        return;
+    }
+
+    // Long enough to be worth completing. One character matches most of the
+    // file and the popup becomes noise rather than help.
+    const QString prefix =
+        editor::WordCompleter::prefixAt(lines.at(caret.line), caret.column);
+    if (prefix.size() < editor::WordCompleter::kMinPrefixLength) {
+        return;
+    }
+
+    m_completionDebounce.start();
+}
+
+void LanguageModel::completeFromBuffer(const editor::TextDocument& document)
+{
+    const editor::Position caret = document.cursor().position;
+
+    const std::vector<editor::WordSuggestion> suggestions =
+        editor::WordCompleter::suggest(
+            document, caret.line, caret.column,
+            editor::SyntaxHighlighter::languageForPath(document.path()));
+
+    std::vector<CompletionItem> items;
+    items.reserve(suggestions.size());
+
+    for (const editor::WordSuggestion& suggestion : suggestions) {
+        CompletionItem item;
+        item.label = suggestion.word;
+
+        // Said plainly, because a suggestion from the buffer is a weaker claim
+        // than one from a server that understands the code, and the list should
+        // not pretend otherwise.
+        switch (suggestion.source) {
+        case editor::WordSuggestion::Source::Buffer:
+            item.kind = CompletionKind::Text;
+            item.detail = tr("in this file");
+            break;
+        case editor::WordSuggestion::Source::Keyword:
+            item.kind = CompletionKind::Keyword;
+            item.detail = tr("keyword");
+            break;
+        case editor::WordSuggestion::Source::Type:
+            // Keyword rather than Class: `u32` is a type *name* the language
+            // reserves, not a class the file declares, and labelling it
+            // "class" would be a claim about the code that is not true.
+            item.kind = CompletionKind::Keyword;
+            item.detail = tr("type");
+            break;
+        }
+
+        items.push_back(std::move(item));
+    }
+
+    // Already ranked by the completer; re-sorting would discard that.
+    beginResetModel();
+    m_completions = std::move(items);
+    endResetModel();
+
+    m_selectedIndex = 0;
+    m_anchor = LspPosition{caret.line, caret.column};
+
+    emit countChanged();
+    emit selectedIndexChanged();
+    setCompletionVisible(!m_completions.empty());
 }
 
 void LanguageModel::dismissCompletion()

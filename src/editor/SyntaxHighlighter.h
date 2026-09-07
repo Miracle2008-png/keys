@@ -154,6 +154,14 @@ public:
         Assembly,
     };
 
+    /// The reserved words and built-in type names of a language.
+    ///
+    /// Public and static because word completion needs them without owning a
+    /// highlighter: offering a language's own keywords is most of what makes
+    /// completion useful when no language server is running.
+    [[nodiscard]] static const QStringList& keywordsOf(Language language);
+    [[nodiscard]] static const QStringList& typesOf(Language language);
+
     /// The language for a path, or None when Keys has no rules for it.
     [[nodiscard]] static Language languageForPath(const QString& path);
 

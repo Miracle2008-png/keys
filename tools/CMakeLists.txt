@@ -81,3 +81,10 @@ target_link_libraries(keys_problems_panel_check PRIVATE
     Keys::ui keys_uiplugin Keys::config Keys::langsvc Keys::project)
 set_target_properties(keys_problems_panel_check PROPERTIES FOLDER "Tools")
 keys_apply_compile_options(keys_problems_panel_check)
+
+# Types into a real document and reports what completion offered. Covers what a
+# unit test on the completer cannot: whether typing reaches it at all.
+add_executable(keys_completion_check completion-check.cpp)
+target_link_libraries(keys_completion_check PRIVATE Qt6::Core Keys::editor)
+set_target_properties(keys_completion_check PROPERTIES FOLDER "Tools")
+keys_apply_compile_options(keys_completion_check)

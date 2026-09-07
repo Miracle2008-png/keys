@@ -33,6 +33,12 @@ F#, Go, Groovy, Haskell, HTML/XML, Java, JavaScript/JSON, Julia, Kotlin, Lua,
 Markdown, Nim, Objective-C, OCaml, Perl, PHP, Python, QML, R, Ruby, Rust,
 Scala, Shell, SQL, Swift, TOML/INI, TypeScript, YAML and Zig.
 
+Completion works with or without a language server. With one, it is the
+server's - types, scope, real symbols. Without one, it offers words already in
+the file plus the language's own reserved words and type names, ranked by
+distance from the caret. Nothing is inferred, so nothing can be confidently
+wrong, which is the failure that makes a bad autocomplete worse than none.
+
 An extension is mapped only where the file's shape genuinely matches the lexer
 it points at - a shader is C, a .csproj is XML, a Jupyter notebook is JSON on
 disk. One pointed at the wrong lexer produces confident wrong colour, which
