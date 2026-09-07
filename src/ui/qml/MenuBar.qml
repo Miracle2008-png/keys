@@ -21,6 +21,7 @@ Item {
     /// Raised by items that need a name or a path from the user. The menu does
     /// not own the dialogs; Main.qml does, so one set serves the menu, the
     /// palette and the explorer's context menu alike.
+    signal newProjectRequested()
     signal newFileRequested()
     signal newFolderRequested()
     signal openProjectRequested()
@@ -125,6 +126,18 @@ Item {
 
     ContextMenu {
         id: fileMenu
+
+        // First, and never disabled. Every other item under File needs a
+        // project open, so without this the menu offered nothing at all on the
+        // welcome screen - which is precisely when someone opens File looking
+        // for a way to begin.
+        MenuAction {
+            text: qsTr("New Project…")
+            shortcut: "Ctrl+Shift+N"
+            onTriggered: root.newProjectRequested()
+        }
+
+        MenuSeparator {}
 
         MenuAction {
             text: qsTr("New File…")

@@ -70,6 +70,8 @@ Window {
 
             width: parent.width
 
+            onNewProjectRequested: root.showNewProject()
+
             onNewFileRequested: nameDialog.open(NameDialog.CreateFile,
                                                 App.newFileDirectory(), "")
             onNewFolderRequested: nameDialog.open(NameDialog.CreateFolder,
@@ -326,6 +328,11 @@ Window {
     Shortcut {
         sequences: [StandardKey.Open]
         onActivated: menuFolderPicker.open()
+    }
+
+    Shortcut {
+        sequence: "Ctrl+Shift+N"
+        onActivated: root.showNewProject()
     }
 
     Shortcut {

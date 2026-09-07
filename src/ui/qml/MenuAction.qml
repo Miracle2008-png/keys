@@ -35,9 +35,16 @@ MenuItem {
             anchors.rightMargin: Metrics.spacingMedium
             anchors.verticalCenter: parent.verticalCenter
             text: root.text
-            color: root.enabled ? (root.highlighted ? Theme.textPrimary
-                                                    : Theme.textSecondary)
-                                : Theme.textTertiary
+            // An enabled item reads as primary text, not secondary.
+            //
+            // It used to be textSecondary against textTertiary for disabled -
+            // 0.755 and 0.615 lightness, close enough that a menu with a few
+            // items greyed out looked like a menu with *everything* greyed out,
+            // and nothing appeared clickable. Disabled items also drop to 55%
+            // opacity, so the difference is carried twice rather than resting
+            // on a hue step the eye has to hunt for.
+            color: root.enabled ? Theme.textPrimary : Theme.textTertiary
+            opacity: root.enabled ? 1.0 : 0.55
             font.family: Fonts.ui
             font.pointSize: Metrics.fontSizeBody
             elide: Text.ElideRight
@@ -50,6 +57,7 @@ MenuItem {
             anchors.verticalCenter: parent.verticalCenter
             text: root.shortcut
             color: Theme.textTertiary
+            opacity: root.enabled ? 1.0 : 0.55
             font.family: Fonts.mono
             font.pointSize: Metrics.fontSizeLabel
         }
