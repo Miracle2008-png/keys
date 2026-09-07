@@ -110,6 +110,23 @@ public:
         Toml,       ///< also INI, which is a subset of its shape
         Sql,
         CMake,
+
+        // Curly-brace languages. Each gets its own entry rather than sharing
+        // C's: the lexical shape is close, but the keyword sets are not, and
+        // colouring `func` or `fun` as an identifier in a file full of them is
+        // the difference between highlighting and decoration.
+        CSharp,
+        Swift,
+        Php,        ///< the code inside the tags; the markup around it is not
+        Kotlin,
+        Dart,
+        Scala,
+
+        // Scripting languages whose comment and string rules differ from the
+        // C family's.
+        Lua,        ///< `--` comments and `--[[ ]]` blocks
+        Perl,
+        R,
     };
 
     /// The language for a path, or None when Keys has no rules for it.

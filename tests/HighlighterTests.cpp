@@ -307,6 +307,175 @@ private slots:
                  TokenKind::Comment);
     }
 
+    // ---- The languages added after the first seventeen ---------------------
+
+    void recognisesTheExtensionsItClaims()
+    {
+        // A language with rules that languageForPath cannot reach is a language
+        // Keys does not actually support - the rules exist and nothing ever
+        // selects them. This is the whole mapping, asserted.
+        const auto expect = [](const QString& path,
+                               SyntaxHighlighter::Language language) {
+            QVERIFY2(SyntaxHighlighter::languageForPath(path) == language,
+                     qPrintable(path));
+        };
+
+        expect(QStringLiteral("a.cs"), SyntaxHighlighter::Language::CSharp);
+        expect(QStringLiteral("a.csx"), SyntaxHighlighter::Language::CSharp);
+        expect(QStringLiteral("a.swift"), SyntaxHighlighter::Language::Swift);
+        expect(QStringLiteral("a.php"), SyntaxHighlighter::Language::Php);
+        expect(QStringLiteral("a.phtml"), SyntaxHighlighter::Language::Php);
+        expect(QStringLiteral("a.kt"), SyntaxHighlighter::Language::Kotlin);
+        expect(QStringLiteral("a.kts"), SyntaxHighlighter::Language::Kotlin);
+        expect(QStringLiteral("a.dart"), SyntaxHighlighter::Language::Dart);
+        expect(QStringLiteral("a.scala"), SyntaxHighlighter::Language::Scala);
+        expect(QStringLiteral("a.lua"), SyntaxHighlighter::Language::Lua);
+        expect(QStringLiteral("a.pl"), SyntaxHighlighter::Language::Perl);
+        expect(QStringLiteral("a.pm"), SyntaxHighlighter::Language::Perl);
+        expect(QStringLiteral("a.r"), SyntaxHighlighter::Language::R);
+
+        // Extensions that map onto existing rules.
+        expect(QStringLiteral("a.mjs"), SyntaxHighlighter::Language::JavaScript);
+        expect(QStringLiteral("a.mts"), SyntaxHighlighter::Language::TypeScript);
+        expect(QStringLiteral("a.cu"), SyntaxHighlighter::Language::C);
+        expect(QStringLiteral("a.mm"), SyntaxHighlighter::Language::C);
+        expect(QStringLiteral("a.vue"), SyntaxHighlighter::Language::Html);
+        expect(QStringLiteral("a.less"), SyntaxHighlighter::Language::Css);
+        expect(QStringLiteral("a.pyi"), SyntaxHighlighter::Language::Python);
+
+        // Files whose name carries the type.
+        expect(QStringLiteral("/p/Gemfile"), SyntaxHighlighter::Language::Ruby);
+        expect(QStringLiteral("/p/.bashrc"), SyntaxHighlighter::Language::Shell);
+        expect(QStringLiteral("/p/.editorconfig"), SyntaxHighlighter::Language::Toml);
+
+        // And an extension with no rules stays None: mis-colouring reads as a
+        // bug, no colour reads as a type Keys does not know yet.
+        expect(QStringLiteral("a.zzz"), SyntaxHighlighter::Language::None);
+    }
+
+    void coloursCSharpKeywordsAndTypes()
+    {
+        QCOMPARE(kindOf(QStringLiteral("public sealed record Invoice(int Id);"),
+                        QStringLiteral("sealed"),
+                        SyntaxHighlighter::Language::CSharp),
+                 TokenKind::Keyword);
+        QCOMPARE(kindOf(QStringLiteral("public sealed record Invoice(int Id);"),
+                        QStringLiteral("int"),
+                        SyntaxHighlighter::Language::CSharp),
+                 TokenKind::Type);
+    }
+
+    void coloursSwiftKeywords()
+    {
+        QCOMPARE(kindOf(QStringLiteral("guard let url = URL(string: s) else { return }"),
+                        QStringLiteral("guard"),
+                        SyntaxHighlighter::Language::Swift),
+                 TokenKind::Keyword);
+    }
+
+    void coloursPhpKeywords()
+    {
+        QCOMPARE(kindOf(QStringLiteral("public function find(int $id): ?Invoice"),
+                        QStringLiteral("function"),
+                        SyntaxHighlighter::Language::Php),
+                 TokenKind::Keyword);
+    }
+
+    void coloursKotlinKeywords()
+    {
+        QCOMPARE(kindOf(QStringLiteral("suspend fun find(id: Int): Invoice?"),
+                        QStringLiteral("suspend"),
+                        SyntaxHighlighter::Language::Kotlin),
+                 TokenKind::Keyword);
+    }
+
+    void luaUsesDashDashComments()
+    {
+        // Not // - Lua would read that as two divisions, and the rest of the
+        // line would stay plain while the reader expects a comment.
+        QCOMPARE(kindOf(QStringLiteral("-- a comment"), QStringLiteral("-- a comment"),
+                        SyntaxHighlighter::Language::Lua),
+                 TokenKind::Comment);
+    }
+
+    void luaDoesNotTreatSlashStarAsAComment()
+    {
+        // The regression this guards: claiming C-style block comments for Lua
+        // would make `a / *b` open a comment that never closes, greying out the
+        // rest of the file.
+        const SyntaxHighlighter highlighter(SyntaxHighlighter::Language::Lua);
+        LineState outgoing = LineState::Normal;
+        const std::vector<Token> tokens = highlighter.tokenize(
+            QStringLiteral("local c = a / b"), LineState::Normal, outgoing);
+
+        // Nothing should be a comment, and the line must not leave the parser
+        // inside one.
+        for (const Token& token : tokens) {
+            QVERIFY(token.kind != TokenKind::Comment);
+        }
+        QCOMPARE(outgoing, LineState::Normal);
+    }
+
+    void perlAndRUseHashComments()
+    {
+        QCOMPARE(kindOf(QStringLiteral("# a comment"), QStringLiteral("# a comment"),
+                        SyntaxHighlighter::Language::Perl),
+                 TokenKind::Comment);
+        QCOMPARE(kindOf(QStringLiteral("# a comment"), QStringLiteral("# a comment"),
+                        SyntaxHighlighter::Language::R),
+                 TokenKind::Comment);
+    }
+
+    void everyLanguageWithRulesProducesTokens()
+    {
+        // A language declared in the enum but wired to no keyword list would
+        // silently highlight nothing. One representative line each.
+        struct Sample {
+            SyntaxHighlighter::Language language;
+            QString line;
+        };
+
+        const std::vector<Sample> samples = {
+            {SyntaxHighlighter::Language::CSharp,
+             QStringLiteral("public class A { }")},
+            {SyntaxHighlighter::Language::Swift,
+             QStringLiteral("struct A { let x: Int }")},
+            {SyntaxHighlighter::Language::Php,
+             QStringLiteral("function a() { return null; }")},
+            {SyntaxHighlighter::Language::Kotlin,
+             QStringLiteral("class A(val x: Int)")},
+            {SyntaxHighlighter::Language::Dart,
+             QStringLiteral("class A { final int x = 0; }")},
+            {SyntaxHighlighter::Language::Scala,
+             QStringLiteral("case class A(x: Int)")},
+            {SyntaxHighlighter::Language::Lua,
+             QStringLiteral("local function a() return nil end")},
+            {SyntaxHighlighter::Language::Perl,
+             QStringLiteral("sub a { return 1; }")},
+            {SyntaxHighlighter::Language::R,
+             QStringLiteral("a <- function(x) { if (x > 0) TRUE else FALSE }")},
+        };
+
+        for (const Sample& sample : samples) {
+            const SyntaxHighlighter highlighter(sample.language);
+            LineState outgoing = LineState::Normal;
+            const std::vector<Token> tokens =
+                highlighter.tokenize(sample.line, LineState::Normal, outgoing);
+
+            bool sawKeyword = false;
+            for (const Token& token : tokens) {
+                QVERIFY(token.start >= 0);
+                QVERIFY(token.start + token.length <= sample.line.size());
+                if (token.kind == TokenKind::Keyword) {
+                    sawKeyword = true;
+                }
+            }
+            QVERIFY2(sawKeyword,
+                     qPrintable(QStringLiteral("no keyword found in: %1")
+                                    .arg(sample.line)));
+        }
+    }
+
     // ---- Robustness --------------------------------------------------------
 
     void tokensNeverOverlapOrExceedTheLine()

@@ -49,6 +49,15 @@ QString nameOf(SyntaxHighlighter::Language language)
     case SyntaxHighlighter::Language::Toml:       return QStringLiteral("TOML");
     case SyntaxHighlighter::Language::Sql:        return QStringLiteral("SQL");
     case SyntaxHighlighter::Language::CMake:      return QStringLiteral("CMake");
+    case SyntaxHighlighter::Language::CSharp:     return QStringLiteral("C#");
+    case SyntaxHighlighter::Language::Swift:      return QStringLiteral("Swift");
+    case SyntaxHighlighter::Language::Php:        return QStringLiteral("PHP");
+    case SyntaxHighlighter::Language::Kotlin:     return QStringLiteral("Kotlin");
+    case SyntaxHighlighter::Language::Dart:       return QStringLiteral("Dart");
+    case SyntaxHighlighter::Language::Scala:      return QStringLiteral("Scala");
+    case SyntaxHighlighter::Language::Lua:        return QStringLiteral("Lua");
+    case SyntaxHighlighter::Language::Perl:       return QStringLiteral("Perl");
+    case SyntaxHighlighter::Language::R:          return QStringLiteral("R");
     }
     return QStringLiteral("?");
 }

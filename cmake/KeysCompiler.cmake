@@ -13,6 +13,12 @@ function(keys_apply_compile_options target)
             /utf-8              # source and execution charset
             /MP                 # parallel compilation
 
+            # Not in /W4, and worth having: a switch over an enum that does not
+            # handle every enumerator. Adding a language to the highlighter left
+            # the status bar's name lookup silently returning nothing, and the
+            # build said nothing because this is off by default.
+            /w14062             # unhandled enumerator in a switch
+
             # Suppressed because Qt's own headers trigger them, not Keys' code.
             # /external:W0 silences Qt headers included directly, but these fire
             # while instantiating Qt templates from our translation units, which
@@ -43,6 +49,10 @@ function(keys_apply_compile_options target)
             -Wunused
             -Woverloaded-virtual
             -Wdouble-promotion
+
+            # The GCC/Clang equivalent of MSVC's C4062: a switch over an enum
+            # that does not handle every enumerator and has no default.
+            -Wswitch-enum
         )
         if(KEYS_WARNINGS_AS_ERRORS)
             target_compile_options(${target} PRIVATE -Werror)

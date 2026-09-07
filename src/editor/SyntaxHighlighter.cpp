@@ -235,6 +235,290 @@ const QStringList& keywordsFor(Language language)
         return words;
     }();
 
+    /// C#. Contextual keywords (`async`, `record`, `when`) are included:
+    /// they read as keywords everywhere a reader meets them, and the
+    /// alternative is a parser rather than a highlighter.
+    static const QStringList csharp = [] {
+        QStringList words = {
+            QStringLiteral("abstract"), QStringLiteral("as"), QStringLiteral("base"),
+            QStringLiteral("break"), QStringLiteral("case"), QStringLiteral("catch"),
+            QStringLiteral("checked"), QStringLiteral("class"),
+            QStringLiteral("const"), QStringLiteral("continue"),
+            QStringLiteral("default"), QStringLiteral("delegate"),
+            QStringLiteral("do"), QStringLiteral("else"), QStringLiteral("enum"),
+            QStringLiteral("event"), QStringLiteral("explicit"),
+            QStringLiteral("extern"), QStringLiteral("finally"),
+            QStringLiteral("fixed"), QStringLiteral("for"),
+            QStringLiteral("foreach"), QStringLiteral("goto"), QStringLiteral("if"),
+            QStringLiteral("implicit"), QStringLiteral("in"),
+            QStringLiteral("interface"), QStringLiteral("internal"),
+            QStringLiteral("is"), QStringLiteral("lock"),
+            QStringLiteral("namespace"), QStringLiteral("new"),
+            QStringLiteral("operator"), QStringLiteral("out"),
+            QStringLiteral("override"), QStringLiteral("params"),
+            QStringLiteral("private"), QStringLiteral("protected"),
+            QStringLiteral("public"), QStringLiteral("readonly"),
+            QStringLiteral("ref"), QStringLiteral("return"),
+            QStringLiteral("sealed"), QStringLiteral("sizeof"),
+            QStringLiteral("stackalloc"), QStringLiteral("static"),
+            QStringLiteral("struct"), QStringLiteral("switch"),
+            QStringLiteral("this"), QStringLiteral("throw"), QStringLiteral("try"),
+            QStringLiteral("typeof"), QStringLiteral("unchecked"),
+            QStringLiteral("unsafe"), QStringLiteral("using"),
+            QStringLiteral("virtual"), QStringLiteral("volatile"),
+            QStringLiteral("while"), QStringLiteral("add"), QStringLiteral("and"),
+            QStringLiteral("async"), QStringLiteral("await"), QStringLiteral("get"),
+            QStringLiteral("global"), QStringLiteral("init"),
+            QStringLiteral("nameof"), QStringLiteral("not"), QStringLiteral("or"),
+            QStringLiteral("partial"), QStringLiteral("record"),
+            QStringLiteral("remove"), QStringLiteral("required"),
+            QStringLiteral("set"), QStringLiteral("value"), QStringLiteral("when"),
+            QStringLiteral("where"), QStringLiteral("with"), QStringLiteral("yield"),
+        };
+        words.sort();
+        return words;
+    }();
+
+    /// Swift, including the concurrency and ownership keywords.
+    static const QStringList swift = [] {
+        QStringList words = {
+            QStringLiteral("associatedtype"), QStringLiteral("await"),
+            QStringLiteral("borrowing"), QStringLiteral("break"),
+            QStringLiteral("case"), QStringLiteral("catch"), QStringLiteral("class"),
+            QStringLiteral("consuming"), QStringLiteral("continue"),
+            QStringLiteral("convenience"), QStringLiteral("default"),
+            QStringLiteral("defer"), QStringLiteral("deinit"),
+            QStringLiteral("didSet"), QStringLiteral("distributed"),
+            QStringLiteral("do"), QStringLiteral("dynamic"), QStringLiteral("else"),
+            QStringLiteral("enum"), QStringLiteral("extension"),
+            QStringLiteral("fallthrough"), QStringLiteral("fileprivate"),
+            QStringLiteral("final"), QStringLiteral("for"), QStringLiteral("func"),
+            QStringLiteral("get"), QStringLiteral("guard"), QStringLiteral("if"),
+            QStringLiteral("import"), QStringLiteral("in"),
+            QStringLiteral("indirect"), QStringLiteral("infix"),
+            QStringLiteral("init"), QStringLiteral("inout"),
+            QStringLiteral("internal"), QStringLiteral("is"), QStringLiteral("lazy"),
+            QStringLiteral("let"), QStringLiteral("mutating"),
+            QStringLiteral("nonisolated"), QStringLiteral("nonmutating"),
+            QStringLiteral("open"), QStringLiteral("operator"),
+            QStringLiteral("optional"), QStringLiteral("override"),
+            QStringLiteral("postfix"), QStringLiteral("precedencegroup"),
+            QStringLiteral("prefix"), QStringLiteral("private"),
+            QStringLiteral("protocol"), QStringLiteral("public"),
+            QStringLiteral("repeat"), QStringLiteral("required"),
+            QStringLiteral("rethrows"), QStringLiteral("return"),
+            QStringLiteral("safe"), QStringLiteral("self"), QStringLiteral("set"),
+            QStringLiteral("some"), QStringLiteral("static"),
+            QStringLiteral("struct"), QStringLiteral("subscript"),
+            QStringLiteral("super"), QStringLiteral("switch"),
+            QStringLiteral("throw"), QStringLiteral("throws"), QStringLiteral("try"),
+            QStringLiteral("typealias"), QStringLiteral("unowned"),
+            QStringLiteral("unsafe"), QStringLiteral("var"), QStringLiteral("weak"),
+            QStringLiteral("where"), QStringLiteral("while"),
+            QStringLiteral("willSet"), QStringLiteral("actor"),
+            QStringLiteral("async"),
+        };
+        words.sort();
+        return words;
+    }();
+
+    /// PHP. The keywords only - the `<?php` tags and the HTML around
+    /// them are handled separately.
+    static const QStringList php = [] {
+        QStringList words = {
+            QStringLiteral("abstract"), QStringLiteral("and"),
+            QStringLiteral("array"), QStringLiteral("as"), QStringLiteral("break"),
+            QStringLiteral("callable"), QStringLiteral("case"),
+            QStringLiteral("catch"), QStringLiteral("class"),
+            QStringLiteral("clone"), QStringLiteral("const"),
+            QStringLiteral("continue"), QStringLiteral("declare"),
+            QStringLiteral("default"), QStringLiteral("do"), QStringLiteral("echo"),
+            QStringLiteral("else"), QStringLiteral("elseif"),
+            QStringLiteral("empty"), QStringLiteral("enddeclare"),
+            QStringLiteral("endfor"), QStringLiteral("endforeach"),
+            QStringLiteral("endif"), QStringLiteral("endswitch"),
+            QStringLiteral("endwhile"), QStringLiteral("enum"),
+            QStringLiteral("extends"), QStringLiteral("final"),
+            QStringLiteral("finally"), QStringLiteral("fn"), QStringLiteral("for"),
+            QStringLiteral("foreach"), QStringLiteral("function"),
+            QStringLiteral("global"), QStringLiteral("goto"), QStringLiteral("if"),
+            QStringLiteral("implements"), QStringLiteral("include"),
+            QStringLiteral("include_once"), QStringLiteral("instanceof"),
+            QStringLiteral("insteadof"), QStringLiteral("interface"),
+            QStringLiteral("isset"), QStringLiteral("list"), QStringLiteral("match"),
+            QStringLiteral("namespace"), QStringLiteral("new"), QStringLiteral("or"),
+            QStringLiteral("print"), QStringLiteral("private"),
+            QStringLiteral("protected"), QStringLiteral("public"),
+            QStringLiteral("readonly"), QStringLiteral("require"),
+            QStringLiteral("require_once"), QStringLiteral("return"),
+            QStringLiteral("static"), QStringLiteral("switch"),
+            QStringLiteral("throw"), QStringLiteral("trait"), QStringLiteral("try"),
+            QStringLiteral("unset"), QStringLiteral("use"), QStringLiteral("var"),
+            QStringLiteral("while"), QStringLiteral("xor"), QStringLiteral("yield"),
+        };
+        words.sort();
+        return words;
+    }();
+
+    /// Kotlin, including the soft keywords and annotation-use-site targets.
+    static const QStringList kotlin = [] {
+        QStringList words = {
+            QStringLiteral("abstract"), QStringLiteral("actual"),
+            QStringLiteral("annotation"), QStringLiteral("as"),
+            QStringLiteral("break"), QStringLiteral("by"), QStringLiteral("catch"),
+            QStringLiteral("class"), QStringLiteral("companion"),
+            QStringLiteral("const"), QStringLiteral("constructor"),
+            QStringLiteral("continue"), QStringLiteral("crossinline"),
+            QStringLiteral("data"), QStringLiteral("delegate"), QStringLiteral("do"),
+            QStringLiteral("dynamic"), QStringLiteral("else"),
+            QStringLiteral("enum"), QStringLiteral("expect"),
+            QStringLiteral("external"), QStringLiteral("field"),
+            QStringLiteral("file"), QStringLiteral("final"),
+            QStringLiteral("finally"), QStringLiteral("for"), QStringLiteral("fun"),
+            QStringLiteral("get"), QStringLiteral("if"), QStringLiteral("import"),
+            QStringLiteral("in"), QStringLiteral("infix"), QStringLiteral("init"),
+            QStringLiteral("inline"), QStringLiteral("inner"),
+            QStringLiteral("interface"), QStringLiteral("internal"),
+            QStringLiteral("is"), QStringLiteral("lateinit"),
+            QStringLiteral("noinline"), QStringLiteral("object"),
+            QStringLiteral("open"), QStringLiteral("operator"),
+            QStringLiteral("out"), QStringLiteral("override"),
+            QStringLiteral("package"), QStringLiteral("param"),
+            QStringLiteral("private"), QStringLiteral("property"),
+            QStringLiteral("protected"), QStringLiteral("public"),
+            QStringLiteral("receiver"), QStringLiteral("reified"),
+            QStringLiteral("return"), QStringLiteral("sealed"),
+            QStringLiteral("set"), QStringLiteral("setparam"),
+            QStringLiteral("super"), QStringLiteral("suspend"),
+            QStringLiteral("tailrec"), QStringLiteral("this"),
+            QStringLiteral("throw"), QStringLiteral("try"),
+            QStringLiteral("typealias"), QStringLiteral("typeof"),
+            QStringLiteral("val"), QStringLiteral("value"), QStringLiteral("var"),
+            QStringLiteral("vararg"), QStringLiteral("when"),
+            QStringLiteral("where"), QStringLiteral("while"),
+        };
+        words.sort();
+        return words;
+    }();
+
+    /// Dart, including the null-safety and macro keywords.
+    static const QStringList dart = [] {
+        QStringList words = {
+            QStringLiteral("abstract"), QStringLiteral("as"),
+            QStringLiteral("assert"), QStringLiteral("async"),
+            QStringLiteral("await"), QStringLiteral("base"), QStringLiteral("break"),
+            QStringLiteral("case"), QStringLiteral("catch"), QStringLiteral("class"),
+            QStringLiteral("const"), QStringLiteral("continue"),
+            QStringLiteral("covariant"), QStringLiteral("default"),
+            QStringLiteral("deferred"), QStringLiteral("do"),
+            QStringLiteral("dynamic"), QStringLiteral("else"),
+            QStringLiteral("enum"), QStringLiteral("export"),
+            QStringLiteral("extends"), QStringLiteral("extension"),
+            QStringLiteral("external"), QStringLiteral("factory"),
+            QStringLiteral("false"), QStringLiteral("final"),
+            QStringLiteral("finally"), QStringLiteral("for"), QStringLiteral("get"),
+            QStringLiteral("hide"), QStringLiteral("if"),
+            QStringLiteral("implements"), QStringLiteral("import"),
+            QStringLiteral("in"), QStringLiteral("interface"), QStringLiteral("is"),
+            QStringLiteral("late"), QStringLiteral("library"),
+            QStringLiteral("mixin"), QStringLiteral("new"), QStringLiteral("null"),
+            QStringLiteral("on"), QStringLiteral("operator"), QStringLiteral("part"),
+            QStringLiteral("required"), QStringLiteral("rethrow"),
+            QStringLiteral("return"), QStringLiteral("sealed"),
+            QStringLiteral("set"), QStringLiteral("show"), QStringLiteral("static"),
+            QStringLiteral("super"), QStringLiteral("switch"),
+            QStringLiteral("sync"), QStringLiteral("this"), QStringLiteral("throw"),
+            QStringLiteral("true"), QStringLiteral("try"), QStringLiteral("typedef"),
+            QStringLiteral("var"), QStringLiteral("void"), QStringLiteral("when"),
+            QStringLiteral("while"), QStringLiteral("with"), QStringLiteral("yield"),
+        };
+        words.sort();
+        return words;
+    }();
+
+    /// Scala, including the Scala 3 additions.
+    static const QStringList scala = [] {
+        QStringList words = {
+            QStringLiteral("abstract"), QStringLiteral("case"),
+            QStringLiteral("catch"), QStringLiteral("class"), QStringLiteral("def"),
+            QStringLiteral("do"), QStringLiteral("else"), QStringLiteral("enum"),
+            QStringLiteral("export"), QStringLiteral("extends"),
+            QStringLiteral("false"), QStringLiteral("final"),
+            QStringLiteral("finally"), QStringLiteral("for"),
+            QStringLiteral("forSome"), QStringLiteral("given"), QStringLiteral("if"),
+            QStringLiteral("implicit"), QStringLiteral("import"),
+            QStringLiteral("lazy"), QStringLiteral("match"), QStringLiteral("new"),
+            QStringLiteral("null"), QStringLiteral("object"),
+            QStringLiteral("override"), QStringLiteral("package"),
+            QStringLiteral("private"), QStringLiteral("protected"),
+            QStringLiteral("return"), QStringLiteral("sealed"),
+            QStringLiteral("super"), QStringLiteral("then"), QStringLiteral("this"),
+            QStringLiteral("throw"), QStringLiteral("trait"), QStringLiteral("true"),
+            QStringLiteral("try"), QStringLiteral("type"), QStringLiteral("using"),
+            QStringLiteral("val"), QStringLiteral("var"), QStringLiteral("while"),
+            QStringLiteral("with"), QStringLiteral("yield"),
+        };
+        words.sort();
+        return words;
+    }();
+
+    /// Lua. A small language: this is nearly all of it.
+    static const QStringList lua = [] {
+        QStringList words = {
+            QStringLiteral("and"), QStringLiteral("break"), QStringLiteral("do"),
+            QStringLiteral("else"), QStringLiteral("elseif"), QStringLiteral("end"),
+            QStringLiteral("false"), QStringLiteral("for"),
+            QStringLiteral("function"), QStringLiteral("goto"), QStringLiteral("if"),
+            QStringLiteral("in"), QStringLiteral("local"), QStringLiteral("nil"),
+            QStringLiteral("not"), QStringLiteral("or"), QStringLiteral("repeat"),
+            QStringLiteral("return"), QStringLiteral("then"), QStringLiteral("true"),
+            QStringLiteral("until"), QStringLiteral("while"),
+        };
+        words.sort();
+        return words;
+    }();
+
+    /// Perl, including the common named operators.
+    static const QStringList perl = [] {
+        QStringList words = {
+            QStringLiteral("and"), QStringLiteral("cmp"), QStringLiteral("continue"),
+            QStringLiteral("do"), QStringLiteral("else"), QStringLiteral("elsif"),
+            QStringLiteral("eq"), QStringLiteral("eval"), QStringLiteral("exit"),
+            QStringLiteral("for"), QStringLiteral("foreach"), QStringLiteral("ge"),
+            QStringLiteral("given"), QStringLiteral("goto"), QStringLiteral("gt"),
+            QStringLiteral("if"), QStringLiteral("last"), QStringLiteral("le"),
+            QStringLiteral("local"), QStringLiteral("lt"), QStringLiteral("my"),
+            QStringLiteral("ne"), QStringLiteral("next"), QStringLiteral("no"),
+            QStringLiteral("not"), QStringLiteral("or"), QStringLiteral("our"),
+            QStringLiteral("package"), QStringLiteral("redo"), QStringLiteral("ref"),
+            QStringLiteral("require"), QStringLiteral("return"),
+            QStringLiteral("say"), QStringLiteral("sub"), QStringLiteral("switch"),
+            QStringLiteral("tie"), QStringLiteral("unless"), QStringLiteral("untie"),
+            QStringLiteral("until"), QStringLiteral("use"),
+            QStringLiteral("wantarray"), QStringLiteral("when"),
+            QStringLiteral("while"), QStringLiteral("xor"),
+        };
+        words.sort();
+        return words;
+    }();
+
+    /// R. Its reserved words are few, so the literals are included -
+    /// `TRUE` and `NA` are what a reader scans an R script for.
+    static const QStringList rlang = [] {
+        QStringList words = {
+            QStringLiteral("break"), QStringLiteral("else"), QStringLiteral("for"),
+            QStringLiteral("function"), QStringLiteral("if"), QStringLiteral("in"),
+            QStringLiteral("next"), QStringLiteral("repeat"),
+            QStringLiteral("return"), QStringLiteral("while"),
+            QStringLiteral("TRUE"), QStringLiteral("FALSE"), QStringLiteral("NULL"),
+            QStringLiteral("NA"), QStringLiteral("Inf"), QStringLiteral("NaN"),
+            QStringLiteral("NA_integer_"), QStringLiteral("NA_real_"),
+            QStringLiteral("NA_character_"),
+        };
+        words.sort();
+        return words;
+    }();
+
     switch (language) {
     case Language::C:          return c;
     case Language::Python:     return python;
@@ -250,6 +534,15 @@ const QStringList& keywordsFor(Language language)
     case Language::CMake:      return cmake;
     case Language::Yaml:       return yaml;
     case Language::Toml:       return toml;
+    case Language::CSharp:     return csharp;
+    case Language::Swift:      return swift;
+    case Language::Php:        return php;
+    case Language::Kotlin:     return kotlin;
+    case Language::Dart:       return dart;
+    case Language::Scala:      return scala;
+    case Language::Lua:        return lua;
+    case Language::Perl:       return perl;
+    case Language::R:          return rlang;
     case Language::Html:
     case Language::Css:
     case Language::Markdown:
@@ -304,11 +597,154 @@ const QStringList& typesFor(Language language)
         QStringLiteral("List"), QStringLiteral("Map"), QStringLiteral("Set"),
     };
 
+    /// C# built-ins, plus the handful of framework types that read as
+    /// built-in in ordinary code.
+    static const QStringList csharpTypes = [] {
+        QStringList words = {
+            QStringLiteral("bool"), QStringLiteral("byte"), QStringLiteral("char"),
+            QStringLiteral("decimal"), QStringLiteral("double"),
+            QStringLiteral("dynamic"), QStringLiteral("float"),
+            QStringLiteral("int"), QStringLiteral("long"), QStringLiteral("nint"),
+            QStringLiteral("nuint"), QStringLiteral("object"),
+            QStringLiteral("sbyte"), QStringLiteral("short"),
+            QStringLiteral("string"), QStringLiteral("uint"),
+            QStringLiteral("ulong"), QStringLiteral("ushort"), QStringLiteral("var"),
+            QStringLiteral("void"), QStringLiteral("Task"),
+            QStringLiteral("ValueTask"), QStringLiteral("List"),
+            QStringLiteral("Dictionary"), QStringLiteral("IEnumerable"),
+            QStringLiteral("Span"), QStringLiteral("ReadOnlySpan"),
+        };
+        words.sort();
+        return words;
+    }();
+
+    /// Swift's standard types.
+    static const QStringList swiftTypes = [] {
+        QStringList words = {
+            QStringLiteral("Any"), QStringLiteral("AnyObject"),
+            QStringLiteral("Array"), QStringLiteral("Bool"),
+            QStringLiteral("Character"), QStringLiteral("Dictionary"),
+            QStringLiteral("Double"), QStringLiteral("Float"), QStringLiteral("Int"),
+            QStringLiteral("Int8"), QStringLiteral("Int16"), QStringLiteral("Int32"),
+            QStringLiteral("Int64"), QStringLiteral("Never"),
+            QStringLiteral("Optional"), QStringLiteral("Result"),
+            QStringLiteral("Set"), QStringLiteral("String"),
+            QStringLiteral("Substring"), QStringLiteral("UInt"),
+            QStringLiteral("UInt8"), QStringLiteral("UInt16"),
+            QStringLiteral("UInt32"), QStringLiteral("UInt64"),
+            QStringLiteral("Void"),
+        };
+        words.sort();
+        return words;
+    }();
+
+    /// PHP type declarations.
+    static const QStringList phpTypes = [] {
+        QStringList words = {
+            QStringLiteral("array"), QStringLiteral("bool"),
+            QStringLiteral("callable"), QStringLiteral("false"),
+            QStringLiteral("float"), QStringLiteral("int"),
+            QStringLiteral("iterable"), QStringLiteral("mixed"),
+            QStringLiteral("never"), QStringLiteral("null"),
+            QStringLiteral("object"), QStringLiteral("self"),
+            QStringLiteral("static"), QStringLiteral("string"),
+            QStringLiteral("true"), QStringLiteral("void"), QStringLiteral("parent"),
+        };
+        words.sort();
+        return words;
+    }();
+
+    /// Kotlin's standard types.
+    static const QStringList kotlinTypes = [] {
+        QStringList words = {
+            QStringLiteral("Any"), QStringLiteral("Array"),
+            QStringLiteral("Boolean"), QStringLiteral("Byte"),
+            QStringLiteral("Char"), QStringLiteral("CharSequence"),
+            QStringLiteral("Double"), QStringLiteral("Float"), QStringLiteral("Int"),
+            QStringLiteral("List"), QStringLiteral("Long"), QStringLiteral("Map"),
+            QStringLiteral("MutableList"), QStringLiteral("MutableMap"),
+            QStringLiteral("MutableSet"), QStringLiteral("Nothing"),
+            QStringLiteral("Number"), QStringLiteral("Sequence"),
+            QStringLiteral("Set"), QStringLiteral("Short"), QStringLiteral("String"),
+            QStringLiteral("Unit"),
+        };
+        words.sort();
+        return words;
+    }();
+
+    /// Dart's built-in types.
+    static const QStringList dartTypes = [] {
+        QStringList words = {
+            QStringLiteral("bool"), QStringLiteral("double"),
+            QStringLiteral("dynamic"), QStringLiteral("Function"),
+            QStringLiteral("int"), QStringLiteral("List"), QStringLiteral("Map"),
+            QStringLiteral("Never"), QStringLiteral("Null"), QStringLiteral("num"),
+            QStringLiteral("Object"), QStringLiteral("Record"),
+            QStringLiteral("Set"), QStringLiteral("String"),
+            QStringLiteral("Symbol"), QStringLiteral("Type"),
+            QStringLiteral("Future"), QStringLiteral("Stream"),
+            QStringLiteral("Iterable"), QStringLiteral("void"),
+        };
+        words.sort();
+        return words;
+    }();
+
+    /// Scala's standard types.
+    static const QStringList scalaTypes = [] {
+        QStringList words = {
+            QStringLiteral("Any"), QStringLiteral("AnyRef"),
+            QStringLiteral("AnyVal"), QStringLiteral("Boolean"),
+            QStringLiteral("Byte"), QStringLiteral("Char"), QStringLiteral("Double"),
+            QStringLiteral("Either"), QStringLiteral("Float"), QStringLiteral("Int"),
+            QStringLiteral("List"), QStringLiteral("Long"), QStringLiteral("Map"),
+            QStringLiteral("Nothing"), QStringLiteral("Null"),
+            QStringLiteral("Option"), QStringLiteral("Seq"), QStringLiteral("Set"),
+            QStringLiteral("Short"), QStringLiteral("String"),
+            QStringLiteral("Unit"), QStringLiteral("Vector"),
+        };
+        words.sort();
+        return words;
+    }();
+
+    /// Lua's type names, as `type()` reports them.
+    static const QStringList luaTypes = [] {
+        QStringList words = {
+            QStringLiteral("boolean"), QStringLiteral("function"),
+            QStringLiteral("nil"), QStringLiteral("number"),
+            QStringLiteral("string"), QStringLiteral("table"),
+            QStringLiteral("thread"), QStringLiteral("userdata"),
+        };
+        words.sort();
+        return words;
+    }();
+
+    /// R's atomic vector types and the common data structures.
+    static const QStringList rTypes = [] {
+        QStringList words = {
+            QStringLiteral("character"), QStringLiteral("complex"),
+            QStringLiteral("double"), QStringLiteral("integer"),
+            QStringLiteral("logical"), QStringLiteral("numeric"),
+            QStringLiteral("raw"), QStringLiteral("data.frame"),
+            QStringLiteral("factor"), QStringLiteral("list"),
+            QStringLiteral("matrix"), QStringLiteral("vector"),
+        };
+        words.sort();
+        return words;
+    }();
+
     switch (language) {
     case Language::C:    return c;
     case Language::Rust: return rust;
     case Language::Go:   return go;
     case Language::Java: return java;
+    case Language::CSharp: return csharpTypes;
+    case Language::Swift:  return swiftTypes;
+    case Language::Php:    return phpTypes;
+    case Language::Kotlin: return kotlinTypes;
+    case Language::Dart:   return dartTypes;
+    case Language::Scala:  return scalaTypes;
+    case Language::Lua:    return luaTypes;
+    case Language::R:      return rTypes;
     default:             break;
     }
     return none;
@@ -412,6 +848,12 @@ QString SyntaxHighlighter::lineCommentPrefix() const
     case Language::TypeScript:
     case Language::Java:
     case Language::Css:
+    case Language::CSharp:
+    case Language::Swift:
+    case Language::Php:      // PHP accepts # too, but // is what is written
+    case Language::Kotlin:
+    case Language::Dart:
+    case Language::Scala:
         return QStringLiteral("//");
     case Language::Python:
     case Language::Shell:
@@ -419,8 +861,11 @@ QString SyntaxHighlighter::lineCommentPrefix() const
     case Language::Yaml:
     case Language::Toml:
     case Language::CMake:
+    case Language::Perl:
+    case Language::R:
         return QStringLiteral("#");
     case Language::Sql:
+    case Language::Lua:      // and --[[ ]] for blocks
         return QStringLiteral("--");
     case Language::Html:
     case Language::Markdown:
@@ -454,7 +899,17 @@ bool SyntaxHighlighter::hasBlockComments() const
     case Language::Java:
     case Language::Css:
     case Language::Sql:
+    case Language::CSharp:
+    case Language::Swift:
+    case Language::Php:
+    case Language::Kotlin:
+    case Language::Dart:
+    case Language::Scala:
         return true;
+
+    // Lua's block comment is --[[ ]], not /* */, so it is deliberately absent:
+    // claiming support here would make `a / *b` open a comment that never
+    // closes and grey out the rest of the file.
     default:
         return false;
     }
@@ -501,6 +956,56 @@ SyntaxHighlighter::Language SyntaxHighlighter::languageForPath(const QString& pa
         {QStringLiteral("cfg"), Language::Toml},
         {QStringLiteral("sql"), Language::Sql},
         {QStringLiteral("cmake"), Language::CMake},
+
+        {QStringLiteral("cs"), Language::CSharp},
+        {QStringLiteral("csx"), Language::CSharp},
+        {QStringLiteral("swift"), Language::Swift},
+        {QStringLiteral("php"), Language::Php},
+        {QStringLiteral("phtml"), Language::Php},
+        {QStringLiteral("kt"), Language::Kotlin},
+        {QStringLiteral("kts"), Language::Kotlin},
+        {QStringLiteral("dart"), Language::Dart},
+        {QStringLiteral("scala"), Language::Scala},
+        {QStringLiteral("sc"), Language::Scala},
+        {QStringLiteral("lua"), Language::Lua},
+        {QStringLiteral("pl"), Language::Perl},
+        {QStringLiteral("pm"), Language::Perl},
+        {QStringLiteral("r"), Language::R},
+
+        // Extensions that map onto rules already present. Each is here because
+        // the lexical shape genuinely matches, not to inflate the count: JSONC
+        // and JSON5 are JavaScript, and the shell family shares one set.
+        {QStringLiteral("mjs"), Language::JavaScript},
+        {QStringLiteral("cjs"), Language::JavaScript},
+        {QStringLiteral("jsonc"), Language::JavaScript},
+        {QStringLiteral("json5"), Language::JavaScript},
+        {QStringLiteral("mts"), Language::TypeScript},
+        {QStringLiteral("cts"), Language::TypeScript},
+        {QStringLiteral("ino"), Language::C},        // Arduino is C++
+        {QStringLiteral("cu"), Language::C},         // CUDA
+        {QStringLiteral("cuh"), Language::C},
+        {QStringLiteral("m"), Language::C},          // Objective-C
+        {QStringLiteral("mm"), Language::C},
+        {QStringLiteral("hh"), Language::C},
+        {QStringLiteral("ipp"), Language::C},
+        {QStringLiteral("pyi"), Language::Python},
+        {QStringLiteral("pyw"), Language::Python},
+        {QStringLiteral("rake"), Language::Ruby},
+        {QStringLiteral("gemspec"), Language::Ruby},
+        {QStringLiteral("fish"), Language::Shell},
+        {QStringLiteral("ksh"), Language::Shell},
+        {QStringLiteral("less"), Language::Css},
+        {QStringLiteral("sass"), Language::Css},
+        {QStringLiteral("vue"), Language::Html},
+        {QStringLiteral("xhtml"), Language::Html},
+        {QStringLiteral("xsl"), Language::Html},
+        {QStringLiteral("plist"), Language::Html},
+        {QStringLiteral("markdown"), Language::Markdown},
+        {QStringLiteral("mdx"), Language::Markdown},
+        {QStringLiteral("conf"), Language::Toml},
+        {QStringLiteral("properties"), Language::Toml},
+        {QStringLiteral("psql"), Language::Sql},
+        {QStringLiteral("ddl"), Language::Sql},
     };
 
     // Files whose name carries the type, with no extension to read. CMakeLists
@@ -512,6 +1017,22 @@ SyntaxHighlighter::Language SyntaxHighlighter::languageForPath(const QString& pa
         {QStringLiteral(".gitignore"), Language::Shell},
         {QStringLiteral(".clangd"), Language::Yaml},
         {QStringLiteral(".clang-format"), Language::Yaml},
+        {QStringLiteral("gemfile"), Language::Ruby},
+        {QStringLiteral("rakefile"), Language::Ruby},
+        {QStringLiteral("podfile"), Language::Ruby},
+        {QStringLiteral("gnumakefile"), Language::Shell},
+        {QStringLiteral(".bashrc"), Language::Shell},
+        {QStringLiteral(".zshrc"), Language::Shell},
+        {QStringLiteral(".profile"), Language::Shell},
+        {QStringLiteral(".env"), Language::Shell},
+        {QStringLiteral(".gitattributes"), Language::Shell},
+        {QStringLiteral(".gitmodules"), Language::Toml},
+        {QStringLiteral(".editorconfig"), Language::Toml},
+        {QStringLiteral(".npmrc"), Language::Toml},
+        {QStringLiteral(".dockerignore"), Language::Shell},
+        {QStringLiteral(".prettierrc"), Language::JavaScript},
+        {QStringLiteral(".babelrc"), Language::JavaScript},
+        {QStringLiteral(".eslintrc"), Language::JavaScript},
     };
 
     if (const auto byFileName =

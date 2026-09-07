@@ -953,6 +953,15 @@ QString EditorViewModel::languageName() const
     case editor::SyntaxHighlighter::Language::Toml:       return QStringLiteral("TOML");
     case editor::SyntaxHighlighter::Language::Sql:        return QStringLiteral("SQL");
     case editor::SyntaxHighlighter::Language::CMake:      return QStringLiteral("CMake");
+    case editor::SyntaxHighlighter::Language::CSharp:     return QStringLiteral("C#");
+    case editor::SyntaxHighlighter::Language::Swift:      return QStringLiteral("Swift");
+    case editor::SyntaxHighlighter::Language::Php:        return QStringLiteral("PHP");
+    case editor::SyntaxHighlighter::Language::Kotlin:     return QStringLiteral("Kotlin");
+    case editor::SyntaxHighlighter::Language::Dart:       return QStringLiteral("Dart");
+    case editor::SyntaxHighlighter::Language::Scala:      return QStringLiteral("Scala");
+    case editor::SyntaxHighlighter::Language::Lua:        return QStringLiteral("Lua");
+    case editor::SyntaxHighlighter::Language::Perl:       return QStringLiteral("Perl");
+    case editor::SyntaxHighlighter::Language::R:          return QStringLiteral("R");
     case editor::SyntaxHighlighter::Language::None:       break;
     }
     return QString();

@@ -1,8 +1,15 @@
 # Language samples
 
-One file per language Keys highlights, holding idiomatic code rather than a
-snippet: decorators and f-strings in Python, lifetimes and traits in Rust,
-goroutines and channels in Go, CTEs and window functions in SQL.
+One file per language Keys highlights - 26 of them - holding idiomatic code
+rather than a snippet: decorators and f-strings in Python, lifetimes and traits
+in Rust, goroutines and channels in Go, LINQ and pattern matching in C#,
+protocols and async/await in Swift, metatables and coroutines in Lua, CTEs and
+window functions in SQL.
+
+Those 26 sets of rules cover about 80 file extensions, because several
+languages genuinely share a lexical shape: C and C++, JavaScript and JSON, HTML
+and XML, TOML and INI. An extension is mapped only where the shape actually
+matches - not to inflate the count.
 
 `tools/language-check.cpp` runs the real highlighter over all of them and
 reports, per file, how many lines produced tokens and which kinds appeared. It

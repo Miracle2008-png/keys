@@ -26,8 +26,11 @@ layout, the decisions behind it, and the milestone plan.
 | 14. Extensions | Done |
 | 15. Performance & polish | Done |
 
-Syntax highlighting covers 17 languages, checked over whole files of idiomatic
-code rather than snippets (`tools/language-check.cpp`).
+Syntax highlighting covers 26 languages across about 80 file extensions,
+checked over whole files of idiomatic code rather than snippets
+(`tools/language-check.cpp`). C/C++, C#, CMake, CSS, Dart, Go, HTML/XML, Java,
+JavaScript, Kotlin, Lua, Markdown, Perl, PHP, Python, QML, R, Ruby, Rust,
+Scala, Shell, SQL, Swift, TOML/INI, TypeScript and YAML.
 
 The terminal runs a real shell through ConPTY. The attachment appeared broken
 for a long time and was not: **ConPTY behaves differently depending on whether
