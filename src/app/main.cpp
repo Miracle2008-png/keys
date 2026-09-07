@@ -274,7 +274,8 @@ int main(int argc, char* argv[])
         if (argument.startsWith(QLatin1String("--"))) {
             if (argument == QLatin1String("--open-file")
                 || argument == QLatin1String("--install-extension")
-                || argument == QLatin1String("--uninstall-extension")) {
+                || argument == QLatin1String("--uninstall-extension")
+                || argument == QLatin1String("--save-probe")) {
                 ++i;
             }
             continue;
@@ -571,6 +572,20 @@ int main(int argc, char* argv[])
         } else if (argument == QLatin1String("--open-extensions")) {
             QTimer::singleShot(1100, &app, [&controller] {
                 controller.selectView(QStringLiteral("extensions"));
+            });
+        } else if (argument == QLatin1String("--save-probe")
+                   && i + 1 < arguments.size()) {
+            // Opens a file, edits it, saves it, and quits. Proves the shipped
+            // binary writes to disk through the real editor path rather than
+            // through a test harness that links the same libraries.
+            const QString file = arguments.at(i + 1);
+            QTimer::singleShot(1500, &app, [&controller, &workspace, file] {
+                controller.openFile(QDir().absoluteFilePath(file));
+                if (editor::TextDocument* document = workspace.activeDocument()) {
+                    document->setText(QStringLiteral("saved by the running app\n"));
+                }
+                controller.saveFile();
+                QCoreApplication::exit(0);
             });
         } else if (argument == QLatin1String("--new-project")) {
             QTimer::singleShot(1200, &app, [&engine] {

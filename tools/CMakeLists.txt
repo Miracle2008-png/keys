@@ -88,3 +88,12 @@ add_executable(keys_completion_check completion-check.cpp)
 target_link_libraries(keys_completion_check PRIVATE Qt6::Core Keys::editor)
 set_target_properties(keys_completion_check PROPERTIES FOLDER "Tools")
 keys_apply_compile_options(keys_completion_check)
+
+# Saves a document to every kind of file Keys handles and reads it back. The
+# question "can I save any file type, in any language" is answered by writing
+# one of each and comparing bytes, not by reasoning about the code.
+add_executable(keys_save_check save-check.cpp)
+target_link_libraries(keys_save_check PRIVATE
+    Qt6::Core Keys::workspace Keys::editor Keys::config Keys::core)
+set_target_properties(keys_save_check PROPERTIES FOLDER "Tools")
+keys_apply_compile_options(keys_save_check)
