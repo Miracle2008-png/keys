@@ -324,6 +324,14 @@ if(WIN32)
     set(CPACK_NSIS_HELP_LINK "https://github.com/Miracle2008-png/keys")
     set(CPACK_NSIS_CONTACT "https://github.com/Miracle2008-png/keys/issues")
 
+    # The remaining values every healthy per-user entry carries.
+    #
+    # Found by listing the value *names* of two entries Windows displays
+    # correctly - Discord and Figma - and taking the set difference against
+    # Keys. QuietUninstallString is what lets a caller uninstall without a
+    # prompt, Language is the locale the entry is registered for, and
+    # URLUpdateInfo points at the releases page.
+
     # NoModify and NoRepair are rewritten as DWORDs.
     #
     # CPack writes them through ConditionalAddToRegistry, which only writes
@@ -352,7 +360,10 @@ if(WIN32)
   WriteRegDWORD SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'EstimatedSize' ${keys_installed_kb}
   WriteRegStr SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'InstallDate' '${keys_install_date}'
   WriteRegDWORD SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'NoModify' 1
-  WriteRegDWORD SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'NoRepair' 1")
+  WriteRegDWORD SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'NoRepair' 1
+  WriteRegDWORD SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'Language' 1033
+  WriteRegStr SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'QuietUninstallString' '$INSTDIR\\\\Uninstall.exe /S'
+  WriteRegStr SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'URLUpdateInfo' 'https://github.com/Miracle2008-png/keys/releases'")
 
 endif()
 
