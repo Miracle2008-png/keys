@@ -288,6 +288,30 @@ if(WIN32)
         "CreateShortCut '$DESKTOP\\\\Keys.lnk' '$INSTDIR\\\\bin\\\\keys.exe'")
     set(CPACK_NSIS_DELETE_ICONS_EXTRA
         "Delete '$DESKTOP\\\\Keys.lnk'")
+
+    # Remove the install directory even when something is in it that the
+    # installer did not put there.
+    #
+    # NSIS deletes exactly the files it recorded, then tries RMDir on the
+    # directory - which refuses if anything else is present. That left the whole
+    # folder behind after uninstalling, because the application had written a
+    # file into its own install directory. The application no longer does that,
+    # but an uninstaller that only works when nothing unexpected happened is not
+    # much of an uninstaller: a crash dump, an editor backup or a log dropped by
+    # anything else would have the same effect.
+    #
+    # RMDir /r is scoped to $INSTDIR, which NSIS has already validated as the
+    # recorded install location - it is not a path the user can point elsewhere
+    # at this stage.
+    set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS
+        "RMDir /r '$INSTDIR\\\\bin'\n  RMDir /r '$INSTDIR'")
+
+    # What Add/Remove Programs shows. Without these it lists a bare name with no
+    # publisher and no size, which reads as something that installed itself.
+    set(CPACK_NSIS_INSTALLED_ICON_NAME "bin\\\\keys.exe")
+    set(CPACK_NSIS_HELP_LINK "https://github.com/Miracle2008-png/keys")
+    set(CPACK_NSIS_URL_INFO_ABOUT "https://github.com/Miracle2008-png/keys")
+    set(CPACK_NSIS_CONTACT "https://github.com/Miracle2008-png/keys/issues")
 endif()
 
 include(CPack)

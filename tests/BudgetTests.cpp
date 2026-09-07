@@ -44,21 +44,35 @@ class BudgetTests : public QObject {
 private:
     std::unique_ptr<QTemporaryDir> m_dir;
 
-    /// Asserts a budget in release, and a loose multiple of it in debug.
+    /// Asserts a budget, with headroom for the state of the machine.
     ///
-    /// The multiple is deliberately generous: it exists to catch an algorithm
-    /// that went quadratic, not to measure the machine. A tight debug bound
-    /// fails on a loaded laptop and teaches people to ignore the suite - which
-    /// happened once already in this project's history.
+    /// The comment below used to say a tight bound "fails on a loaded laptop
+    /// and teaches people to ignore the suite" - and then applied exactly such
+    /// a bound in release. It duly failed: the same binary measured 58 ms cold,
+    /// 134 ms after a pause, and 182 ms when it ran eighteenth in a suite that
+    /// had been compiling and testing for an hour. FuzzyMatch had not changed a
+    /// byte between those runs.
+    ///
+    /// So release gets headroom too. A budget is a guard against an algorithm
+    /// going quadratic, and 2x still catches that - a regression that matters
+    /// is an order of magnitude, not thirty per cent. The measured figure is
+    /// always logged, so real drift is visible even while the assertion holds.
     static void expectWithin(const char* what, qint64 elapsedMs, qint64 budgetMs)
     {
         qInfo("%s: %lld ms (budget %lld ms)", what, elapsedMs, budgetMs);
 
 #ifdef QT_NO_DEBUG
-        QVERIFY2(elapsedMs <= budgetMs,
-                 qPrintable(QStringLiteral("%1 took %2 ms, over the %3 ms budget")
+        // Thermal throttling and a warm cache move a wall-clock measurement by
+        // more than this test can distinguish from a code change; what it can
+        // still distinguish is a factor of ten.
+        constexpr int kReleaseTolerance = 2;
+        QVERIFY2(elapsedMs <= budgetMs * kReleaseTolerance,
+                 qPrintable(QStringLiteral("%1 took %2 ms, past %3x the %4 ms "
+                                           "budget - suspect an algorithmic "
+                                           "regression rather than a slow machine")
                                 .arg(QLatin1String(what))
                                 .arg(elapsedMs)
+                                .arg(kReleaseTolerance)
                                 .arg(budgetMs)));
 #else
         constexpr int kDebugSlowdown = 20;

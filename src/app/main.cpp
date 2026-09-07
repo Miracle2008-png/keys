@@ -39,6 +39,7 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickStyle>
+#include <QStandardPaths>
 #include <QTextStream>
 #include <QStyleHints>
 
@@ -272,7 +273,8 @@ int main(int argc, char* argv[])
         // and leaves the window on the welcome screen.
         if (argument.startsWith(QLatin1String("--"))) {
             if (argument == QLatin1String("--open-file")
-                || argument == QLatin1String("--install-extension")) {
+                || argument == QLatin1String("--install-extension")
+                || argument == QLatin1String("--uninstall-extension")) {
                 ++i;
             }
             continue;
@@ -361,8 +363,18 @@ int main(int argc, char* argv[])
     // Not a debug flag: it is how a build finds out whether the interface it
     // just produced actually assembles, which no unit test can answer.
     const bool selfCheck = arguments.contains(QStringLiteral("--self-check"));
-    QFile selfCheckLog(QCoreApplication::applicationDirPath()
-                       + QStringLiteral("/self-check-report.txt"));
+    // Written beside the settings, not beside the executable. An installed
+    // application must not write into its own install directory: it is
+    // read-only under an all-users install, and anything left there survives
+    // uninstallation - which is exactly what happened, leaving the install
+    // folder behind because the uninstaller will not delete a file it did not
+    // put there.
+    const QString selfCheckDirectory =
+        QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+    QDir().mkpath(selfCheckDirectory);
+
+    QFile selfCheckLog(QDir(selfCheckDirectory)
+                           .filePath(QStringLiteral("self-check-report.txt")));
     QTextStream selfCheckOut;
     if (selfCheck && selfCheckLog.open(QIODevice::WriteOnly | QIODevice::Text)) {
         selfCheckOut.setDevice(&selfCheckLog);
@@ -549,6 +561,12 @@ int main(int argc, char* argv[])
             const QString folder = arguments.at(i + 1);
             QTimer::singleShot(900, &app, [&extensionsModel, folder] {
                 extensionsModel.installFromFolder(folder);
+            });
+        } else if (argument == QLatin1String("--uninstall-extension")
+                   && i + 1 < arguments.size()) {
+            const QString id = arguments.at(i + 1);
+            QTimer::singleShot(900, &app, [&extensionsModel, id] {
+                extensionsModel.uninstall(id);
             });
         } else if (argument == QLatin1String("--open-extensions")) {
             QTimer::singleShot(1100, &app, [&controller] {
