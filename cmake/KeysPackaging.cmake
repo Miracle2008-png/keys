@@ -334,12 +334,15 @@ if(WIN32)
     #
     # An approximation from the payload is honest enough for a list that rounds
     # to the nearest MB anyway, and it cannot fail at install time.
+    string(TIMESTAMP keys_install_date "%Y%m%d")
+
     set(keys_installed_kb 24000)
 
     set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS
         "WriteRegStr SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'DisplayIcon' '$INSTDIR\\\\bin\\\\keys.exe,0'
   WriteRegStr SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'InstallLocation' '$INSTDIR'
-  WriteRegDWORD SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'EstimatedSize' ${keys_installed_kb}")
+  WriteRegDWORD SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'EstimatedSize' ${keys_installed_kb}
+  WriteRegStr SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'InstallDate' '${keys_install_date}'")
 
 endif()
 
