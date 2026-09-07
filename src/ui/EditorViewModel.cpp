@@ -962,6 +962,16 @@ QString EditorViewModel::languageName() const
     case editor::SyntaxHighlighter::Language::Lua:        return QStringLiteral("Lua");
     case editor::SyntaxHighlighter::Language::Perl:       return QStringLiteral("Perl");
     case editor::SyntaxHighlighter::Language::R:          return QStringLiteral("R");
+    case editor::SyntaxHighlighter::Language::Haskell:    return QStringLiteral("Haskell");
+    case editor::SyntaxHighlighter::Language::Elixir:     return QStringLiteral("Elixir");
+    case editor::SyntaxHighlighter::Language::OCaml:      return QStringLiteral("OCaml");
+    case editor::SyntaxHighlighter::Language::FSharp:     return QStringLiteral("F#");
+    case editor::SyntaxHighlighter::Language::Zig:        return QStringLiteral("Zig");
+    case editor::SyntaxHighlighter::Language::Nim:        return QStringLiteral("Nim");
+    case editor::SyntaxHighlighter::Language::Groovy:     return QStringLiteral("Groovy");
+    case editor::SyntaxHighlighter::Language::Julia:      return QStringLiteral("Julia");
+    case editor::SyntaxHighlighter::Language::ObjectiveC: return QStringLiteral("Objective-C");
+    case editor::SyntaxHighlighter::Language::Assembly:   return QStringLiteral("Assembly");
     case editor::SyntaxHighlighter::Language::None:       break;
     }
     return QString();

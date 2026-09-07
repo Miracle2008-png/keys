@@ -414,8 +414,9 @@ Item {
         // rather than doing nothing when pressed.
         MenuAction {
             text: qsTr("Next Problem")
-            enabled: Language.errorCount + Language.warningCount > 0
-            onTriggered: App.selectView("search")
+            shortcut: "F2"
+            enabled: Problems.hasProblems
+            onTriggered: App.invokeCommand("workbench.nextProblem")
         }
     }
 

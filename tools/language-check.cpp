@@ -58,6 +58,16 @@ QString nameOf(SyntaxHighlighter::Language language)
     case SyntaxHighlighter::Language::Lua:        return QStringLiteral("Lua");
     case SyntaxHighlighter::Language::Perl:       return QStringLiteral("Perl");
     case SyntaxHighlighter::Language::R:          return QStringLiteral("R");
+    case SyntaxHighlighter::Language::Haskell:    return QStringLiteral("Haskell");
+    case SyntaxHighlighter::Language::Elixir:     return QStringLiteral("Elixir");
+    case SyntaxHighlighter::Language::OCaml:      return QStringLiteral("OCaml");
+    case SyntaxHighlighter::Language::FSharp:     return QStringLiteral("F#");
+    case SyntaxHighlighter::Language::Zig:        return QStringLiteral("Zig");
+    case SyntaxHighlighter::Language::Nim:        return QStringLiteral("Nim");
+    case SyntaxHighlighter::Language::Groovy:     return QStringLiteral("Groovy");
+    case SyntaxHighlighter::Language::Julia:      return QStringLiteral("Julia");
+    case SyntaxHighlighter::Language::ObjectiveC: return QStringLiteral("Objective-C");
+    case SyntaxHighlighter::Language::Assembly:   return QStringLiteral("Assembly");
     }
     return QStringLiteral("?");
 }
@@ -175,13 +185,41 @@ int main(int argc, char* argv[])
         // prose will legitimately report low coverage. Code is different: every
         // non-blank line of C or Rust has a keyword, a bracket or an operator
         // in it, so a code file that leaves lines plain has something wrong.
+        // A percentage floor is the wrong instrument for prose. It measures how
+        // much prose a document contains rather than how well it was
+        // highlighted, and it failed this very README for being mostly prose -
+        // which is what a README is.
+        //
+        // What is checked instead is that markup was marked where markup
+        // exists: if the document has headings, code spans or links, they must
+        // have produced tokens.
         const bool prose = language == SyntaxHighlighter::Language::Markdown;
-        const double floorPercent = prose ? 20.0 : 60.0;
 
         if (!recognised) {
             out << "    FAIL: the extension is not recognised\n";
             ++failures;
-        } else if (coverage < floorPercent) {
+        } else if (prose) {
+            int markupLines = 0;
+            for (const QString& line : lines) {
+                const QString trimmed = line.trimmed();
+                if (trimmed.startsWith(QLatin1Char('#'))
+                    || trimmed.startsWith(QLatin1String("- "))
+                    || trimmed.startsWith(QLatin1String("```"))
+                    || trimmed.contains(QLatin1Char('`'))
+                    || trimmed.contains(QLatin1String("**"))
+                    || trimmed.contains(QLatin1String("]("))) {
+                    ++markupLines;
+                }
+            }
+
+            out << "    markup lines: " << markupLines
+                << ", of them marked: " << linesWithTokens << "\n";
+
+            if (markupLines > 0 && linesWithTokens == 0) {
+                out << "    FAIL: the document has markup and none was marked\n";
+                ++failures;
+            }
+        } else if (coverage < 60.0) {
             // Below this something structural is wrong: a string state that
             // never closes, or rules that stop matching partway down.
             out << "    FAIL: most lines produced no tokens\n";

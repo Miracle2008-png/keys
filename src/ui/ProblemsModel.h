@@ -100,6 +100,17 @@ public:
     /// Opens the file at the problem. A file row collapses instead.
     Q_INVOKABLE void activate(int row);
 
+    /// Jumps to the next problem after the one last visited, wrapping at the
+    /// end. What F2 does in every IDE that has this, and what the Code menu's
+    /// "Next Problem" was pointing at the search panel instead of doing.
+    Q_INVOKABLE void goToNextProblem();
+    Q_INVOKABLE void goToPreviousProblem();
+
+    /// Whether there is anything to jump to, so the menu item can disable
+    /// itself rather than being a no-op.
+    Q_PROPERTY(bool hasProblems READ hasProblems NOTIFY changed)
+    [[nodiscard]] bool hasProblems() const;
+
     /// Forgets everything. Called when the project changes: diagnostics name
     /// files in the project that was open, and keeping them would point the
     /// panel at paths that are no longer there.
@@ -147,6 +158,11 @@ private:
     std::vector<FileGroup> m_files;
     std::vector<Row> m_rows;
     QSet<QString> m_collapsed;
+
+    /// Which problem row the last jump landed on, so the next one continues
+    /// rather than starting over. Reset when the rows are rebuilt, because the
+    /// index would otherwise point into a list that has changed underneath it.
+    int m_lastVisitedRow = -1;
 
     int m_errors = 0;
     int m_warnings = 0;

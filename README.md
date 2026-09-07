@@ -26,11 +26,18 @@ layout, the decisions behind it, and the milestone plan.
 | 14. Extensions | Done |
 | 15. Performance & polish | Done |
 
-Syntax highlighting covers 26 languages across about 80 file extensions,
+Syntax highlighting covers 36 languages across about 300 file mappings,
 checked over whole files of idiomatic code rather than snippets
-(`tools/language-check.cpp`). C/C++, C#, CMake, CSS, Dart, Go, HTML/XML, Java,
-JavaScript, Kotlin, Lua, Markdown, Perl, PHP, Python, QML, R, Ruby, Rust,
-Scala, Shell, SQL, Swift, TOML/INI, TypeScript and YAML.
+(`tools/language-check.cpp`): Assembly, C/C++, C#, CMake, CSS, Dart, Elixir,
+F#, Go, Groovy, Haskell, HTML/XML, Java, JavaScript/JSON, Julia, Kotlin, Lua,
+Markdown, Nim, Objective-C, OCaml, Perl, PHP, Python, QML, R, Ruby, Rust,
+Scala, Shell, SQL, Swift, TOML/INI, TypeScript, YAML and Zig.
+
+An extension is mapped only where the file's shape genuinely matches the lexer
+it points at - a shader is C, a .csproj is XML, a Jupyter notebook is JSON on
+disk. One pointed at the wrong lexer produces confident wrong colour, which
+reads as a bug; an unmapped one produces plain text, which reads as a type Keys
+does not know yet.
 
 The terminal runs a real shell through ConPTY. The attachment appeared broken
 for a long time and was not: **ConPTY behaves differently depending on whether

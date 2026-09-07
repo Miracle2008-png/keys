@@ -216,6 +216,10 @@ void ProblemsModel::rebuild()
     }
 
     buildRows();
+
+    // The remembered row indexes a list that has just been replaced.
+    m_lastVisitedRow = -1;
+
     endResetModel();
     emit changed();
 }
@@ -266,10 +270,67 @@ void ProblemsModel::activate(int row)
                           problem.range.start.character + 1);
 }
 
+bool ProblemsModel::hasProblems() const
+{
+    for (const Row& row : m_rows) {
+        if (row.kind == ProblemRow) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void ProblemsModel::goToNextProblem()
+{
+    if (m_rows.empty()) {
+        return;
+    }
+
+    // Scans forward from the last visit, then wraps. Two passes rather than a
+    // modulo walk so a list with no problem rows at all terminates.
+    for (int pass = 0; pass < 2; ++pass) {
+        const int from = pass == 0 ? m_lastVisitedRow + 1 : 0;
+        const int to = pass == 0 ? static_cast<int>(m_rows.size()) : m_lastVisitedRow + 1;
+
+        for (int row = from; row < to; ++row) {
+            if (m_rows.at(static_cast<size_t>(row)).kind == ProblemRow) {
+                m_lastVisitedRow = row;
+                activate(row);
+                return;
+            }
+        }
+    }
+}
+
+void ProblemsModel::goToPreviousProblem()
+{
+    if (m_rows.empty()) {
+        return;
+    }
+
+    for (int pass = 0; pass < 2; ++pass) {
+        const int from = pass == 0 ? m_lastVisitedRow - 1
+                                   : static_cast<int>(m_rows.size()) - 1;
+        const int to = pass == 0 ? -1 : m_lastVisitedRow - 1;
+
+        for (int row = from; row > to; --row) {
+            if (row < 0 || row >= static_cast<int>(m_rows.size())) {
+                continue;
+            }
+            if (m_rows.at(static_cast<size_t>(row)).kind == ProblemRow) {
+                m_lastVisitedRow = row;
+                activate(row);
+                return;
+            }
+        }
+    }
+}
+
 void ProblemsModel::clear()
 {
     m_byPath.clear();
     m_collapsed.clear();
+    m_lastVisitedRow = -1;
     m_hasAnalysed = false;
     rebuild();
 }

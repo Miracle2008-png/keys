@@ -455,6 +455,9 @@ int main(int argc, char* argv[])
                          controller.openFileAt(path, line, column);
                      });
 
+    QObject::connect(&controller, &ui::AppController::nextProblemRequested,
+                     &problemsModel, &ui::ProblemsModel::goToNextProblem);
+
     QObject::connect(&problemsModel, &ui::ProblemsModel::problemActivated, &app,
                      [&controller](const QString& path, int line, int column) {
                          controller.openFileAt(path, line, column);

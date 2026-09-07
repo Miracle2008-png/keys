@@ -127,6 +127,31 @@ public:
         Lua,        ///< `--` comments and `--[[ ]]` blocks
         Perl,
         R,
+
+        // Functional and ML-family languages. Their comment syntax is the part
+        // that differs most: `--` for Haskell, `#` for Elixir, `(* *)` for
+        // OCaml and F#.
+        Haskell,
+        Elixir,
+        OCaml,
+        FSharp,
+
+        // Systems and scripting languages that share the C family's shape.
+        Zig,
+        Nim,
+        Groovy,
+        Julia,
+
+        /// Objective-C. Its own entry rather than C's: `@interface`, `nil` and
+        /// the message-send brackets are most of what a reader scans for, and
+        /// C's rules mark none of them.
+        ObjectiveC,
+
+        /// Assembly. Unlike everything else here it is not keyword-driven: the
+        /// vocabulary is per-architecture, so the rules cover the shape all
+        /// assemblers share - directives, labels, registers, `;` or `#`
+        /// comments - plus the mnemonics common to x86 and ARM.
+        Assembly,
     };
 
     /// The language for a path, or None when Keys has no rules for it.

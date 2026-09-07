@@ -11,6 +11,11 @@ import Keys.Ui
 Item {
     id: root
 
+    // Escape leaves, which is what a full-page view does everywhere else. The
+    // page has to be focusable for the key to arrive at all.
+    focus: visible
+    Keys.onEscapePressed: App.setSettingsOpen(false)
+
     /// The design asks for spacious layout; the content is held to a readable
     /// measure rather than stretching a label and its control to opposite ends
     /// of a wide window. The band is centred, and the header uses the same one
@@ -59,12 +64,26 @@ Item {
             font.pointSize: Metrics.fontSizeSmall
         }
 
+        // The way out. The page took over the whole editor area and offered no
+        // exit at all: the gear in the activity rail toggled it, but nothing on
+        // the page said so, and a screen with no visible way back is a trap
+        // however it was opened.
+        IconButton {
+            id: closeButton
+
+            x: root.contentX + root.contentWidth - width
+            anchors.verticalCenter: heading.verticalCenter
+            source: Icons.close
+            tooltip: qsTr("Close settings")
+            onClicked: App.setSettingsOpen(false)
+        }
+
         // Offered only when something has actually been changed, so the page
         // does not carry a destructive action that would do nothing.
         Item {
             id: resetAll
 
-            x: root.contentX + root.contentWidth - width
+            x: closeButton.x - width - Metrics.spacingSmall
             anchors.verticalCenter: heading.verticalCenter
             width: resetAllLabel.implicitWidth + 24
             height: 28

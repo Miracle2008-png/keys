@@ -618,6 +618,18 @@ void AppController::registerWorkbenchCommands()
         [this] { closeProject(); },
         [this] { return hasProject(); });
 
+    add(QStringLiteral("workbench.nextProblem"),
+        QStringLiteral("Next Problem"),
+        QStringLiteral("Code"),
+        [this] { emit nextProblemRequested(); },
+        [this] { return hasProject(); });
+
+    add(QStringLiteral("workbench.closeSettings"),
+        QStringLiteral("Close Settings"),
+        QStringLiteral("View"),
+        [this] { setSettingsOpen(false); },
+        [this] { return m_settingsOpen; });
+
     add(QStringLiteral("workbench.toggleProblems"),
         QStringLiteral("Toggle Problems"),
         QStringLiteral("View"),

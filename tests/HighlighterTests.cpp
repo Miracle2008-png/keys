@@ -316,8 +316,17 @@ private slots:
         // selects them. This is the whole mapping, asserted.
         const auto expect = [](const QString& path,
                                SyntaxHighlighter::Language language) {
-            QVERIFY2(SyntaxHighlighter::languageForPath(path) == language,
-                     qPrintable(path));
+            // The expected and actual values are reported, because "a.mm
+            // failed" does not say whether the mapping is wrong or the
+            // expectation is - and it was the expectation, left behind when
+            // .mm moved from C to Objective-C.
+            const SyntaxHighlighter::Language actual =
+                SyntaxHighlighter::languageForPath(path);
+            QVERIFY2(actual == language,
+                     qPrintable(QStringLiteral("%1: expected %2, got %3")
+                                    .arg(path)
+                                    .arg(static_cast<int>(language))
+                                    .arg(static_cast<int>(actual))));
         };
 
         expect(QStringLiteral("a.cs"), SyntaxHighlighter::Language::CSharp);
@@ -333,12 +342,38 @@ private slots:
         expect(QStringLiteral("a.pl"), SyntaxHighlighter::Language::Perl);
         expect(QStringLiteral("a.pm"), SyntaxHighlighter::Language::Perl);
         expect(QStringLiteral("a.r"), SyntaxHighlighter::Language::R);
+        expect(QStringLiteral("a.hs"), SyntaxHighlighter::Language::Haskell);
+        expect(QStringLiteral("a.ex"), SyntaxHighlighter::Language::Elixir);
+        expect(QStringLiteral("a.ml"), SyntaxHighlighter::Language::OCaml);
+        expect(QStringLiteral("a.fs"), SyntaxHighlighter::Language::FSharp);
+        expect(QStringLiteral("a.zig"), SyntaxHighlighter::Language::Zig);
+        expect(QStringLiteral("a.nim"), SyntaxHighlighter::Language::Nim);
+        expect(QStringLiteral("a.groovy"), SyntaxHighlighter::Language::Groovy);
+        expect(QStringLiteral("a.jl"), SyntaxHighlighter::Language::Julia);
+        expect(QStringLiteral("a.asm"), SyntaxHighlighter::Language::Assembly);
+        expect(QStringLiteral("a.s"), SyntaxHighlighter::Language::Assembly);
+        expect(QStringLiteral("a.wat"), SyntaxHighlighter::Language::Assembly);
+
+        // Objective-C has its own rules now; .m used to point at C, which left
+        // @interface and nil unmarked in every Objective-C file.
+        expect(QStringLiteral("a.m"), SyntaxHighlighter::Language::ObjectiveC);
+        expect(QStringLiteral("a.mm"), SyntaxHighlighter::Language::ObjectiveC);
+
+        // A sample of the long tail, each mapped because the shape matches.
+        expect(QStringLiteral("a.glsl"), SyntaxHighlighter::Language::C);
+        expect(QStringLiteral("a.hlsl"), SyntaxHighlighter::Language::C);
+        expect(QStringLiteral("a.svelte"), SyntaxHighlighter::Language::Html);
+        expect(QStringLiteral("a.csproj"), SyntaxHighlighter::Language::Html);
+        expect(QStringLiteral("a.ipynb"), SyntaxHighlighter::Language::JavaScript);
+        expect(QStringLiteral("a.pyx"), SyntaxHighlighter::Language::Python);
+        expect(QStringLiteral("a.graphql"), SyntaxHighlighter::Language::Sql);
+        expect(QStringLiteral("a.tf"), SyntaxHighlighter::Language::Toml);
+        expect(QStringLiteral("a.sbt"), SyntaxHighlighter::Language::Scala);
 
         // Extensions that map onto existing rules.
         expect(QStringLiteral("a.mjs"), SyntaxHighlighter::Language::JavaScript);
         expect(QStringLiteral("a.mts"), SyntaxHighlighter::Language::TypeScript);
         expect(QStringLiteral("a.cu"), SyntaxHighlighter::Language::C);
-        expect(QStringLiteral("a.mm"), SyntaxHighlighter::Language::C);
         expect(QStringLiteral("a.vue"), SyntaxHighlighter::Language::Html);
         expect(QStringLiteral("a.less"), SyntaxHighlighter::Language::Css);
         expect(QStringLiteral("a.pyi"), SyntaxHighlighter::Language::Python);
@@ -416,6 +451,51 @@ private slots:
         QCOMPARE(outgoing, LineState::Normal);
     }
 
+    void assemblyUsesSemicolonComments()
+    {
+        // Every assembler disagrees about this. `;` is what NASM, MASM and most
+        // x86 listings use, and what a reader of a .asm file expects.
+        QCOMPARE(kindOf(QStringLiteral("; a comment"), QStringLiteral("; a comment"),
+                        SyntaxHighlighter::Language::Assembly),
+                 TokenKind::Comment);
+    }
+
+    void assemblyMarksRegistersApartFromMnemonics()
+    {
+        // Registers are the machine, mnemonics are the program. Separating them
+        // is most of what makes a listing scannable.
+        QCOMPARE(kindOf(QStringLiteral("    mov rax, 1"), QStringLiteral("mov"),
+                        SyntaxHighlighter::Language::Assembly),
+                 TokenKind::Keyword);
+        QCOMPARE(kindOf(QStringLiteral("    mov rax, 1"), QStringLiteral("rax"),
+                        SyntaxHighlighter::Language::Assembly),
+                 TokenKind::Type);
+    }
+
+    void languagesWithoutSlashStarDoNotOpenABlockComment()
+    {
+        // Haskell is {- -}, Nim is #[ ]#, Julia is #= =#, OCaml and F# are
+        // (* *). Claiming /* */ for any of them would make a division followed
+        // by a dereference open a comment that never closes and grey out the
+        // rest of the file.
+        for (const SyntaxHighlighter::Language language : {
+                 SyntaxHighlighter::Language::Haskell,
+                 SyntaxHighlighter::Language::Nim,
+                 SyntaxHighlighter::Language::Julia,
+                 SyntaxHighlighter::Language::OCaml,
+                 SyntaxHighlighter::Language::Lua,
+             }) {
+            const SyntaxHighlighter highlighter(language);
+            LineState outgoing = LineState::Normal;
+            const std::vector<Token> tokens = highlighter.tokenize(
+                QStringLiteral("a = b / c"), LineState::Normal, outgoing);
+            QCOMPARE(outgoing, LineState::Normal);
+            for (const Token& token : tokens) {
+                QVERIFY(token.kind != TokenKind::Comment);
+            }
+        }
+    }
+
     void perlAndRUseHashComments()
     {
         QCOMPARE(kindOf(QStringLiteral("# a comment"), QStringLiteral("# a comment"),
@@ -454,6 +534,26 @@ private slots:
              QStringLiteral("sub a { return 1; }")},
             {SyntaxHighlighter::Language::R,
              QStringLiteral("a <- function(x) { if (x > 0) TRUE else FALSE }")},
+            {SyntaxHighlighter::Language::Haskell,
+             QStringLiteral("data A = A deriving (Show)")},
+            {SyntaxHighlighter::Language::Elixir,
+             QStringLiteral("defmodule A do def b, do: nil end")},
+            {SyntaxHighlighter::Language::OCaml,
+             QStringLiteral("let rec f x = match x with | 0 -> 1 | n -> n")},
+            {SyntaxHighlighter::Language::FSharp,
+             QStringLiteral("let f x = match x with | 0 -> 1 | n -> n")},
+            {SyntaxHighlighter::Language::Zig,
+             QStringLiteral("pub fn main() void { const a = 1; }")},
+            {SyntaxHighlighter::Language::Nim,
+             QStringLiteral("proc f(x: int): int = discard")},
+            {SyntaxHighlighter::Language::Groovy,
+             QStringLiteral("class A { def b() { return null } }")},
+            {SyntaxHighlighter::Language::Julia,
+             QStringLiteral("function f(x) return x end")},
+            {SyntaxHighlighter::Language::ObjectiveC,
+             QStringLiteral("@interface A : NSObject @end")},
+            {SyntaxHighlighter::Language::Assembly,
+             QStringLiteral("    mov rax, 1")},
         };
 
         for (const Sample& sample : samples) {

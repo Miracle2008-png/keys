@@ -231,6 +231,11 @@ signals:
     /// The problems list was asked for.
     void problemsToggleRequested();
 
+    /// Jump to the next diagnostic. The model owns the cursor through the list;
+    /// the controller only relays the request, because the command registry is
+    /// the controller's and the problems are the model's.
+    void nextProblemRequested();
+
     void newFileRequested();
     void newFolderRequested();
     void saveAsRequested();
