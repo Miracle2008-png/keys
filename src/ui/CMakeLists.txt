@@ -101,6 +101,7 @@ qt_add_qml_module(keys_ui
         qml/StatusItem.qml
         qml/TerminalPanel.qml
         qml/TopBar.qml
+        qml/UninstallConfirmDialog.qml
         qml/UpdateNotice.qml
         qml/WelcomeButton.qml
         qml/WelcomeView.qml

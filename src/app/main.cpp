@@ -271,7 +271,8 @@ int main(int argc, char* argv[])
         // `--open-file foo.cpp .` treats foo.cpp as the folder to open, fails,
         // and leaves the window on the welcome screen.
         if (argument.startsWith(QLatin1String("--"))) {
-            if (argument == QLatin1String("--open-file")) {
+            if (argument == QLatin1String("--open-file")
+                || argument == QLatin1String("--install-extension")) {
                 ++i;
             }
             continue;
@@ -430,6 +431,33 @@ int main(int argc, char* argv[])
                          controller.reportNotice(message);
                      });
 
+    // Installing reports either way. A silent failure would leave the user
+    // looking at a panel that did not change, with no way to tell whether the
+    // folder was wrong or the click missed.
+    QObject::connect(&extensionsModel, &ui::ExtensionsModel::installed, &app,
+                     [&controller](const QString& name, int pending) {
+                         controller.reportNotice(
+                             pending > 0
+                                 ? QCoreApplication::translate(
+                                       "main",
+                                       "%1 installed. It is waiting for permission "
+                                       "before it runs.").arg(name)
+                                 : QCoreApplication::translate(
+                                       "main", "%1 installed.").arg(name));
+                     });
+
+    QObject::connect(&extensionsModel, &ui::ExtensionsModel::installFailed, &app,
+                     [&controller](const QString& reason) {
+                         controller.reportNotice(reason);
+                     });
+
+    QObject::connect(&extensionsModel, &ui::ExtensionsModel::uninstalled, &app,
+                     [&controller](const QString& name) {
+                         controller.reportNotice(
+                             QCoreApplication::translate("main", "%1 removed.")
+                                 .arg(name));
+                     });
+
     QObject::connect(&debug, &ui::DebugModel::locationRequested, &app,
                      [&controller](const QString& path, int line) {
                          controller.openFileAt(path, line, 1);
@@ -515,6 +543,16 @@ int main(int argc, char* argv[])
             const QString file = arguments.at(i + 1);
             QTimer::singleShot(900, &app, [&controller, file] {
                 controller.openFile(QDir().absoluteFilePath(file));
+            });
+        } else if (argument == QLatin1String("--install-extension")
+                   && i + 1 < arguments.size()) {
+            const QString folder = arguments.at(i + 1);
+            QTimer::singleShot(900, &app, [&extensionsModel, folder] {
+                extensionsModel.installFromFolder(folder);
+            });
+        } else if (argument == QLatin1String("--open-extensions")) {
+            QTimer::singleShot(1100, &app, [&controller] {
+                controller.selectView(QStringLiteral("extensions"));
             });
         } else if (argument == QLatin1String("--open-problems")) {
             QTimer::singleShot(1200, &app, [&engine] {

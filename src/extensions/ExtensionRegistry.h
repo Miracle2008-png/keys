@@ -49,6 +49,28 @@ public:
     /// asks; nothing polls.
     void discover();
 
+    /// Installs an extension from a folder containing `keys-extension.json`.
+    ///
+    /// **Validated before it is copied, not after.** A manifest that will not
+    /// parse, or an entry point that is not there, fails without leaving a
+    /// half-installed directory behind - which would then appear in the panel
+    /// as a broken extension the user did not ask for.
+    ///
+    /// **Reinstalling replaces.** Installing an id that already exists is an
+    /// upgrade, so the old directory is removed first rather than merged with
+    /// the new one: a file the new version dropped would otherwise survive.
+    ///
+    /// Grants are deliberately *not* carried across an upgrade. A new version
+    /// can ask for capabilities the old one did not, and silently keeping a
+    /// previous yes would grant them without anyone being asked.
+    core::Result<QString> installFromDirectory(const QString& sourceDirectory);
+
+    /// Removes an extension and everything it was granted.
+    ///
+    /// Stops it first: deleting the directory of a running host would leave a
+    /// process alive with no files, which fails in ways that are hard to read.
+    core::Status uninstall(const QString& extensionId);
+
     [[nodiscard]] const std::vector<InstalledExtension>& installed() const
     {
         return m_installed;

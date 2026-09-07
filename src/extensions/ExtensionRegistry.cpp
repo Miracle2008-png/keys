@@ -3,6 +3,8 @@
 #include "core/Log.h"
 
 #include <QDir>
+#include <QDirIterator>
+#include <QFile>
 #include <QStandardPaths>
 
 #include <algorithm>
@@ -82,6 +84,148 @@ void ExtensionRegistry::discover()
     }
 
     emit extensionsChanged();
+}
+
+namespace {
+
+/// Copies a directory tree. Qt has no recursive copy, and shelling out to the
+/// platform would make installation depend on a program being present.
+///
+/// Failures are reported with the path that failed rather than as a bare false:
+/// "could not install" tells the user nothing they can act on.
+core::Status copyTree(const QString& from, const QString& to)
+{
+    QDir().mkpath(to);
+
+    QDirIterator iterator(from, QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot,
+                          QDirIterator::Subdirectories);
+
+    while (iterator.hasNext()) {
+        const QString sourcePath = iterator.next();
+        const QString relative = QDir(from).relativeFilePath(sourcePath);
+        const QString targetPath = QDir(to).filePath(relative);
+
+        const QFileInfo info(sourcePath);
+        if (info.isDir()) {
+            if (!QDir().mkpath(targetPath)) {
+                return core::Err(core::ErrorCode::IoError,
+                                 QStringLiteral("Could not create a directory"),
+                                 targetPath);
+            }
+            continue;
+        }
+
+        if (!QDir().mkpath(QFileInfo(targetPath).path())) {
+            return core::Err(core::ErrorCode::IoError,
+                             QStringLiteral("Could not create a directory"),
+                             QFileInfo(targetPath).path());
+        }
+        if (!QFile::copy(sourcePath, targetPath)) {
+            return core::Err(core::ErrorCode::IoError,
+                             QStringLiteral("Could not copy a file"), relative);
+        }
+    }
+    return core::Ok();
+}
+
+} // namespace
+
+core::Result<QString> ExtensionRegistry::installFromDirectory(
+    const QString& sourceDirectory)
+{
+    // Everything is checked before anything is written. A half-installed
+    // extension would appear in the panel as broken, and the user would have to
+    // work out that they were looking at wreckage rather than a bad extension.
+    const QFileInfo source(sourceDirectory);
+    if (!source.isDir()) {
+        return core::Err(core::ErrorCode::NotFound,
+                         QStringLiteral("That is not a folder"), sourceDirectory);
+    }
+
+    const core::Result<Manifest> manifest = Manifest::load(sourceDirectory);
+    if (!manifest) {
+        return core::Err(manifest.error().code(),
+                         QStringLiteral("This folder is not a Keys extension: %1")
+                             .arg(manifest.error().message()),
+                         sourceDirectory);
+    }
+
+    const QString entry = QDir(sourceDirectory).filePath(manifest.value().entryPoint);
+    if (!QFileInfo::exists(entry)) {
+        return core::Err(core::ErrorCode::NotFound,
+                         QStringLiteral("The manifest names an entry point that is "
+                                        "not in the folder"),
+                         manifest.value().entryPoint);
+    }
+
+    const QString target =
+        QDir(extensionsDirectory()).filePath(manifest.value().id);
+
+    // Refuse to install a folder onto itself, which would delete it.
+    if (QFileInfo(target).canonicalFilePath()
+        == QFileInfo(sourceDirectory).canonicalFilePath()) {
+        return core::Err(core::ErrorCode::InvalidArgument,
+                         QStringLiteral("That extension is already installed here"),
+                         manifest.value().id);
+    }
+
+    // An existing id is an upgrade. The old directory goes entirely rather than
+    // being merged: a file the new version dropped would otherwise survive and
+    // be loaded.
+    if (QFileInfo::exists(target)) {
+        if (const core::Status stopped = uninstall(manifest.value().id); !stopped) {
+            return core::Err(stopped.error().code(), stopped.error().message(),
+                             stopped.error().context());
+        }
+    }
+
+    if (const core::Status copied = copyTree(sourceDirectory, target); !copied) {
+        // Nothing usable is left behind: a directory that failed halfway
+        // through copying is not an extension.
+        QDir(target).removeRecursively();
+        return core::Err(copied.error().code(), copied.error().message(),
+                         copied.error().context());
+    }
+
+    discover();
+
+    qCInfo(lcCore) << "installed extension" << manifest.value().id
+                   << manifest.value().version;
+
+    return manifest.value().id;
+}
+
+core::Status ExtensionRegistry::uninstall(const QString& extensionId)
+{
+    const InstalledExtension* extension = find(extensionId);
+    if (!extension) {
+        return core::Err(core::ErrorCode::NotFound,
+                         QStringLiteral("No such extension is installed"),
+                         extensionId);
+    }
+
+    const QString directory = extension->directory;
+
+    // Stopped before its files go. Deleting the directory of a running host
+    // leaves a process alive with nothing to read, which fails in ways that are
+    // hard to attribute.
+    m_hosts.erase(extensionId);
+
+    // The grant goes with it. Reinstalling later must ask again rather than
+    // inheriting a yes given to a version that no longer exists.
+    setGranted(extensionId, {});
+
+    if (!QDir(directory).removeRecursively()) {
+        return core::Err(core::ErrorCode::IoError,
+                         QStringLiteral("The extension was stopped but its files "
+                                        "could not be removed"),
+                         directory);
+    }
+
+    discover();
+
+    qCInfo(lcCore) << "uninstalled extension" << extensionId;
+    return core::Ok();
 }
 
 const InstalledExtension* ExtensionRegistry::find(const QString& extensionId) const

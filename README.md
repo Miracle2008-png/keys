@@ -57,6 +57,17 @@ said otherwise was a console application measuring its own environment.
 
 `tools/pty-check.cpp` must therefore be run detached, never from a shell.
 
+Extensions run out of process and declare what they need - reading the
+workspace, reaching the network, spawning processes - which the user reads in
+plain language and grants or does not. Nothing runs before that. They install
+from a folder containing a `keys-extension.json`, and uninstalling removes the
+files and forgets the grant, so reinstalling asks again.
+
+There is no marketplace. Browsing and installing from a registry needs a server
+to host packages and signing so that "install" is not "download and run
+arbitrary code with filesystem access", and neither is something the editor can
+provide by itself.
+
 Features that are not implemented yet are visibly absent or explicitly
 disabled — nothing in the interface pretends to work. The same rule governs
 settings: a setting is declared only once something honours it, so the settings

@@ -1,6 +1,9 @@
 #include "ui/ExtensionsModel.h"
 
+#include "extensions/ExtensionRegistry.h"
+
 #include <QVariantMap>
+#include <QDir>
 
 using keys::extensions::Capability;
 using keys::extensions::InstalledExtension;
@@ -68,6 +71,65 @@ void ExtensionsModel::rebuild()
 void ExtensionsModel::refresh()
 {
     m_registry.discover();
+}
+
+namespace {
+
+/// The installed extension with this id, or nullptr. The registry keeps its own
+/// find() private, and widening that just for a lookup the caller can do is a
+/// worse trade than four lines here.
+const extensions::InstalledExtension* findInstalled(
+    const extensions::ExtensionRegistry& registry, const QString& extensionId)
+{
+    for (const extensions::InstalledExtension& extension : registry.installed()) {
+        if (extension.manifest.id == extensionId) {
+            return &extension;
+        }
+    }
+    return nullptr;
+}
+
+} // namespace
+
+void ExtensionsModel::installFromFolder(const QString& folder)
+{
+    const core::Result<QString> id = m_registry.installFromDirectory(folder);
+    if (!id) {
+        emit installFailed(id.error().message());
+        return;
+    }
+
+    const extensions::InstalledExtension* installedExtension =
+        findInstalled(m_registry, id.value());
+    if (!installedExtension) {
+        emit installFailed(tr("The extension installed but could not be read back."));
+        return;
+    }
+
+    // How many capabilities still need a decision, so the notice can say what
+    // is waiting rather than leaving an extension installed and inert.
+    int pending = 0;
+    for (const extensions::Capability capability :
+         installedExtension->manifest.capabilities) {
+        if (extensions::capabilityIsSensitive(capability)) {
+            ++pending;
+        }
+    }
+
+    emit installed(installedExtension->manifest.name, pending);
+}
+
+void ExtensionsModel::uninstall(const QString& extensionId)
+{
+    const extensions::InstalledExtension* extension =
+        findInstalled(m_registry, extensionId);
+    const QString name = extension ? extension->manifest.name : extensionId;
+
+    if (const core::Status status = m_registry.uninstall(extensionId); !status) {
+        emit installFailed(status.error().message());
+        return;
+    }
+    emit uninstalled(name);
 }
 
 int ExtensionsModel::rowCount(const QModelIndex& parent) const

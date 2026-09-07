@@ -10,16 +10,51 @@ import Keys.Ui
 Item {
     id: root
 
+    /// Picks the folder to install from. An extension is a folder holding a
+    /// `keys-extension.json`; there is no archive format because Keys would
+    /// have to carry an unpacker to read one, and a folder is what a developer
+    /// building an extension already has.
+    /// Uninstalling deletes files. Nothing else in this panel does, so it is
+    /// the one action here that asks first.
+    UninstallConfirmDialog {
+        id: confirmUninstall
+
+        onConfirmed: (extensionId) => Extensions.uninstall(extensionId)
+    }
+
+    FolderPicker {
+        id: installPicker
+
+        title: qsTr("Choose an extension folder")
+        onFolderAccepted: (path) => Extensions.installFromFolder(path)
+    }
+
     Column {
         anchors.fill: parent
         anchors.leftMargin: Metrics.spacingMedium
         anchors.rightMargin: Metrics.spacingMedium
         spacing: Metrics.spacingSmall
 
+        // The install control, always present. It used to say only where the
+        // folder was, which left copying files by hand as the sole way to
+        // install anything.
+        Item {
+            width: parent.width
+            height: 34
+
+            PrimaryButton {
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                text: qsTr("Install from Folder")
+                onClicked: installPicker.open()
+            }
+        }
+
         Text {
             width: parent.width
             visible: Extensions.count === 0
-            text: qsTr("No extensions installed.\n\nExtensions go in:\n%1")
+            text: qsTr("No extensions installed.\n\nAn extension is a folder with a "
+                       + "keys-extension.json in it. Installing copies it to:\n%1")
                       .arg(Extensions.directory)
             color: Theme.textTertiary
             font.family: Fonts.ui
@@ -167,21 +202,31 @@ Item {
                     Item { width: 1; height: 4 }
 
                     Row {
-                        visible: card.error.length === 0
                         spacing: 6
 
                         DialogButton {
-                            visible: !card.granted
+                            visible: card.error.length === 0 && !card.granted
                             primary: true
                             text: qsTr("Allow and run")
                             onClicked: Extensions.grantAll(card.extensionId)
                         }
 
                         DialogButton {
-                            visible: card.granted
+                            visible: card.error.length === 0 && card.granted
                             destructive: true
                             text: qsTr("Revoke")
                             onClicked: Extensions.revokeAll(card.extensionId)
+                        }
+
+                        // Shown even for an extension that failed to load -
+                        // especially then. A broken extension is exactly the
+                        // one a user wants to remove, and it was previously
+                        // the only one they could not.
+                        DialogButton {
+                            destructive: true
+                            text: qsTr("Uninstall")
+                            onClicked: confirmUninstall.ask(card.extensionId,
+                                                            card.name)
                         }
                     }
                 }

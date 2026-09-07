@@ -61,7 +61,23 @@ public:
 
     Q_INVOKABLE void refresh();
 
+    /// Installs from a folder containing `keys-extension.json`.
+    ///
+    /// Reports through `installFailed` rather than returning: the picker that
+    /// supplies the folder is asynchronous, so the caller is no longer waiting
+    /// by the time this finishes.
+    Q_INVOKABLE void installFromFolder(const QString& folder);
+
+    Q_INVOKABLE void uninstall(const QString& extensionId);
+
 signals:
+    /// An extension was installed. Carries the name so the notice can say which
+    /// one, and how many capabilities it is waiting to be granted.
+    void installed(const QString& name, int pendingCapabilities);
+
+    void installFailed(const QString& reason);
+    void uninstalled(const QString& name);
+
     void changed();
 
 private:
