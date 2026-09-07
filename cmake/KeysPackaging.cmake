@@ -324,6 +324,14 @@ if(WIN32)
     set(CPACK_NSIS_HELP_LINK "https://github.com/Miracle2008-png/keys")
     set(CPACK_NSIS_CONTACT "https://github.com/Miracle2008-png/keys/issues")
 
+    # NoModify and NoRepair are rewritten as DWORDs.
+    #
+    # CPack writes them through ConditionalAddToRegistry, which only writes
+    # strings - so they landed as REG_SZ "1" where Windows expects REG_DWORD
+    # 1. Every healthy entry on this machine has them as DWORDs, and a
+    # wrong type is invisible in a value dump: the data reads "1" either
+    # way, and only the kind differs.
+
     # The size Add/Remove Programs shows, in KB.
     #
     # Measured here rather than with NSIS's GetSize macro: that needs
@@ -342,7 +350,9 @@ if(WIN32)
         "WriteRegStr SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'DisplayIcon' '$INSTDIR\\\\bin\\\\keys.exe,0'
   WriteRegStr SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'InstallLocation' '$INSTDIR'
   WriteRegDWORD SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'EstimatedSize' ${keys_installed_kb}
-  WriteRegStr SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'InstallDate' '${keys_install_date}'")
+  WriteRegStr SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'InstallDate' '${keys_install_date}'
+  WriteRegDWORD SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'NoModify' 1
+  WriteRegDWORD SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'NoRepair' 1")
 
 endif()
 
