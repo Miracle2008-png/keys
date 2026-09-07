@@ -314,8 +314,13 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 8
 
+                    // "New Project", not "New Folder". A folder is what it
+                    // creates, but a project is what the user came here for -
+                    // and naming it after the mechanism left them looking at a
+                    // dialog that asked for a name and said nothing about where
+                    // it would go.
                     WelcomeButton {
-                        text: qsTr("New Folder")
+                        text: qsTr("New Project")
                         onClicked: root.newProjectRequested()
                     }
 

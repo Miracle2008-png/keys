@@ -46,6 +46,12 @@ Window {
     }
 
     /// Shows the problems list, or hides the dock when it is already showing.
+    /// Opens the new-project dialog. Reachable from the window so the startup
+    /// flag and any future menu item go through one path.
+    function showNewProject() {
+        newProjectDialog.start();
+    }
+
     function toggleProblems() {
         if (dockOpen && dockPanel === "problems") {
             dockOpen = false;
@@ -120,10 +126,9 @@ Window {
                         anchors.right: parent.right
                         anchors.bottom: bottomDock.visible ? bottomDock.top : parent.bottom
 
-                        // The welcome screen asks for a folder; the window owns
-                        // the dialog that makes one.
-                        onNewProjectRequested: nameDialog.open(
-                            NameDialog.CreateFolder, App.newFileDirectory(), "")
+                        // The welcome screen asks for a project; the window
+                        // owns the dialog that makes one.
+                        onNewProjectRequested: newProjectDialog.start()
                     }
 
                     // The terminal lives across the bottom rather than in the
@@ -415,6 +420,10 @@ Window {
 
     // An update is not an error and not urgent, so it gets its own notice in
     // the opposite corner: persistent, with an action, and dismissable.
+    NewProjectDialog {
+        id: newProjectDialog
+    }
+
     UpdateNotice {
         id: updateNotice
 

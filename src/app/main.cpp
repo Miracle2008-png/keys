@@ -572,6 +572,13 @@ int main(int argc, char* argv[])
             QTimer::singleShot(1100, &app, [&controller] {
                 controller.selectView(QStringLiteral("extensions"));
             });
+        } else if (argument == QLatin1String("--new-project")) {
+            QTimer::singleShot(1200, &app, [&engine] {
+                if (!engine.rootObjects().isEmpty()) {
+                    QMetaObject::invokeMethod(engine.rootObjects().first(),
+                                              "showNewProject");
+                }
+            });
         } else if (argument == QLatin1String("--open-problems")) {
             QTimer::singleShot(1200, &app, [&engine] {
                 if (!engine.rootObjects().isEmpty()) {

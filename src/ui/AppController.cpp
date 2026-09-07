@@ -1,6 +1,7 @@
 #include "ui/AppController.h"
 
 #include <QDir>
+#include <QStandardPaths>
 #include <QClipboard>
 #include <QGuiApplication>
 #include <QFileInfo>
@@ -564,6 +565,52 @@ bool AppController::createFolder(const QString& path)
     }
     m_lastError.clear();
     return true;
+}
+
+QString AppController::createProject(const QString& parentDirectory,
+                                     const QString& name)
+{
+    const QString trimmed = name.trimmed();
+    if (trimmed.isEmpty()) {
+        m_lastError = tr("A project needs a name.");
+        emit errorOccurred(m_lastError);
+        return {};
+    }
+
+    // A name, not a path. Letting a name contain separators would silently
+    // create something several levels down from where the dialog said.
+    if (trimmed.contains(QLatin1Char('/')) || trimmed.contains(QLatin1Char('\\'))) {
+        m_lastError = tr("A project name cannot contain slashes.");
+        emit errorOccurred(m_lastError);
+        return {};
+    }
+
+    const QString parent = parentDirectory.isEmpty() ? defaultProjectLocation()
+                                                     : parentDirectory;
+    const QString path = QDir(parent).filePath(trimmed);
+
+    if (QFileInfo::exists(path)) {
+        m_lastError = tr("A folder called %1 is already there.").arg(trimmed);
+        emit errorOccurred(m_lastError);
+        return {};
+    }
+
+    if (!QDir().mkpath(path)) {
+        m_lastError = tr("The folder could not be created in %1.").arg(parent);
+        emit errorOccurred(m_lastError);
+        return {};
+    }
+
+    m_lastError.clear();
+    openProject(path);
+    return path;
+}
+
+QString AppController::defaultProjectLocation()
+{
+    const QString documents =
+        QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    return documents.isEmpty() ? QDir::homePath() : documents;
 }
 
 QString AppController::version()

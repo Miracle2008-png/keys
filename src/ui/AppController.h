@@ -181,6 +181,24 @@ public:
     /// Copies the active file's path to the clipboard.
     Q_INVOKABLE void copyActivePath();
 
+    /// Creates a project folder under `parentDirectory` and opens it.
+    ///
+    /// A project in Keys is a folder, so creating one is creating a directory
+    /// and opening it - but the two have to happen together. "New Folder" on
+    /// the welcome screen used to create a folder relative to the open project,
+    /// and with no project open that resolved to a bare name with no base: the
+    /// folder went nowhere and nothing opened.
+    ///
+    /// Returns the absolute path, or empty on failure with the reason in
+    /// `lastError`.
+    Q_INVOKABLE QString createProject(const QString& parentDirectory,
+                                      const QString& name);
+
+    /// Where a new project should be offered by default: the user's documents
+    /// folder, which is somewhere they can actually write, rather than whatever
+    /// directory the application happens to have been launched from.
+    Q_INVOKABLE [[nodiscard]] static QString defaultProjectLocation();
+
     /// Splits the editor, or collapses back to one pane if already split.
     Q_INVOKABLE void toggleSplit();
 
