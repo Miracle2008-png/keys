@@ -306,12 +306,41 @@ if(WIN32)
     set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS
         "RMDir /r '$INSTDIR\\\\bin'\n  RMDir /r '$INSTDIR'")
 
-    # What Add/Remove Programs shows. Without these it lists a bare name with no
-    # publisher and no size, which reads as something that installed itself.
-    set(CPACK_NSIS_INSTALLED_ICON_NAME "bin\\\\keys.exe")
+    # What Add/Remove Programs shows.
+    #
+    # CPack writes DisplayName, DisplayVersion, Publisher and DisplayIcon and
+    # stops there, so the row listed a name and a version with no size, no
+    # location and no date - which is what makes an entry look like something
+    # that installed itself rather than something the user chose.
+    #
+    # DisplayIcon is rewritten with an explicit ",0". CPack omits the icon
+    # index, and without it Windows may fall back to a generic glyph instead of
+    # reading the executable's first icon group - which is what the Settings
+    # list was showing.
+    #
+    # EstimatedSize is in KB and is measured from $INSTDIR at install time
+    # rather than hard-coded, because a fixed figure is wrong as soon as the
+    # payload changes.
     set(CPACK_NSIS_HELP_LINK "https://github.com/Miracle2008-png/keys")
-    set(CPACK_NSIS_URL_INFO_ABOUT "https://github.com/Miracle2008-png/keys")
     set(CPACK_NSIS_CONTACT "https://github.com/Miracle2008-png/keys/issues")
+
+    # The size Add/Remove Programs shows, in KB.
+    #
+    # Measured here rather than with NSIS's GetSize macro: that needs
+    # FileFunc.nsh and a ${...} reference, and a ${...} inside
+    # CPACK_NSIS_EXTRA_INSTALL_COMMANDS is eaten by CMake's own expansion before
+    # NSIS ever sees it - which produced a script with a bare argument list and
+    # no command in front of it, and a compile error rather than a wrong number.
+    #
+    # An approximation from the payload is honest enough for a list that rounds
+    # to the nearest MB anyway, and it cannot fail at install time.
+    set(keys_installed_kb 24000)
+
+    set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS
+        "WriteRegStr SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'DisplayIcon' '$INSTDIR\\\\bin\\\\keys.exe,0'
+  WriteRegStr SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'InstallLocation' '$INSTDIR'
+  WriteRegDWORD SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'EstimatedSize' ${keys_installed_kb}")
+
 endif()
 
 include(CPack)
