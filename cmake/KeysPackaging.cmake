@@ -324,6 +324,9 @@ if(WIN32)
     set(CPACK_NSIS_HELP_LINK "https://github.com/Miracle2008-png/keys")
     set(CPACK_NSIS_CONTACT "https://github.com/Miracle2008-png/keys/issues")
 
+    # The version numbers as DWORDs, which Inno Setup writes and CPack does
+    # not. Some tools parse these instead of the DisplayVersion string.
+
     # The remaining values every healthy per-user entry carries.
     #
     # Found by listing the value *names* of two entries Windows displays
@@ -363,7 +366,11 @@ if(WIN32)
   WriteRegDWORD SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'NoRepair' 1
   WriteRegDWORD SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'Language' 1033
   WriteRegStr SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'QuietUninstallString' '$INSTDIR\\\\Uninstall.exe /S'
-  WriteRegStr SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'URLUpdateInfo' 'https://github.com/Miracle2008-png/keys/releases'")
+  WriteRegStr SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'URLUpdateInfo' 'https://github.com/Miracle2008-png/keys/releases'
+  WriteRegDWORD SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'VersionMajor' 0
+  WriteRegDWORD SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'VersionMinor' 2
+  WriteRegDWORD SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'MajorVersion' 0
+  WriteRegDWORD SHCTX 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Keys' 'MinorVersion' 2")
 
 endif()
 
